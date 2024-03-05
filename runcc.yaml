@@ -1,0 +1,5 @@
+commands:
+  bin: |
+    cargo run --features reload
+  lib: |
+    cargo watch -w crates/ui -x build -p ui --features reload

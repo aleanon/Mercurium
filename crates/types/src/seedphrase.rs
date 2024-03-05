@@ -1,0 +1,117 @@
+use zeroize::{ZeroizeOnDrop, Zeroize};
+
+
+///24 words with max length of 8 pluss whitespaces, including a trailing whitespace
+const MAX_PHRASE_LENGTH: usize = 216;
+const MAX_WORD_LENGTH: usize = 8;
+const WORD_COUNT: usize = 24;
+
+#[derive(Debug, ZeroizeOnDrop, Zeroize)]
+pub struct SeedPhrase([[u8; MAX_WORD_LENGTH];WORD_COUNT]);
+
+impl SeedPhrase {
+    pub fn new() -> Self {
+        Self([[b' '; MAX_WORD_LENGTH];WORD_COUNT])
+    }
+
+    /// Checks if the word index is within bounds and copies a maximum of 8 characters into the buffer.
+    /// Index starts at 0
+    /// If a word is longer then 8 characters, the first 8 characters are copied.
+    /// If the index is out of bounds, no action is performed
+    pub fn update_word(&mut self, word_index: usize, input: &str) {
+        if word_index < WORD_COUNT {
+            self.0[word_index] = [b' ';MAX_WORD_LENGTH];
+            if input.len() <= MAX_WORD_LENGTH {
+                self.0[word_index][..input.len()].copy_from_slice(input.as_bytes());
+                self.0[word_index].make_ascii_lowercase();
+            } else {
+                self.0[word_index].copy_from_slice(input[..MAX_WORD_LENGTH].as_bytes());
+                self.0[word_index].make_ascii_lowercase();
+            }
+        }
+    }
+
+    ///Returns a reference to the word at the given index
+    pub fn reference_word(&self, index: usize) -> Option<&str> {
+        if index < WORD_COUNT {
+                //The SeedPhrase words can only be created from a &str, it is therefore not possible
+                //to have a non-utf8 byte slice
+                let mut trimmed = self.0[index].as_slice();
+
+                while let [rest @ .., last] = trimmed {
+                    if last.is_ascii_whitespace() {
+                        trimmed = rest;
+                    } else {
+                        break
+                    }
+                }
+
+                let trimmed_str = std::str::from_utf8(trimmed)
+                    .unwrap_or_else(|_| unreachable!("{}:{} Invalid utf8 in byte slice", module_path!(), line!()));
+
+                Some(trimmed_str)
+        } else {
+            None
+        } 
+    }
+
+    //The byte slices are turned into a Phrase instead of a String because it should implement Zeroize on drop
+    pub fn phrase(&self) -> Phrase {
+        let mut phrase = String::with_capacity(MAX_PHRASE_LENGTH);
+        
+        for slice in self.0.iter() {
+            let mut trimmed = slice.as_slice();
+
+            while let [rest @ .., last] = trimmed {
+                if last.is_ascii_whitespace() {
+                    trimmed = rest;
+                } else {
+                    break;
+                }
+            }
+
+            let word = std::str::from_utf8(trimmed)
+                .unwrap_or_else(|_| unreachable!("{}:{} Failed to convert to utf8", module_path!(), line!()));
+
+            phrase.push_str(word);
+            phrase.push(' ');
+        }
+
+        phrase.pop();
+        
+        Phrase(phrase)
+    }
+
+}
+
+
+
+
+#[derive(Debug, ZeroizeOnDrop)]
+pub struct Phrase(String);
+
+impl Phrase {
+    //The Phrase is created with mnemonic phrase max length to avoid possible re-allocations
+    //as this can interfere with the ZeroizeOnDrop trait
+    pub fn new() -> Self {
+        Phrase(String::with_capacity(MAX_PHRASE_LENGTH))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn push_str(&mut self, str: &str) {
+        self.0.push_str(&str[..MAX_PHRASE_LENGTH-&self.0.len()]) 
+    }
+}
+
+impl From<String> for Phrase {
+    fn from(mut value: String) -> Self {
+        if value.len() < MAX_PHRASE_LENGTH {
+            value.reserve_exact(MAX_PHRASE_LENGTH-value.len());
+        }
+
+        Self(value)
+    }
+}
