@@ -1,5 +1,5 @@
 use debug_print::debug_println;
-use iced::Command;
+use iced::{Application, Command};
 use iced::futures::SinkExt;
 
 use types::{Action, Update};
@@ -31,7 +31,7 @@ impl<'a> UpdateMessage {
                         .unwrap_or_else(|err| {
                             debug_println!("Unable to update accounts: {err}");
                         });
-                    for account in &accounts {
+                    for account in accounts {
                         db.update_fungibles_for_account(&account.fungibles, &account.address)
                             .unwrap_or_else(|err| {
                                 debug_println!(
@@ -40,9 +40,16 @@ impl<'a> UpdateMessage {
                                     line!()
                                 );
                             });
+                        for fungible in account.fungibles.0 {
+                            if let Some(icon) = fungible.icon {
+                                app.appview.resource_icons.entry(fungible.address)
+                                    .and_modify(|handle| *handle = icon.handle())
+                                    .or_insert(icon.handle());
+                            }
+                        }
 
-                        if let Some(non_fungibles) = &account.non_fungibles {
-                            db.update_non_fungibles_for_account(non_fungibles, &account.address)
+                        if let Some(non_fungibles) = account.non_fungibles {
+                            db.update_non_fungibles_for_account(&non_fungibles, &account.address)
                                 .unwrap_or_else(|err| {
                                     debug_println!(
                                         "{}:{} Unable to update non fungible: {err}",
@@ -50,6 +57,14 @@ impl<'a> UpdateMessage {
                                         line!()
                                     )
                                 });
+
+                            for non_fungible in non_fungibles.0 {
+                                if let Some(icon) = non_fungible.icon {
+                                    app.appview.resource_icons.entry(non_fungible.address)
+                                        .and_modify(|handle| *handle = icon.handle())
+                                        .or_insert(icon.handle());
+                                }
+                            }
                         }
                     }
                 }

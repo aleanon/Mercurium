@@ -20,6 +20,9 @@ serde.workspace = true
 ring.workspace = true
 serde_json.workspace = true
 
+#test
+iced = {workspace = true, features = ["image"]}
+
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["winuser"] }
 windows = { version = "0.52.0", features = [

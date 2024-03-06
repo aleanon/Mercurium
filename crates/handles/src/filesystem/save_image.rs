@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use debug_print::debug_println;
-use image::DynamicImage;
+use image::{DynamicImage, ImageFormat};
 
 pub fn save_image(image: &DynamicImage, path: &PathBuf) {
     let mut path = path.clone();
@@ -45,3 +45,4 @@ pub fn save_image(image: &DynamicImage, path: &PathBuf) {
     //     debug_println!("{}:{} Unable to encode image", module_path!(), line!())
     // }
 }
+

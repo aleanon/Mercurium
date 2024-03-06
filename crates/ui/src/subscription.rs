@@ -17,10 +17,11 @@ impl BackendWorker {
 
           if let Err(err) = output.send(Update::Sender(action_tx)).await {
               debug_println!(
-                  "{}:{} Unable to send transmitter {err}",
+                  "Module: {}, Line: {} Unable to send transmitter {err}",
                   module_path!(),
                   line!()
               )
+              
           }
 
           loop {

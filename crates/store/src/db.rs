@@ -111,6 +111,7 @@ impl AsyncDb {
     pub async fn with_connection(connection: tokio_rusqlite::Connection) -> Self {
         Self { connection }
     }
+
 }
 
 #[cfg(test)]

@@ -49,6 +49,7 @@ pub mod create {
     pub const CREATE_TABLE_TRANSACTIONS: &'static str = "CREATE TABLE IF NOT EXISTS 
         transactions (
             id BLOB NOT NULL PRIMARY KEY,
+            timestamp BLOB NOT NULL,
             sender_address BLOB NOT NULL,
             assets_sender BLOB NOT NULL,
             receiver_address BLOB NOT NULL,

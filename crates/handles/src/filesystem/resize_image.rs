@@ -123,9 +123,17 @@ pub fn resize_image(
     Some(result_buf)
 }
 
+
+
+fn iced_resize_image(image: &DynamicImage, new_height: u32, new_width: u32) -> DynamicImage {
+    image.resize(new_width, new_height, image::imageops::FilterType::Lanczos3)
+}
+
 #[cfg(test)]
 mod test {
     use std::{io::Write, path::PathBuf};
+
+    use fr::Image;
 
     use super::*;
 
@@ -142,8 +150,8 @@ mod test {
 
         let resized = resize_image(
             &image,
-            NonZeroU32::new(70).unwrap(),
-            NonZeroU32::new(70).unwrap(),
+            NonZeroU32::new(120).unwrap(),
+            NonZeroU32::new(120).unwrap(),
         )
         .expect("Failed to resize image");
 
@@ -158,5 +166,25 @@ mod test {
             std::fs::File::create(new_file_path).expect("Unable to create new image file");
         file.write_all(resized.buffer())
             .expect("Unable to write image to file");
+    }
+
+    #[test]
+    fn test_basic_resize() {
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+        let mut test_folder = PathBuf::from(manifest_dir);
+        test_folder.push("test_data");
+        let mut file_path = test_folder.clone();
+        file_path.push("gc-token.png");
+
+        let image = image::open(file_path).expect("Failed to open image file");
+
+        let new_size = (250, 250);
+        let image = iced_resize_image(&image, new_size.0, new_size.1);
+        let mut new_path = test_folder.clone();
+        new_path.push("resized_image");
+        new_path.set_extension("png");
+
+        image.save(new_path).expect("Failed to save image");
     }
 }

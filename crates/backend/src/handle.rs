@@ -1,12 +1,13 @@
 use std::{
     collections::{BTreeSet, HashMap},
-    io::Cursor,
+    io::{BufWriter, Cursor},
     num::NonZeroU32,
     path::PathBuf,
     str::FromStr,
     sync::Arc,
 };
 
+use image::{imageops::FilterType, ImageFormat};
 use store::{DbError, AsyncDb};
 use handles::filesystem::{app_path::AppPath, resize_image::resize_image, save_image::save_image};
 use types::{
@@ -82,12 +83,13 @@ impl Handle {
             .items;
 
         // Create a task for each account that will get the details of each asset in the account
-        let tasks = accounts_response.into_iter().map(|entity| {
+        let tasks = accounts_response.into_iter().map(|entity_account| {
+            
             let coms = self.coms.clone();
             let account = accounts
                 .iter()
                 .enumerate()
-                .find(|(_, account)| account.address.as_str() == entity.address.as_str());
+                .find(|(_, account)| account.address.as_str() == entity_account.address.as_str());
 
             let account = match account {
                 Some((i, _)) => Some(accounts.remove(i)),
@@ -97,9 +99,9 @@ impl Handle {
             tokio::spawn(async move {
                 match account {
                     Some(account) => {
-                        Self::update_account_data(coms, entity, account).await
+                        Self::update_account_data(coms, entity_account, account).await
                     }
-                    None => Err(HandleError::EntityNotFound(entity.address)),
+                    None => Err(HandleError::EntityNotFound(entity_account.address)),
                 }
             })
         });
@@ -359,17 +361,17 @@ impl Handle {
                             } else
                             //Could not resize image
                             {
-                                Self::download_icon(url, Some(&icon_path)).await
+                                Self::download_icon(url, Some(&mut icon_path)).await
                             }
                         } else
                         //Could not open image
                         {
-                            Self::download_icon(url, Some(&icon_path)).await
+                            Self::download_icon(url, Some(&mut icon_path)).await
                         }
                     } else
                     //Icon path does not exist
                     {
-                        Self::download_icon(url, Some(&icon_path)).await
+                        Self::download_icon(url, Some(&mut icon_path)).await
                     }
                 } else
                 //Unable to determine icons directory
@@ -381,65 +383,86 @@ impl Handle {
         }
     }
 
-    async fn download_icon(url: &String, icon_path: Option<&PathBuf>) -> Option<Icon> {
-        let response = reqwest::get(url).await.ok();
+    async fn download_icon(url: &String, icon_path: Option<&mut PathBuf>) -> Option<Icon> {
+        let response = reqwest::get(url).await.ok()?;
 
-        if let Some(response) = response {
-            let bytes = response.bytes().await.ok();
+        let bytes = response.bytes().await.ok()?;
+        let reader = image::io::Reader::new(Cursor::new(&bytes));
+        let with_guessed_format = reader.with_guessed_format().ok()?;
+        let format = with_guessed_format.format()?;
+        let image = with_guessed_format.decode().ok()?;
+        
 
-            if let Some(bytes) = bytes {
-                let reader = image::io::Reader::new(Cursor::new(&bytes));
-
-                if let Ok(new_reader) = reader.with_guessed_format() {
-
-                    if let Ok(image) = new_reader.decode() {
-
-                        if let Some(path) = icon_path {
-                            save_image(&image, path)
-                        }
-                        if let Some(write_buffer) = resize_image(
-                            &image,
-                            NonZeroU32::new(50).unwrap(),
-                            NonZeroU32::new(50).unwrap(),
-                        ) {
-                            return Some(Icon::new(Bytes::from(write_buffer.buffer().to_vec())));
-                        } else {
-                            debug_println!(
-                                "{}:{} Unable to resize image: {url}",
-                                module_path!(),
-                                line!()
-                            )
-                        }
-                    } else {
-                        debug_println!(
-                            "{}:{} Unable to decode image: {url}",
-                            module_path!(),
-                            line!()
-                        )
-                    }
-                } else {
-                    debug_println!(
-                        "{}:{} Unable to guess image format: {url}",
-                        module_path!(),
-                        line!()
-                    )
-                }
-            } else {
-                debug_println!(
-                    "{}:{} Unable to get icon bytes: {url}",
-                    module_path!(),
-                    line!()
-                )
-            }
-        } else {
-            debug_println!(
-                "{}:{} Unable to get image from url: {url}",
-                module_path!(),
-                line!()
-            )
+        if let Some(path) = icon_path {
+            path.set_extension(handles::filesystem::image_extension::get_extension(&format));
+            image.save_with_format(path, format).unwrap_or(());
         }
 
-        None
+        let resized = image.resize(50, 50, FilterType::Lanczos3);
+        let mut write_buffer = BufWriter::new(Cursor::new(Vec::new()));        
+        resized.write_to(&mut write_buffer, format).ok()?;
+
+        let inner = write_buffer.into_inner().ok()?.into_inner();
+        let icon = Icon::new(Bytes::from(inner));
+
+        Some(icon)         
+
+        // if let Some(response) = response {
+        //     let bytes = response.bytes().await.ok();
+
+        //     if let Some(bytes) = bytes {
+        //         let reader = image::io::Reader::new(Cursor::new(&bytes));
+
+        //         if let Ok(new_reader) = reader.with_guessed_format() {
+
+        //             if let Ok(image) = new_reader.decode() {
+
+        //                 if let Some(path) = icon_path {
+        //                     save_image(&image, path)
+        //                 }
+        //                 if let Some(write_buffer) = resize_image(
+        //                     &image,
+        //                     NonZeroU32::new(50).unwrap(),
+        //                     NonZeroU32::new(50).unwrap(),
+        //                 ) {
+        //                     return Some(Icon::new(Bytes::from(write_buffer.buffer().to_vec())));
+        //                 } else {
+        //                     debug_println!(
+        //                         "{}:{} Unable to resize image: {url}",
+        //                         module_path!(),
+        //                         line!()
+        //                     )
+        //                 }
+        //             } else {
+        //                 debug_println!(
+        //                     "{}:{} Unable to decode image: {url}",
+        //                     module_path!(),
+        //                     line!()
+        //                 )
+        //             }
+        //         } else {
+        //             debug_println!(
+        //                 "{}:{} Unable to guess image format: {url}",
+        //                 module_path!(),
+        //                 line!()
+        //             )
+        //         }
+        //     } else {
+        //         debug_println!(
+        //             "{}:{} Unable to get icon bytes: {url}",
+        //             module_path!(),
+        //             line!()
+        //         )
+        //     }
+        // } else {
+        //     debug_println!(
+        //         "{}:{} Unable to get image from url: {url}",
+        //         module_path!(),
+        //         line!()
+        //     )
+        // }
+
+        // None
     }
 }
 
