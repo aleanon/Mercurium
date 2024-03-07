@@ -1,11 +1,11 @@
 [workspace]
 members = [
-  "crates/backend",
-  "crates/handles",
-  "crates/ravault",
-  "crates/store",
-  "crates/types",
-  "crates/ui"
+  "backend",
+  "handles",
+  "ravault",
+  "store",
+  "types",
+  "ui"
 ]
 
 
