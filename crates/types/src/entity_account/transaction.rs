@@ -1,4 +1,11 @@
-use std::fmt::Display;
+use std::{collections::{BTreeMap, HashMap}, fmt::Display};
+
+use serde::{Deserialize, Serialize};
+
+use crate::{AccountAddress, Decimal, ResourceAddress};
+
+use super::Time;
+
 
 // use anyhow::Result;
 
@@ -14,12 +21,12 @@ pub enum TransactionError {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord)]
+#[derive(Debug, Clone)]
 pub struct Transaction {
-    pub tx_id: TransactionId,       //primary key
-    pub account_id: usize, //foreign key
+    pub tx_id: TransactionId,       //primary key 
     pub timestamp: usize, //placeholder type
-    pub fee: i32,
+    pub state_version: u64,
+    pub balance_changes: HashMap<AccountAddress, BTreeMap<ResourceAddress, Decimal>>,
     pub status: TransactionStatus
 }
 
@@ -42,13 +49,33 @@ impl PartialOrd for Transaction {
     }
 
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        if self.timestamp < other.timestamp {
-            Some(std::cmp::Ordering::Less)
-        } else if self.timestamp == other.timestamp {
-            Some(std::cmp::Ordering::Equal)
-        } else {Some(std::cmp::Ordering::Greater)}
+        Some(self.cmp(other))
     }
 }
+
+impl Ord for Transaction {
+    fn cmp(&self, other: &Self) -> scrypto::prelude::rust::cmp::Ordering {
+        if self.timestamp == other.timestamp {
+            self.tx_id.cmp(&self.tx_id)
+        } else if self.timestamp < other.timestamp {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Greater
+        }
+    }
+}
+
+impl PartialEq for Transaction {
+    fn eq(&self, other: &Self) -> bool {
+        self.tx_id == other.tx_id
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.tx_id != other.tx_id
+    }
+}
+
+impl Eq for Transaction {}
 
 #[derive(Debug,Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TransactionId([u8; TRANSACTION_ID_LENGTH]);
@@ -91,6 +118,61 @@ impl rusqlite::types::ToSql for TransactionId {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Timestamp {
+    year: u16,
+    month: u8,
+    day: u8,
+    hour: u8,
+    minute: u8,
+    second: u8,
+}
+
+impl Timestamp {
+    pub fn new(year:u16, month:u8, day:u8, hour:u8, minute:u8, second:u8) -> Self {
+        Self {year, month, day, hour, minute, second}
+    }
+
+    pub fn as_array(&self) -> [u8;7] {
+        let year = self.year.to_be_bytes();
+        [year[0], year[1], self.month, self.day, self.hour, self.minute, self.second]
+    }
+
+}
+
+
+
+impl std::fmt::Display for Timestamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}-{}-{} {}:{}:{}", self.year, self.month, self.day, self.hour, self.minute, self.second)
+    }
+}
+
+
+impl rusqlite::types::FromSql for Timestamp {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        match value {
+            rusqlite::types::ValueRef::Blob(slice) => {
+                let year = u16::from_be_bytes(slice[0..2]
+                    .try_into()
+                    .map_err(|_| rusqlite::types::FromSqlError::InvalidBlobSize { expected_size: 2, blob_size: slice.len() })?
+                );
+                Ok(Self{year, month: slice[2], day: slice[3], hour: slice[4], minute: slice[5], second: slice[6]})
+            },
+            _ => Err(rusqlite::types::FromSqlError::InvalidType)
+        }
+    }
+}
+
+impl rusqlite::types::ToSql for Timestamp {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Owned(
+            rusqlite::types::Value::Blob(self.as_array().to_vec())
+        ))
+    }
+}
+
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TransactionStatus {
     Failed,
@@ -115,9 +197,27 @@ impl rusqlite::types::FromSql for TransactionStatus {
 impl Display for TransactionStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Success => write!(f, "SUCCESS"),
-            Self::Failed => write!(f, "FAILED"),
-            Self::Pending => write!(f, "PENDING"),
+            Self::Success => write!(f, "Success"),
+            Self::Failed => write!(f, "Failed"),
+            Self::Pending => write!(f, "Pending"),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::fmt::format;
+
+    use super::*;
+
+    #[test]
+    fn test_timestamp() {
+        let timestamp = Timestamp::new(2024, 3, 7, 14, 40, 35);
+
+        let string = format!("{timestamp}");
+
+        let target = String::from("2024-3-7 14:40:35");
+
+        assert_eq!(string, target)
     }
 }

@@ -11,12 +11,13 @@ scrypto.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 rusqlite.workspace = true
-zeroize.workspace = true
 ring.workspace = true
 thiserror.workspace = true
 bytes.workspace = true
 image.workspace = true
 iced.workspace = true
+
+zeroize = {workspace = true, features = ["zeroize_derive"]}
 
 [dev-dependencies]
 rand = "0.8.5"
