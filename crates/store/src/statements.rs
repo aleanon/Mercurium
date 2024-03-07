@@ -50,13 +50,9 @@ pub mod create {
         transactions (
             id BLOB NOT NULL PRIMARY KEY,
             timestamp BLOB NOT NULL,
-            sender_address BLOB NOT NULL,
-            assets_sender BLOB NOT NULL,
-            receiver_address BLOB NOT NULL,
-            assets_receiver BLOB NOT NULL,
-            status INTEGER NOT NULL,
-            account_address BLOB NOT NULL,
-            FOREIGN KEY (account_address) REFERENCES accounts(address)
+            state_version INTEGER NOT NULL,
+            balance_changes BLOB NOT NULL,
+            status INTEGER NOT NULL
         )
     ";
 }
@@ -136,14 +132,12 @@ pub mod update {
     pub const UPDATE_TRANSACTION: &'static str = "INSERT INTO
         transactions (
             id,
-            sender_address,
-            assets_sender,
-            receiver_address,
-            assets_receiver,
-            status,
-            account_address
+            timestamp,
+            state_version,
+            balance_changes,
+            status
         )
-        VALUES (1?, 2?, 3?, 4?, 5?, 6?, 7?)
+        VALUES (1?, 2?, 3?, 4?, 5?)
         ON CONFLICT (id)
         DO UPDATE SET 
             status = excluded.status
