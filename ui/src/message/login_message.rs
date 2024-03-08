@@ -1,8 +1,8 @@
 use iced::{futures::SinkExt, Command};
-use types::Action;
+use types::{Action, AppError};
 use zeroize::Zeroize;
 
-use crate::{app::{AppError, State}, App};
+use crate::{app::State, App};
 
 use super::Message;
 

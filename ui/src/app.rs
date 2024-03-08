@@ -1,9 +1,9 @@
-use types::Action;
+use types::{Action, AppError};
 use debug_print::debug_println;
 use iced::{Application, Command,  Theme, futures::channel::mpsc::Sender as MpscSender};
 // use iced_futures::futures::channel::mpsc::Sender as MpscSender;
 // use iced_futures::futures::SinkExt;
-use thiserror::Error;
+
 
 use crate::message::update_message::UpdateMessage;
 use crate::message::Message;
@@ -13,14 +13,6 @@ use crate::view::setup::Setup;
 
 use store::Db;
 
-
-#[derive(Debug, Error)]
-pub enum AppError {
-    #[error("Fatal error occured, {0}")]
-    Fatal(Box<dyn std::error::Error>),
-    #[error("Non fatal error occured, {0}")]
-    NonFatal(Box<dyn std::error::Error>),
-}
 
 #[derive(Debug)]
 pub enum State {

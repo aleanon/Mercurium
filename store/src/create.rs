@@ -5,6 +5,17 @@ use super::db::AsyncDb;
 
 
 impl Db {
+    pub fn create_all_tables(&mut self) -> Result<(), DbError> {
+        self.create_table_accounts()?;
+        self.create_table_fungibles()?;
+        self.create_table_non_fungibles()?;
+        self.create_table_resources()?;
+        self.create_table_fungible_assets()?;
+        self.create_table_non_fungible_assets()?;
+        self.create_table_transactions()?;
+        Ok(())
+    }
+
     pub fn create_table_accounts(&mut self) -> Result<(), DbError> {
         self.connection
             .execute(CREATE_TABLE_ACCOUNTS, [])
@@ -26,7 +37,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn create_table_fungible_assets(&mut self) -> Result<(), DbError> {
+    pub fn create_table_fungible_assets(&mut self) -> Result<(), DbError> {
         self.connection
             .execute(CREATE_TABLE_FUNGIBLE_ASSETS, [])
             .map_err(|err| DbError::FailedToCreateTable("fungible assets".to_owned(), err))?;

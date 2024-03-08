@@ -10,7 +10,6 @@ edition = "2021"
 
 [dependencies]
 types = { path = "../types"}
-handles = {path = "../handles"}
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 debug_print = "1.0.0"
 anyhow = { version = "1.0.79" }

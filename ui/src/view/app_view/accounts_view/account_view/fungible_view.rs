@@ -6,8 +6,7 @@ use iced::{
 };
 
 use crate::{app::App, message::Message};
-use types::Fungible;
-use handles::filesystem::app_path::AppPath;
+use types::{Fungible, AppPath};
 
 
 const EMPTY_IMAGE: &'static [u8; 1] = &[0u8; 1];

@@ -25,7 +25,7 @@ pub enum Message {
 
 impl<'a> Message {
 
-#[cfg_attr(feature="reload", no_mangle)]
+    #[cfg_attr(feature="reload", no_mangle)]
     pub fn update(self, app: &'a mut App) -> Command<Message> {
         match self {
             Message::Common(common_message) => common_message.process(app),

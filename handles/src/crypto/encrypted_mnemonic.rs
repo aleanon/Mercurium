@@ -60,10 +60,13 @@ impl MnemonicNonceSequence {
 impl NonceSequence for MnemonicNonceSequence {
     fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
         let nonce = Nonce::assume_unique_for_key(self.get_current());
-        let mut new_nonce = [0u8; NONCE_LEN];
-        SystemRandom::new().fill(&mut new_nonce)?;
-        self.0 = Nonce::assume_unique_for_key(new_nonce);
         Ok(nonce)
+
+        // let nonce = Nonce::assume_unique_for_key(self.get_current());
+        // let mut new_nonce = [0u8; NONCE_LEN];
+        // SystemRandom::new().fill(&mut new_nonce)?;
+        // self.0 = Nonce::assume_unique_for_key(new_nonce);
+        // Ok(nonce)
     }
 }
 
@@ -76,8 +79,8 @@ pub struct EncryptedMnemonic{
 
 impl EncryptedMnemonic {
 
-    pub fn new(mnemonic: Mnemonic, password: &str) -> Result<Self, EncryptedMnemonicError> {
-        let mut mnemonic:Vec<u8> = mnemonic.into_phrase().into();
+    pub fn new(mnemonic: &Mnemonic, password: &str) -> Result<Self, EncryptedMnemonicError> {
+        let mut mnemonic:Vec<u8> = mnemonic.phrase().into();
         let salt = Self::create_salt()?;
         let mut encryption_key = Self::derive_encryption_key(password, &salt);
         let nonce_sequence = MnemonicNonceSequence::new()?;
@@ -85,12 +88,12 @@ impl EncryptedMnemonic {
 
         let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key.as_ref())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
-        let mut seasling_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
+        let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
 
-        seasling_key.seal_in_place_append_tag(Aad::empty(), &mut mnemonic)
+        sealing_key.seal_in_place_append_tag(Aad::empty(), &mut mnemonic)
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptMnemonic)?;
 
-        //Todo: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
+        //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
         encryption_key.zeroize();
 
         Ok(Self {
@@ -264,7 +267,7 @@ mod test {
     fn test_create_encrypted_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = "password99";
-        let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic.clone(), &password)
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password)
             .unwrap_or_else(|err| panic!("{err}"));
 
         println!("{:?}\n{:?}",mnemonic, encrypted_mnemonic.get_cypher_text());
@@ -276,7 +279,7 @@ mod test {
     fn test_decrypting_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = "password99";
-        let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic.clone(), password)
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), password)
             .unwrap_or_else(|err| panic!("{err}"));
 
         println!("{} \n{:?}", mnemonic.phrase(), encrypted_mnemonic.cypher_text);
@@ -292,7 +295,7 @@ mod test {
     fn test_save_read_delete_encrypted_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = "password99";
-        let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic.clone(), password).expect("Failed to create encrypted mnemonic");
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), password).expect("Failed to create encrypted mnemonic");
         let target_name = "Ravault mnemonic store test";
 
         encrypted_mnemonic.save_to_store(target_name).expect("Failed to save encrypted mnemonic");

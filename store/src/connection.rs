@@ -1,5 +1,5 @@
 use super::db::DbError;
-use handles::filesystem::app_path::AppPath;
+use types::app_path::AppPath;
 use debug_print::debug_println;
 
 use rusqlite::OpenFlags;

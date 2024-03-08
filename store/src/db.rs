@@ -2,7 +2,7 @@
 use anyhow::Result;
 use thiserror::Error;
 
-use handles::filesystem::app_path::{AppPath, AppPathError};
+use types::app_path::{AppPath, AppPathError};
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -24,6 +24,8 @@ pub enum DbError {
     PathError(#[from] AppPathError),
 }
 
+
+
 #[derive(Debug)]
 pub struct Db {
     pub connection: rusqlite::Connection,
@@ -38,30 +40,9 @@ impl Db {
     pub fn new() -> Result<Db, DbError> {
         let connection = super::connection::connection_new_database()?;
 
-        match connection.query_row("SELECT is_initialized FROM initialized", [], |row| {
-            row.get::<usize, bool>(0)
-        }) {
-            Err(_) => {
-                connection
-                    .execute(
-                        "CREATE TABLE IF NOT EXISTS initialized (
-                        id INTEGER NOT NULL UNIQUE CHECK (id = 1) DEFAULT 1,
-                        is_initialized BOOLEAN NOT NULL DEFAULT FALSE
-                    )",
-                        [],
-                    )
-                    .map_err(|err| DbError::FailedToCreateTable("initialized".to_owned(), err))?;
-
-                connection.execute("INSERT INTO initialized DEFAULT VALUES", [])?;
-            }
-            Ok(_) => {}
-        }
-
         let mut db = Self { connection };
 
-        db.create_table_accounts()?;
-        db.create_table_fungibles()?;
-        db.create_table_non_fungibles()?;
+        db.create_all_tables()?;
 
         Ok(db)
     }
