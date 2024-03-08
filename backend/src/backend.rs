@@ -9,12 +9,10 @@ use iced::widget::image::Handle as ImageHandle;
 use iced::{
     futures::channel::mpsc::Receiver as MpscReceiver,
     futures::{channel::mpsc::Sender, SinkExt},
-    Subscription,
 };
-use std::sync::mpsc::{self as Mpsc, Sender as MpscSender};
 
-use handles::filesystem::{app_path::AppPath, resize_image::resize_image};
-use types::{action::Action, update::Update, ResourceAddress};
+use handles::filesystem::resize_image::resize_image;
+use types::{Action, AppPath, Update, ResourceAddress};
 
 use super::handle::Handle;
 
@@ -169,41 +167,41 @@ impl BackEnd {
     //     Ok(())
     // }
 
-    pub fn backend_subscription() -> Subscription<Update> {
-        struct BackEndWorker;
+    // pub fn backend_subscription() -> Subscription<Update> {
+    //     struct BackEndWorker;
 
-        iced::subscription::channel(
-            std::any::TypeId::of::<BackEndWorker>(),
-            50,
-            |mut output| async move {
-                //let dummy_channel = Mpsc::channel();
-                let (action_tx, action_rx) = iced::futures::channel::mpsc::channel(50);
-                let mut backend = BackEnd::new(action_rx).unwrap();
-                backend.load(&mut output).await.unwrap();
+    //     iced::subscription::channel(
+    //         std::any::TypeId::of::<BackEndWorker>(),
+    //         50,
+    //         |mut output| async move {
+    //             //let dummy_channel = Mpsc::channel();
+    //             let (action_tx, action_rx) = iced::futures::channel::mpsc::channel(50);
+    //             let mut backend = BackEnd::new(action_rx).unwrap();
+    //             backend.load(&mut output).await.unwrap();
 
-                if let Err(err) = output.send(Update::Sender(action_tx)).await {
-                    debug_println!(
-                        "{}:{} Unable to send transmitter {err}",
-                        module_path!(),
-                        line!()
-                    )
-                }
+    //             if let Err(err) = output.send(Update::Sender(action_tx)).await {
+    //                 debug_println!(
+    //                     "{}:{} Unable to send transmitter {err}",
+    //                     module_path!(),
+    //                     line!()
+    //                 )
+    //             }
 
-                loop {
-                    use iced::futures::StreamExt;
-                    let action = backend.action_rx.select_next_some().await;
+    //             loop {
+    //                 use iced::futures::StreamExt;
+    //                 let action = backend.action_rx.select_next_some().await;
 
-                    match action {
-                        Action::LoadDatabase(key) => backend.action_load_db(&mut output).await,
-                        Action::UpdateAll => backend.action_update_all(&mut output).await,
-                        _ => {
-                            output.send(Update::None).await;
-                        }
-                    }
-                }
-            },
-        )
-    }
+    //                 match action {
+    //                     Action::LoadDatabase(key) => backend.action_load_db(&mut output).await,
+    //                     Action::UpdateAll => backend.action_update_all(&mut output).await,
+    //                     _ => {
+    //                         output.send(Update::None).await;
+    //                     }
+    //                 }
+    //             }
+    //         },
+    //     )
+    // }
 
     pub async fn action_load_db(&mut self, output: &mut Sender<Update>) {
         if self.handle.db.is_none() {

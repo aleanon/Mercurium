@@ -317,7 +317,7 @@ mod tests {
     use bip39::Mnemonic;
     use rusqlite::Connection;
 
-    use handles::crypto::ed25519::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair};
+    use types::crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair};
     use types::Network;
 
     use super::*;

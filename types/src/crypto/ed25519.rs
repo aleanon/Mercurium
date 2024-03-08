@@ -1,10 +1,11 @@
 
 use bip39::{Mnemonic, Seed};
 use ed25519_dalek_fiat::{SecretKey, PublicKey};
+use slip10_ed25519::derive_ed25519_private_key;
 use scrypto::{address::AddressBech32Encoder, crypto::Ed25519PublicKey, network::NetworkDefinition, types::ComponentAddress};
 use zeroize::{ZeroizeOnDrop, Zeroize};
 
-use types::Network;
+use crate::Network;
 
 
 const BIP32_LEAD_WORD: u32 = 44; // 0
@@ -83,9 +84,9 @@ impl Ed25519KeyPair {
         ];
 
         //The derive_ed25519_private_key function treats all indexes as hardened
-        let mut priv_key = slip10_ed25519::derive_ed25519_private_key(seed.as_bytes(), derivation_path.as_slice());
+        let mut priv_key = derive_ed25519_private_key(seed.as_bytes(), derivation_path.as_slice());
 
-        //SecretKey::from_bytes() will only fail if the &[u8] is not of type [u8:32] which it always will be, so unwrap is called
+        //SecretKey::from_bytes() will only fail if the &[u8] is not of length 32 which it always will be, so unwrap is called
         let secret_key = SecretKey::from_bytes(&priv_key).unwrap_or_else(|_| unreachable!("Invalid secret key length"));
         let public_key = PublicKey::from(&secret_key);
         

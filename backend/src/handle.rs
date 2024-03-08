@@ -9,9 +9,9 @@ use std::{
 
 use image::{imageops::FilterType, ImageFormat};
 use store::{DbError, AsyncDb};
-use handles::filesystem::{app_path::AppPath, resize_image::resize_image, save_image::save_image};
+use handles::filesystem::{resize_image::resize_image, save_image::save_image};
 use types::{
-       RadixDecimal, ParseAddrError ,Fungible, Fungibles, Icon, MetaData, NFIDs, NonFungible, NonFungibles, ResourceAddress, EntityAccount, response_models::{NonFungibleResource, FungibleResource, Entity}
+       RadixDecimal, AppPath, ParseAddrError ,Fungible, Fungibles, Icon, MetaData, NFIDs, NonFungible, NonFungibles, ResourceAddress, EntityAccount, response_models::{NonFungibleResource, FungibleResource, Entity}
     };
 
 use bytes::Bytes;

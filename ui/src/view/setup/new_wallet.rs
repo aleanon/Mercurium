@@ -4,7 +4,7 @@ use iced::{
     Element, Length,
 };
 use iced::widget::text::LineHeight;
-use types::{Password, SeedPhrase};
+use types::crypto::{Password, SeedPhrase};
 use zeroize::Zeroize;
 
 use crate::{app::App, message::{setup_message::new_wallet_update::WalletMessage, Message}};
@@ -84,7 +84,6 @@ impl<'a> NewWallet {
             .on_submit(WalletMessage::SubmitPassword.into())
             .on_paste(|input| WalletMessage::UpdatePassword(input).into())
             .on_input(|input| WalletMessage::UpdatePassword(input).into())
-            //.password();
             .secure(true);
 
         let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
@@ -108,7 +107,6 @@ impl<'a> NewWallet {
                 .on_submit(WalletMessage::VerifiPassword.into())
                 .on_paste(|input| WalletMessage::UpdateVerificationPassword(input).into())
                 .on_input(|input| WalletMessage::UpdateVerificationPassword(input).into())
-                //.password();
                 .secure(true);
 
         let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
@@ -205,25 +203,25 @@ impl<'a> NewWallet {
             .spacing(50)
     }
 
-    pub fn notification_field(text: &str) -> widget::Text {
+    fn notification_field(text: &str) -> widget::Text {
         widget::text(text).size(16).width(250)
     }
 
-    pub fn text_input_field(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
+    fn text_input_field(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
         widget::text_input(placeholder, input)
             .size(16)
             .width(250)
             .line_height(LineHeight::Relative(1.5))
     }
 
-    pub fn seed_word_field(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
+    fn seed_word_field(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
         widget::text_input(placeholder, input)
             .size(16)
             .width(100)
             .line_height(LineHeight::Relative(2.))
     }
 
-    pub fn input_seed(&self) -> Column<'a, Message> {
+    fn input_seed(&self) -> Column<'a, Message> {
         let mut seed = widget::column![]
             .width(Length::Shrink)
             .height(Length::Shrink)
@@ -269,7 +267,7 @@ impl<'a> NewWallet {
         seed.push(row)
     }
 
-    pub fn nav_button(text: &str) -> Button<'a, Message> {
+    fn nav_button(text: &str) -> Button<'a, Message> {
         Button::new(
             widget::text(text)
                 .size(16)

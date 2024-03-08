@@ -1,4 +1,4 @@
-use super::{key::Key, Account};
+use super::{crypto::Key, Account};
 
 #[derive(Debug, Default)]
 pub enum Action {

@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use debug_print::debug_println;
 use thiserror::Error;
 
 
@@ -31,12 +30,6 @@ impl AppPath {
 
         match std::env::var_os("LOCALAPPDATA") {
             Some(path) => {
-                debug_println!(
-                    "{}:{} found local directory: {:?}",
-                    module_path!(),
-                    line!(),
-                    path
-                );
 
                 let mut app_directory = std::path::PathBuf::from(path);
                 app_directory.push("RaVault");
@@ -59,13 +52,6 @@ impl AppPath {
                 let app_directory = std::env::current_exe()
                     .map_err(|err| AppPathError::UnableToEstablishDirectory(err))?;
 
-                debug_println!(
-                    "{}:{} .exe file directory: {:?}",
-                    module_path!(),
-                    line!(),
-                    app_directory
-                );
-
                 let mut db_directory = app_directory.clone();
                 db_directory.push(Self::STORE_DIRECTORY);
                 let mut db_path = db_directory.clone();
@@ -86,58 +72,22 @@ impl AppPath {
 
     pub fn create_directories_if_not_exists(self) -> Result<Self, AppPathError> {
         if !self.db_directory.exists() {
-            debug_println!(
-                "{}:{} Db directory does not exist, creating path",
-                module_path!(),
-                line!()
-            );
 
             std::fs::DirBuilder::new()
                 .recursive(true)
                 .create(&self.db_directory)
                 .map_err(|err| {
-                    debug_println!(
-                        "{}:{} Unable to create db directory: {:?}, error: {}",
-                        module_path!(),
-                        line!(),
-                        &self.db_directory,
-                        err
-                    );
                     AppPathError::UnableToCreateDirectory(err)
                 })?;
 
-            debug_println!(
-                "{}:{} Db directory successfully created",
-                module_path!(),
-                line!()
-            )
         }
 
         if !self.icons_directory().exists() {
-            debug_println!(
-                "{}:{} Icons directory does not exist, creating path",
-                module_path!(),
-                line!()
-            );
-
             std::fs::DirBuilder::new()
                 .create(&self.icons_directory)
                 .map_err(|err| {
-                    debug_println!(
-                        "{}:{} Unable to create directory: {:?}, error: {}",
-                        module_path!(),
-                        line!(),
-                        &self.db_directory,
-                        err
-                    );
                     AppPathError::UnableToCreateDirectory(err)
                 })?;
-
-            debug_println!(
-                "{}:{} Icons directory successfully created",
-                module_path!(),
-                line!()
-            )
         }
 
         Ok(self)

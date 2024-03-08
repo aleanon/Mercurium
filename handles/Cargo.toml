@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 types ={ path = "../types"}
+store = {path = "../store"}
 ed25519-dalek-fiat.workspace = true
 tiny-bip39.workspace = true
 scrypto.workspace = true

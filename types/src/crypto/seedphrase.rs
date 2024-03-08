@@ -37,28 +37,28 @@ impl SeedPhrase {
     ///Returns a reference to the word at the given index
     pub fn reference_word(&self, index: usize) -> Option<&str> {
         if index < WORD_COUNT {
-                //The SeedPhrase words can only be created from a &str, it is therefore not possible
-                //to have a non-utf8 byte slice
-                let mut trimmed = self.0[index].as_slice();
+            //The SeedPhrase words can only be created from a &str, it is therefore not possible
+            //to have a non-utf8 byte slice
+            let mut trimmed = self.0[index].as_slice();
 
-                while let [rest @ .., last] = trimmed {
-                    if last.is_ascii_whitespace() {
-                        trimmed = rest;
-                    } else {
-                        break
-                    }
+            while let [rest @ .., last] = trimmed {
+                if last.is_ascii_whitespace() {
+                    trimmed = rest;
+                } else {
+                    break
                 }
+            }
 
-                let trimmed_str = std::str::from_utf8(trimmed)
-                    .unwrap_or_else(|_| unreachable!("{}:{} Invalid utf8 in byte slice", module_path!(), line!()));
+            let trimmed_str = std::str::from_utf8(trimmed)
+                .unwrap_or_else(|_| unreachable!("{}:{} Invalid utf8 in byte slice", module_path!(), line!()));
 
-                Some(trimmed_str)
+            Some(trimmed_str)
         } else {
             None
         } 
     }
 
-    //The byte slices are turned into a Phrase instead of a String because it should implement Zeroize on drop
+    ///The byte slices are turned into a Phrase instead of a String because it should implement `ZeroizeOnDrop`
     pub fn phrase(&self) -> Phrase {
         let mut phrase = String::with_capacity(MAX_PHRASE_LENGTH);
         

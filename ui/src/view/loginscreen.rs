@@ -5,7 +5,7 @@ use iced::{
 };
 
 
-use types::Password;
+use types::crypto::Password;
 
 
 use crate::message::{login_message::LoginMessage, Message};

@@ -6,11 +6,10 @@ use iced::futures::SinkExt;
 use zeroize::Zeroize;
 
 use crate::{
-        app::{App, AppError, State}, message::Message, view::setup::{new_wallet::NewWalletStage, Setup} 
+        app::{App, State}, message::Message, view::setup::{new_wallet::NewWalletStage, Setup} 
     };
 use store::Db;
-use handles::crypto::ed25519::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair};
-use types::{Account, AccountAddress, Action, Network, SeedPhrase};
+use types::{AppError, crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair, SeedPhrase}, Account, AccountAddress, Action, Network};
 
 
 use super::{NewWallet, SetupMessage};
@@ -47,35 +46,35 @@ impl Into<Message> for WalletMessage {
 impl<'a> WalletMessage {
     pub fn process(self, app: &'a mut App) -> Command<Message> {
         match self {
-            Self::New => Self::new(app),
-            Self::FromSeed => Self::from_seed(app),
-            Self::Back => Self::back(app),
-            Self::UpdatePassword(mut input) => Self::update_password(&mut input, app),
+            Self::New => Self::create_wallet_with_new_seed(app),
+            Self::FromSeed => Self::create_wallet_with_supplied_seed(app),
+            Self::Back => Self::move_to_previous_step(app),
+            Self::UpdatePassword(mut input) => Self::update_password_input(&mut input, app),
             Self::SubmitPassword => Self::submit_password(app),
-            Self::UpdateVerificationPassword(mut input) => Self::update_verified_password(&mut input, app), 
+            Self::UpdateVerificationPassword(mut input) => Self::update_verified_password_input(&mut input, app), 
             Self::VerifiPassword => Self::verifi_password(app),
-            Self::UpdateAccName(input) => Self::update_account_name(input, app), 
+            Self::UpdateAccName(input) => Self::update_account_name_input(input, app), 
             Self::SubmitAccName => Self::submit_account_name(app),
-            Self::SeedPhrase => Self::seed_phrase(app),
+            Self::SeedPhrase => Self::show_seed_phrase(app),
             Self::VerifySeedPhrase => Self::verify_seed_phrase(app), 
             Self::UpdateInputSeed((index, words)) => Self::update_input_seed(index, words, app),
-            Self::Finalize => Self::finalize(app),
+            Self::Finalize => Self::create_wallet(app),
         }
     }
 
-    fn new(app: &'a mut App) -> Command<Message> {
+    fn create_wallet_with_new_seed(app: &'a mut App) -> Command<Message> {
         app.state = State::Initial(Setup::NewWallet(NewWallet::new_with_mnemonic()));
 
         Command::none()
     }
 
-    fn from_seed(app: &'a mut App) -> Command<Message> {
+    fn create_wallet_with_supplied_seed(app: &'a mut App) -> Command<Message> {
         app.state = State::Initial(Setup::NewWallet(NewWallet::new_without_mnemonic()));
 
         Command::none()
     }
 
-    fn back(app: &'a mut App) -> Command<Message> {
+    fn move_to_previous_step(app: &'a mut App) -> Command<Message> {
         if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
             match new_wallet_state.stage {
                 NewWalletStage::EnterPassword => {
@@ -111,7 +110,7 @@ impl<'a> WalletMessage {
         Command::none() 
     }
 
-    fn update_password(input: &mut String, app: &'a mut App) -> Command<Message> {
+    fn update_password_input(input: &mut String, app: &'a mut App) -> Command<Message> {
         if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
             new_wallet_state.password.clear();
             new_wallet_state.password.push_str(input.as_str());
@@ -136,7 +135,7 @@ impl<'a> WalletMessage {
         Command::none()
     }
 
-    fn update_verified_password(input: &mut String, app: &'a mut App) -> Command<Message> {
+    fn update_verified_password_input(input: &mut String, app: &'a mut App) -> Command<Message> {
         if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
             new_wallet_state.verify_password.clear();
             new_wallet_state.verify_password.push_str(input.as_str());
@@ -159,7 +158,7 @@ impl<'a> WalletMessage {
         Command::none() 
     }
 
-    fn update_account_name(input: String, app: &'a mut App) -> Command<Message> {
+    fn update_account_name_input(input: String, app: &'a mut App) -> Command<Message> {
         if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
             new_wallet_state.account_name = input
         }
@@ -181,7 +180,7 @@ impl<'a> WalletMessage {
         Command::none()
     }
 
-    fn seed_phrase(app: &'a mut App) -> Command<Message> {
+    fn show_seed_phrase(app: &'a mut App) -> Command<Message> {
         if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
             new_wallet_state.stage = NewWalletStage::ViewSeedPhrase;
             new_wallet_state.notification = "";
@@ -208,7 +207,7 @@ impl<'a> WalletMessage {
         Command::none()
     }
 
-    fn finalize(app: &'a mut App) -> Command<Message> {
+    fn create_wallet(app: &'a mut App) -> Command<Message> {
         let mut command = Command::none();
         if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
             if let None = new_wallet_state.mnemonic {
@@ -226,64 +225,27 @@ impl<'a> WalletMessage {
                 new_wallet_state.mnemonic = Some(mnemonic)
             }
 
+            let mnemonic = new_wallet_state.mnemonic.as_ref()
+                .unwrap_or_else(|| unreachable!("{}:{} Mnemonic not found", module_path!(), line!()));
+
+            //Encrypt and store mnemonic as credentials
+
             let (key, _salt) = match new_wallet_state.password.derive_new_db_encryption_key()
             {
-                Ok(result) => result,
+                Ok((key, salt)) => (key, salt),
                 Err(_) => {
                     new_wallet_state.notification = "Unable to create random value for key derivation, please try again";
                     return Command::none();
                 }
             };
 
-            let mut db = match Db::new() {
-                Ok(db) => {
-                    debug_println!("Database created successfully");
+            let mut db = Db::new()
+                .unwrap_or_else(|err| unreachable!("{}:{} Unable to create database: {err}", module_path!(), line!()));
 
-                    db
-                }
-                Err(err) => {
-                    debug_println!("Unable to create database: {}", &err);
 
-                    app.state = State::Error(AppError::Fatal(Box::new(err)));
-                    return Command::none();
-                }
-            };
 
-            let (keypair, path) = Ed25519KeyPair::from_mnemonic(
-                new_wallet_state.mnemonic.as_ref().unwrap_or_else(|| {
-                    unreachable!("{}:{} Mnemonic not found", module_path!(), line!())
-                }),
-                0,
-                Network::Mainnet,
-                Bip32Entity::Account,
-                Bip32KeyKind::TransactionSigning,
-            );
-
-            debug_println!("Created key-pair");
-
-            let radixdlt_pub_key = keypair.radixdlt_public_key();
-            let account_address = keypair.bech32_address();
-            let account_address = match AccountAddress::try_from(account_address.as_bytes()) {
-                Ok(account_address) => account_address,
-                Err(err) => {
-                    debug_println!(
-                        "{}:{} Invalid account address",
-                        module_path!(),
-                        line!()
-                    );
-                    //TODO: change to non fatal error
-                    app.state = State::Error(AppError::Fatal(Box::new(err)));
-                    return Command::none();
-                }
-            };
-
-            let account = Account::new(
-                0,
-                new_wallet_state.account_name.clone(),
-                Network::Mainnet,
-                path,
-                account_address,
-                radixdlt_pub_key,
+            let account = handles::wallet::create_account_from_mnemonic(
+                mnemonic, 0, new_wallet_state.account_name.clone(), Network::Mainnet
             );
 
             debug_println!("Account created");

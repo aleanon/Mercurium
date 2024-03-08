@@ -36,7 +36,7 @@ impl<'a> Setup {
                     .on_press(SetupMessage::FromSeed.into());
 
                 let new_wallet =
-                    Self::creation_button("New wallet").on_press(SetupMessage::NewWallet.into());
+                    Self::creation_button("Create new wallet").on_press(SetupMessage::NewWallet.into());
 
                 widget::column![restore_from_backup, restore_from_seed, new_wallet]
                     .width(Length::Shrink)
