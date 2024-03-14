@@ -45,6 +45,7 @@ impl<'a> UpdateMessage {
         Command::none()
     }
 
+    #[cfg(not(feature = "noupdate"))]
     fn send_update_all_request(app: &'a mut App) -> Command<Message>{
         if let Some(ref channel) = app.action_tx {
                 let mut channel = channel.clone();
@@ -53,6 +54,11 @@ impl<'a> UpdateMessage {
                     |_| Message::None,
                 )
         } else {Command::none()}
+    }
+
+    #[cfg(feature = "noupdate")]
+    fn send_update_all_request(app:&'a mut App) -> Command<Message> {
+        Command::none()
     }
 
     fn save_updated_data_to_disk(accounts: Vec<EntityAccount>, app:&'a mut App) -> Command<Message> {

@@ -115,7 +115,7 @@ impl<'a> LoginScreen {
 
         widget::container(col)
             .center_x()
-            .center_y()
+            .center_y() 
             .width(Length::Fill)
             .height(Length::Fill)
             .into()

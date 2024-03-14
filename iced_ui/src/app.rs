@@ -28,7 +28,7 @@ pub struct App {
     pub(crate) db: Option<Db>,
     pub(crate) action_tx: Option<MpscSender<Action>>,
     pub(crate) appview: AppView,
-    pub(crate) darkmode: bool,
+    pub(crate) theme: Theme,
 }
 
 impl Application for App {
@@ -58,7 +58,7 @@ impl Application for App {
             db: None,
             action_tx: None,
             appview: AppView::new(),
-            darkmode: true,
+            theme: Theme::Dark,
         };
 
         (appstate, Command::none())
@@ -80,11 +80,13 @@ impl Application for App {
     }
 
     fn theme(&self) -> Theme {
-        if self.darkmode {
-            Theme::Dark
-        } else {
-            Theme::Light
-        }
+        self.theme.clone()
+
+        // if self.darkmode {
+        //     Theme::Dark
+        // } else {
+        //     Theme::Light
+        // }
     }
 
     fn title(&self) -> String {
@@ -93,9 +95,7 @@ impl Application for App {
 }
 
 impl<'a> App {
-    pub fn is_darkmode(&self) -> bool {
-        self.darkmode
-    }
+    
 
     pub fn login(&mut self /*key: Key*/) -> Result<(), AppError> {
         match self.db {

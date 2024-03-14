@@ -4,6 +4,7 @@ pub mod fungible_view;
 use std::collections::BTreeMap;
 
 
+use iced::theme;
 use iced::widget::button;
 use iced::{
     alignment, border::Radius, color, widget::{
@@ -17,6 +18,7 @@ use crate::message::app_view_message::accounts_message::account_message::Account
 use crate::message::app_view_message::transaction_message::TransferMessage;
 use crate::message::common_message::CommonMessage;
 use crate::message::Message;
+use crate::styles::accounts::AssetListItem;
 use store::Db;
 use types::{Account, AccountAddress, EntityAccount};
 
@@ -215,18 +217,17 @@ impl<'a> AccountView {
                     let button = widget::button(row)
                         .width(Length::Fill)
                         .height(50)
-                        .on_press(Message::None);
-                        //.style(iced::theme::Button::Custom(Box::new(ListButton)));
+                        .on_press(Message::None)
+                        .style(theme::Button::Text);
 
                     let container = container(button)
-                        .style(Self::style);
+                        .style(AssetListItem::style);
 
                     elements.push(container.into())
                 }
 
                 column(elements)
                     .align_items(iced::Alignment::Center)
-                    .spacing(5)
                     .padding(Padding {
                         right: 15.,
                         ..Padding::ZERO

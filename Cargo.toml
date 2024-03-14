@@ -5,14 +5,14 @@ members = [
   "ravault",
   "store",
   "types",
-  "ui"
+  "iced_ui"
 ]
+resolver = "2"
 
 
 
 # [dev-dependencies]
 # debug_print = "1.0.0"
-
 
 [workspace.dependencies]
 tokio = { version = "1.35.1", features = ["full"] }

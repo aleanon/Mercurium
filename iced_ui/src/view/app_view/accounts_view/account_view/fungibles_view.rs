@@ -1,16 +1,15 @@
 use iced::{
-    widget::{
+    theme, widget::{
         self, column, container,
         row,
         scrollable::{self, Properties},
         text, Button
-    },
-    Element, Length, Padding,
+    }, Element, Length, Padding
 };
 
 use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 
-use crate::{message::{app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage, Message}, App};
+use crate::{message::{app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage, Message}, styles::accounts::{AssetListButton, AssetListItem}, App};
 
 use super::fungible_view::FungibleView;
 
@@ -56,26 +55,17 @@ impl<'a> FungiblesView {
                 for fungible in fungibles.0 {
                     let button = Self::fungible_list_button(&fungible, app)
                         .on_press(FungiblesMessage::SelectFungible(fungible.address).into());
+                    
+                    let button_container = container(button)
+                        .style(AssetListItem::style);
 
-                    elements.push(button.into())
+                    let rule = widget::Rule::horizontal(2);
+
+                    elements.push(column![button_container, rule].into())
                 }
-
-                // let elements = fungibles
-                //     .0
-                //     .into_iter()
-                //     .map(|fungible| {
-                //         let button = Self::fungible_list_button(&fungible, app)
-                //             .on_press(FungiblesMessage::SelectFungible(fungible.address).into());
-
-                //         container(button)
-                //         //.style(AccountView::style)
-                //         .into()
-                //     })
-                //     .collect::<Vec<Element<'a, Message>>>();
 
                 let column = column(elements)
                     .align_items(iced::Alignment::Center)
-                    .spacing(5)
                     .padding(Padding {
                         right: 15.,
                         ..Padding::ZERO
@@ -135,7 +125,7 @@ impl<'a> FungiblesView {
             .spacing(15)
             .align_items(iced::Alignment::Center);
 
-        widget::button(row).width(Length::Fill).height(70)
-            //.style(iced::theme::Button::Custom(Box::new(ListButton)))
+        widget::button(row).width(Length::Fill).height(85)
+            .style(theme::Button::custom(AssetListButton))
     }
 }
