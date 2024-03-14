@@ -4,14 +4,13 @@ pub mod transaction_view;
 use std::collections::HashMap;
 
 use iced::{
-    widget::{self, button, container, image::Handle, text, Button, Row},
-    Element, Length,
+    theme::{self, Button}, widget::{self, button, container::{self, StyleSheet}, image::Handle, text, Row}, Element, Length
 };
 use types::ResourceAddress;
 
-use crate::{app::App, message::{app_view_message::AppViewMessage, Message}};
+use crate::{app::App, message::{app_view_message::AppViewMessage, Message}, styles::{self, center_panel::CenterPanel, menu::{MenuContainer, SelectedMenuButton}, window::MainWindow, MenuButton}};
 
-use self::{accounts_view::AccountsView, transaction_view::TransactionView};
+use self::{accounts_view::{account_view::ListButton, AccountsView}, transaction_view::TransactionView};
 
 
 #[derive(Debug)]
@@ -50,15 +49,16 @@ impl AppView {
 impl<'a> AppView {
 
     pub fn view(&'a self, app: &'a App) -> Element<'a, Message> {
-        let menu = self.menu();
+        let menu = self.menu(app);
 
         let center_panel = match self.active_tab {
-            ActiveTab::Accounts(ref accounts_view) => container(accounts_view.view(app)),
-            ActiveTab::Transfer(ref transaction_view) => container(transaction_view.view(app)),
+            ActiveTab::Accounts(ref accounts_view) => widget::container(accounts_view.view(app)),
+            ActiveTab::Transfer(ref transaction_view) => widget::container(transaction_view.view(app)),
         }
-        .padding(10);
+        .padding(10)
+        .style(CenterPanel::style);
 
-        let menu_center = widget::row![menu, center_panel]
+        let menu_center_row = widget::row![menu, center_panel]
             .width(Length::Fill)
             .height(Length::Fill);
 
@@ -67,16 +67,17 @@ impl<'a> AppView {
         if let Some(notification) = &self.notification {
             let notification_widget = Self::notification_widget(notification);
 
-            panels = widget::column![notification_widget, menu_center].into()
+            panels = widget::column![notification_widget, menu_center_row].into()
         } else {
-            panels = menu_center.into()
+            panels = menu_center_row.into()
         }
 
-        container(panels).into()
+        widget::container(panels).style(MainWindow::style).into()
     }
 
-    fn menu(&self) -> Element<'a, Message> {
-        let toggle_theme_button = Self::menu_button("Toggle theme", Message::ToggleTheme);
+    fn menu(&self, app: &'a App) -> Element<'a, Message> {
+        let theme_button_text = format!("{}", app.theme);
+        let toggle_theme_button = Self::menu_button(&theme_button_text, Message::ToggleTheme);
 
         let mut accounts_button =
             Self::menu_button("Accounts", AppViewMessage::SelectTab(TabId::Accounts));
@@ -104,25 +105,26 @@ impl<'a> AppView {
 
         let scrollable = widget::scrollable(buttons).height(Length::Shrink);
 
-        container(scrollable).height(Length::Fill).width(200).into()
+        widget::container(scrollable).height(Length::Fill).width(200).style(MenuContainer::style).into()
     }
 
     fn set_active_style(
         button: iced::widget::Button<'a, Message>,
     ) -> iced::widget::Button<'a, Message> {
-        button.style(iced::theme::Button::Secondary)
+        button.style(theme::Button::custom(SelectedMenuButton))
     }
 
-    fn menu_button(content: &str, message: impl Into<Message>) -> Button<'a, Message> {
+    fn menu_button(content: &str, message: impl Into<Message>) -> widget::Button<'a, Message> {
         button(
             text(content)
                 .size(15)
                 .line_height(2.)
                 .width(Length::Fill)
-                .horizontal_alignment(iced::alignment::Horizontal::Center),
+                .horizontal_alignment(iced::alignment::Horizontal::Left),
         )
         .height(Length::Shrink)
         .width(Length::Fill)
+        .style(theme::Button::custom(MenuButton))
         .on_press(message.into())
     }
 
@@ -131,7 +133,7 @@ impl<'a> AppView {
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);
 
-        let close = container(widget::Button::new("X"))
+        let close = widget::container(widget::Button::new("X"))
             .padding(5)
             .width(Length::Shrink)
             .height(Length::Shrink);

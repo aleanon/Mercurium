@@ -19,27 +19,21 @@ const PICK_LIST_DEFAULT_TEXT: &'static str = "Select account";
 
 #[derive(Debug, Clone)]
 pub struct Recipient {
-    pub(crate) recipient_chooser: bool,
     pub(crate) address: AccountAddress,
-    pub(crate) recource_chooser: bool,
     pub(crate) resources: Vec<(String, ResourceAddress, String)>,
 }
 
 impl Recipient {
     pub fn new() -> Self {
         Self {
-            recipient_chooser: false,
             address: AccountAddress::empty(),
-            recource_chooser: false,
             resources: Vec::new(),
         }
     }
 
     pub fn from_account(account: AccountAddress) -> Self {
         Self {
-            recipient_chooser: false,
             address: account,
-            recource_chooser: false,
             resources: Vec::new(),
         }
     }

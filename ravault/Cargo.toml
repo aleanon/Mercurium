@@ -7,14 +7,11 @@ edition = "2021"
 
 [features]
 default = []
-reload = ["dep:hot-lib-reloader"]
+reload = []
 
 
 [dependencies]
-ui ={ path = "../ui"}
-iced = { workspace = true }
-anyhow ={ workspace = true }
-
-hot-lib-reloader = {workspace = true, optional = true}
+iced_ui ={ path = "../iced_ui"}
 
 [dev-dependencies]
+hot-lib-reloader = {workspace = true}

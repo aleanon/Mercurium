@@ -1,5 +1,5 @@
 commands:
-  bin: |
+  ravault: |
     cargo run --features reload
-  lib: |
+  iced_ui: |
     cargo watch -w crates/ui -x build -p ui --features reload

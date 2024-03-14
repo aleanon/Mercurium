@@ -42,7 +42,7 @@ pub mod create {
             nfids BLOB NOT NULL,
             account_address BLOB NOT NULL,
             FOREIGN KEY(resource_address) REFERENCES resources(address),
-            FOREIGN KEY(account_address) REFERENCE accounts(address)
+            FOREIGN KEY(account_address) REFERENCES accounts(address)
         )
     ";
 
