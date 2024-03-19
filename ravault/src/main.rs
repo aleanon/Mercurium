@@ -4,7 +4,7 @@ mod hot_lib;
 
 fn main() {
     
-    #[cfg(not(feature = "relaod"))]
+    #[cfg(all(not(feature = "reload"), any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     iced_ui::run().unwrap();
 
     #[cfg(feature = "reload")]

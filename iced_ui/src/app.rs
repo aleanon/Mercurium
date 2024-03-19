@@ -92,6 +92,7 @@ impl Application for App {
     fn title(&self) -> String {
         String::from("RaVault")
     }
+
 }
 
 impl<'a> App {

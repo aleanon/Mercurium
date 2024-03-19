@@ -1,4 +1,5 @@
 use super::ParseAddrError;
+use scrypto::prelude::indexmap::Equivalent;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use std::str::FromStr;
@@ -30,6 +31,11 @@ const ACC_TRUNCATE_LEN: usize = 13;
 pub struct AccountAddress([u8; ACC_ADDR_LENGTH]);
 
 impl AccountAddress {
+
+    pub fn empty() -> Self {
+        Self([b'0'; ACC_ADDR_LENGTH])
+    }
+
     pub fn as_ref(&self) -> &[u8] {
         &self.0
     }
@@ -39,8 +45,8 @@ impl AccountAddress {
         unsafe { std::str::from_utf8_unchecked(&self.0) }
     }
 
-    pub fn empty() -> Self {
-        Self([b'0'; ACC_ADDR_LENGTH])
+    pub fn is_empty(&self) -> bool {
+        self.0.equivalent(&[b'0'; ACC_ADDR_LENGTH])
     }
 
     pub fn truncate(&self) -> String {
@@ -51,6 +57,13 @@ impl AccountAddress {
 
         //Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters
         unsafe{String::from_utf8_unchecked(truncated.to_vec())}
+    }
+
+    pub fn truncate_long(&self) -> String {
+        let truncated = [&self.0[..12], &[b'.';3], &self.0[ACC_ADDR_LENGTH-6..]].concat();
+
+        //Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters
+        unsafe{String::from_utf8_unchecked(truncated)}
     }
 
     // Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters

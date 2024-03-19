@@ -1,8 +1,7 @@
+
 use std::fmt;
 
 use iced::theme::{palette, Palette};
-
-pub mod button;
 
 
 #[derive(Debug, Default)]

@@ -20,8 +20,7 @@ impl BackendWorker {
                   "Module: {}, Line: {} Unable to send transmitter {err}",
                   module_path!(),
                   line!()
-              )
-              
+              ) 
           }
 
           loop {

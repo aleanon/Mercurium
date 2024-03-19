@@ -9,7 +9,8 @@ const IMAGE_STANDARD_HEIGHT: u32 = 150;
 const FILTER_TYPE: image::imageops::FilterType = image::imageops::FilterType::Lanczos3;
 const RESIZE_ALGORITHM: fr::ResizeAlg = fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3);
 
-/// This will produce an invalid image if dimensions are bigger than 60x60 pixels
+/// This will produce an invalid image if dimensions are bigger than 60x60 pixels.
+/// Returns None if the resize fails
 pub fn fast_resize(
     image: &DynamicImage,
     new_width: NonZeroU32,
@@ -127,6 +128,7 @@ pub fn fast_resize(
     Some(result_buf)
 }
 
+
 fn resize_standard_dimensions(image: &DynamicImage) -> DynamicImage {
     image.resize(
       IMAGE_STANDARD_WIDTH,
@@ -134,3 +136,4 @@ fn resize_standard_dimensions(image: &DynamicImage) -> DynamicImage {
       FILTER_TYPE,
     )
 }
+

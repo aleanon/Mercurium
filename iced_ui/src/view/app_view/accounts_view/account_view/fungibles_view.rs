@@ -8,8 +8,8 @@ use iced::{
 };
 
 use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
-
-use crate::{message::{app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage, Message}, styles::accounts::{AssetListButton, AssetListItem}, App};
+use ravault_iced_theme::styles::accounts::{AssetListButton, AssetListItem};
+use crate::{message::{app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage, Message}, App};
 
 use super::fungible_view::FungibleView;
 

@@ -1,7 +1,5 @@
 use iced::{border::Radius, widget::{button, container, shader::wgpu::core::command::BakedCommands}, Background, Border, Color, Shadow, Theme, Vector};
 
-use crate::app;
-
 
 
 pub struct AccountButton;

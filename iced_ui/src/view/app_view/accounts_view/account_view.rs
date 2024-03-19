@@ -12,13 +12,13 @@ use iced::{
         scrollable::{self, Properties},
         text, Button }, Background, Color, Element, Length, Padding, Vector 
 };
-
+use ravault_iced_theme::styles::accounts::AssetListItem;
 use crate::app::App;
 use crate::message::app_view_message::accounts_message::account_message::AccountViewMessage;
-use crate::message::app_view_message::transaction_message::TransferMessage;
+use crate::message::app_view_message::transaction_message::TransactionMessage;
 use crate::message::common_message::CommonMessage;
 use crate::message::Message;
-use crate::styles::accounts::AssetListItem;
+
 use store::Db;
 use types::{Account, AccountAddress, EntityAccount};
 
@@ -113,7 +113,7 @@ impl<'a> AccountView {
         let history_button = Self::nav_button("History");
 
         let transfer_button = Self::nav_button("Transfer")
-            .on_press(TransferMessage::FromAccount(account).into());
+            .on_press(TransactionMessage::FromAccount(account).into());
 
         let receive_button = Self::nav_button("Receive");
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
