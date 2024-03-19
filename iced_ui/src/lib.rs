@@ -2,8 +2,8 @@ mod app;
 mod message;
 mod view;
 mod subscription;
-mod styles;
-mod theme;
+// mod styles;
+//mod theme;
 
 pub use app::App;
 use iced::{Application, Settings};

@@ -58,6 +58,7 @@ impl Account {
                 .expect("Can not create public key from slice, module Account"),
             hidden: false,
             settings: Settings::default(),
+            
         }
     }
 
@@ -78,7 +79,7 @@ impl Account {
 
 impl ToString for Account {
     fn to_string(&self) -> String {
-        format!("{}  {}", self.name, self.address.as_str())
+        format!("{}:    {}", self.name, self.address.truncate_long())
     }
 }
 
@@ -99,7 +100,6 @@ impl Ord for Account {
         self.id.cmp(&other.id)
     }
 }
-
 
 
 #[cfg(test)]

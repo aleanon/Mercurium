@@ -8,8 +8,8 @@ use iced::{
         scrollable::{self, Properties},
     }, Element, Length
 };
-
-use crate::{app::App, message::{app_view_message::accounts_message::AccountsViewMessage, Message}, styles::accounts::{AccountButton, AccountOverview}};
+use ravault_iced_theme::styles::accounts::AccountButton;
+use crate::{app::App, message::{app_view_message::accounts_message::AccountsViewMessage, Message}};
 use types::EntityAccount;
 
 use self::account_view::AccountView;

@@ -5,7 +5,7 @@ use iced::Command;
 
 use crate::{app::App, view::app_view::{accounts_view::AccountsView, transaction_view::TransactionView, ActiveTab, TabId}}; 
 
-use self::{accounts_message::AccountsViewMessage, transaction_message::TransferMessage};
+use self::{accounts_message::AccountsViewMessage, transaction_message::TransactionMessage};
 
 use super::Message;
 
@@ -14,7 +14,7 @@ use super::Message;
 pub enum AppViewMessage {
     SelectTab(TabId),
     AccountsViewMessage(AccountsViewMessage),
-    TransferMessage(TransferMessage),
+    TransferMessage(TransactionMessage),
 }
 
 impl Into<Message> for AppViewMessage {

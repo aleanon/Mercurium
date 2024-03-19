@@ -5,14 +5,22 @@ members = [
   "ravault",
   "store",
   "types",
-  "iced_ui"
+  "iced_ui",
+  "iced_ui/theme"
 ]
 resolver = "2"
 
-
-
+[profile.release]
+strip = true
+opt-level = 3
+lto = true
+codegen-units = 1
 # [dev-dependencies]
 # debug_print = "1.0.0"
+
+[profile.dev]
+lto = false
+
 
 [workspace.dependencies]
 tokio = { version = "1.35.1", features = ["full"] }
@@ -21,6 +29,7 @@ radix-engine-toolkit = { git = "https://github.com/radixdlt/radix-engine-toolkit
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = { version = "1.0.111" }
 iced = { version = "0.12.1", features = ["image", "tokio", "wgpu"] }
+iced_aw ={ version = "0.8.0" }
 tokio-rusqlite = "0.5.0"
 reqwest = { version = "0.11.23", features = ["blocking", "json"] }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
@@ -36,7 +45,5 @@ ed25519-dalek-fiat = "0.1.0"
 rand = "0.8.5"
 ring = "0.17.7"
 zeroize = {version = "1.7.0", features = ["zeroize_derive"]}
-
-# Dev dependencies
 debug_print = "1.0.0"
 hot-lib-reloader = { version = "0.7.0"}

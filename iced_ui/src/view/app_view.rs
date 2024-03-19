@@ -2,13 +2,13 @@ pub mod accounts_view;
 pub mod transaction_view;
 
 use std::collections::HashMap;
-
+use ravault_iced_theme::styles::{self, center_panel::CenterPanel, main_window::MainWindow, menu::SelectedMenuButton, MenuButton, MenuContainer};
 use iced::{
     theme::{self, Button}, widget::{self, button, container::{self, StyleSheet}, image::Handle, text, Row}, Element, Length
 };
 use types::ResourceAddress;
 
-use crate::{app::App, message::{app_view_message::AppViewMessage, Message}, styles::{self, center_panel::CenterPanel, menu::{MenuContainer, SelectedMenuButton}, window::MainWindow, MenuButton}};
+use crate::{app::App, message::{app_view_message::AppViewMessage, Message}};
 
 use self::{accounts_view::{account_view::ListButton, AccountsView}, transaction_view::TransactionView};
 
@@ -24,6 +24,7 @@ pub enum TabId {
     Accounts,
     Transfer,
 }
+
 
 #[derive(Debug)]
 pub struct AppView {
@@ -56,7 +57,9 @@ impl<'a> AppView {
             ActiveTab::Transfer(ref transaction_view) => widget::container(transaction_view.view(app)),
         }
         .padding(10)
-        .style(CenterPanel::style);
+        .style(CenterPanel::style)
+        .width(Length::Fill)
+        .height(Length::Fill);
 
         let menu_center_row = widget::row![menu, center_panel]
             .width(Length::Fill)
@@ -83,11 +86,12 @@ impl<'a> AppView {
             Self::menu_button("Accounts", AppViewMessage::SelectTab(TabId::Accounts));
 
         let mut transfer_button =
-            Self::menu_button("Transfer", AppViewMessage::SelectTab(TabId::Transfer));
+            Self::menu_button("Transaction", AppViewMessage::SelectTab(TabId::Transfer));
+
 
         match self.active_tab {
-            ActiveTab::Accounts(_) => accounts_button = Self::set_active_style(accounts_button),
-            ActiveTab::Transfer(_) => transfer_button = Self::set_active_style(transfer_button),
+            ActiveTab::Accounts(_) => accounts_button = Self::set_style_selected(accounts_button),
+            ActiveTab::Transfer(_) => transfer_button = Self::set_style_selected(transfer_button),
         }
 
         let top_space = widget::Space::new(Length::Fill, 75);
@@ -108,7 +112,7 @@ impl<'a> AppView {
         widget::container(scrollable).height(Length::Fill).width(200).style(MenuContainer::style).into()
     }
 
-    fn set_active_style(
+    fn set_style_selected(
         button: iced::widget::Button<'a, Message>,
     ) -> iced::widget::Button<'a, Message> {
         button.style(theme::Button::custom(SelectedMenuButton))
