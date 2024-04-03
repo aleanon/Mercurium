@@ -202,37 +202,25 @@ impl<'a> TransactionView {
 
         let mut recipients: Vec<Element<'a, Message>> = Vec::with_capacity(self.recipients.len());
 
-        let recipients_iter = self.recipients.iter().enumerate();
-
-        if let Some((i, recipient)) = recipients_iter.next() {
-            let recipient_address = recipient.address.and_then(|address| Some(address.truncate_long()))
+        for (recipient_index, ref recipient) in self.recipients.iter().enumerate() {
+            let recipient_address = recipient.address.as_ref().and_then(|address| Some(address.truncate_long()))
                 .unwrap_or("Choose recipient".to_owned());
 
-            let address = text(recipient_address).size(15).line_height(1.5).width(Length::Shrink);
-            let space = widget::Space::new(Length::Fill, 1);
-            let remove_recipient = button(widget::Space::new(15, 15)).width(Length::Shrink).height(Length::Shrink)
-                .on_press_maybe(recipient.address.and_then(|_| Some(TransactionMessage::RemoveRecipient(i).into())));
-            let button_row = row![address, space, remove_recipient].width(Length::Fill).height(Length::Shrink).align_items(Alignment::Center);
-            let choose_account = button(botton_row).width(Length::Fill).height(Length::Shrink);
-
-            let 
-
-        }
-
-        for recipient in self.recipients.iter() {
-            let recipient_address = recipient.address.and_then(|address| Some(address.truncate_long()))
-                .unwrap_or("Choose recipient".to_owned());
-
-            let address = text(recipient.address)
+            let address = text(recipient_address)
                 .size(15)
                 .line_height(1.5)
                 .width(Length::Fill);
 
             
-            let remove_recipient = widget::button(widget::Space::new(8, 8))
+            let mut remove_recipient = widget::button(widget::Space::new(8, 8))
                 .width(Length::Shrink)
-                .height(Length::Shrink)
-                .on_press(TransactionMessage::RemoveRecipient(recipient.address.clone()).into());
+                .height(Length::Shrink);
+
+            if recipient_index != 0 {
+                remove_recipient = remove_recipient.on_press(TransactionMessage::RemoveRecipient(recipient_index).into());
+            } else {
+                remove_recipient = remove_recipient.on_press_maybe(recipient.address.as_ref().and_then(|_| Some(TransactionMessage::RemoveRecipient(recipient_index).into())));
+            }
 
             let address_field = row![address, remove_recipient];
 
@@ -242,7 +230,7 @@ impl<'a> TransactionView {
 
             let mut assets:Vec<Element<'a, Message>> = Vec::with_capacity(recipient.resources.len());
 
-            for (symbol, resource_address, amount) in recipient.resources.iter() {
+            for (resource_index, (symbol, resource_address, amount)) in recipient.resources.iter().enumerate() {
                 //placeholder for actual icon
                 let icon = widget::Space::new(10, 10);
 
@@ -251,8 +239,8 @@ impl<'a> TransactionView {
                 let address = Self::resource_text_field(&resource_address.truncate());
 
                 let amount = widget::text_input("Amount", &amount)
-                    .on_input(|input| TransactionMessage::UpdateResourceAmount((recipient.address.clone(), resource_address.clone(), input)).into())
-                    .on_paste(|input| TransactionMessage::UpdateResourceAmount((recipient.address.clone(), resource_address.clone(), input)).into());
+                    .on_input(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_index, input).into())
+                    .on_paste(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_index, input).into());
 
                 let remove_resource = widget::button(widget::Space::new(5, 5));
 
@@ -283,11 +271,9 @@ impl<'a> TransactionView {
             recipients.push(recipient.into())
         }
 
-            let recipients = widget::column(recipients);
+        let recipients = widget::column(recipients);
 
-            return widget::container(widget::column![label, recipients])
-        
-
+        widget::container(widget::column![label, recipients])
     }
 
     fn resource_text_field(str: &str) -> widget::Text<'a> {

@@ -1,11 +1,14 @@
-use types::{Action, AppError};
+use std::collections::{BTreeSet, HashMap};
+
+use iced::widget::image::Handle;
+use types::{Account, Action, AppError, Fungible, NonFungible, ResourceAddress};
 use debug_print::debug_println;
 use iced::{Application, Command,  Theme, futures::channel::mpsc::Sender as MpscSender};
 // use iced_futures::futures::channel::mpsc::Sender as MpscSender;
 // use iced_futures::futures::SinkExt;
 
 
-use crate::message::update_message::UpdateMessage;
+use crate::message::backend_message::BackendMessage;
 use crate::message::Message;
 use crate::view::app_view::AppView;
 use crate::view::loginscreen::LoginScreen;
@@ -13,9 +16,27 @@ use crate::view::setup::Setup;
 
 use store::Db;
 
+#[derive(Debug)]
+pub struct AppData {
+    accounts: BTreeSet<Account>,
+    fungibles: BTreeSet<Fungible>,
+    non_fungibles: BTreeSet<NonFungible>,
+    resource_icons: HashMap<ResourceAddress, Handle>
+}
+
+impl AppData {
+    pub fn new() -> Self {
+        Self {
+            accounts: BTreeSet::new(),
+            fungibles: BTreeSet::new(),
+            non_fungibles: BTreeSet::new(),
+            resource_icons: HashMap::new(),
+        }
+    }
+}
 
 #[derive(Debug)]
-pub enum State {
+pub enum AppState {
     Initial(Setup),
     Locked(LoginScreen),
     Unlocked,
@@ -24,7 +45,8 @@ pub enum State {
 
 #[derive(Debug)]
 pub struct App {
-    pub(crate) state: State,
+    pub(crate) app_state: AppState,
+    pub(crate) app_data: AppData,
     pub(crate) db: Option<Db>,
     pub(crate) action_tx: Option<MpscSender<Action>>,
     pub(crate) appview: AppView,
@@ -43,18 +65,19 @@ impl Application for App {
         match Db::exits() {
             Ok(exists) => {
                 if exists {
-                    state = State::Locked(LoginScreen::new());
+                    state = AppState::Locked(LoginScreen::new());
                 } else {
-                    state = State::Initial(Setup::new());
+                    state = AppState::Initial(Setup::new());
                 }
             }
             Err(err) => {
-                state = State::Error(AppError::Fatal(Box::new(err)));
+                state = AppState::Error(AppError::Fatal(Box::new(err)));
             }
         }
 
         let appstate = App {
-            state,
+            app_state: state,
+            app_data: AppData::new(),
             db: None,
             action_tx: None,
             appview: AppView::new(),
@@ -75,18 +98,12 @@ impl Application for App {
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
         crate::subscription::BackendWorker::backend_subscription()
-            .map(|update| Message::Update(UpdateMessage(update)))
+            .map(|update| Message::Update(BackendMessage(update)))
         // BackEnd::backend_subscription().map(|update|Message::Update(UpdateMessage(update)))
     }
 
     fn theme(&self) -> Theme {
         self.theme.clone()
-
-        // if self.darkmode {
-        //     Theme::Dark
-        // } else {
-        //     Theme::Light
-        // }
     }
 
     fn title(&self) -> String {
@@ -102,7 +119,7 @@ impl<'a> App {
         match self.db {
             Some(_) => {
                 // Self::load_accounts(&mut self.appview.center_panel,db);
-                self.state = State::Unlocked;
+                self.app_state = AppState::Unlocked;
                 Ok(())
             }
             None => {
@@ -110,7 +127,7 @@ impl<'a> App {
                     Ok(db) => {
                         // Self::load_accounts(&mut self.appview.center_panel, &mut db);
                         self.db = Some(db);
-                        self.state = State::Unlocked;
+                        self.app_state = AppState::Unlocked;
                         Ok(())
                     }
                     Err(err) => {

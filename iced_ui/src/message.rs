@@ -1,6 +1,6 @@
 pub mod common_message;
 pub mod login_message;
-pub mod update_message;
+pub mod backend_message;
 pub mod app_view_message;
 pub mod setup_message;
 
@@ -10,14 +10,14 @@ use iced::{Application, Command, Theme};
 
 use crate::app::App;
 
-use self::{app_view_message::AppViewMessage, common_message::CommonMessage, login_message::LoginMessage, setup_message::SetupMessage, update_message::UpdateMessage};
+use self::{app_view_message::AppViewMessage, common_message::CommonMessage, login_message::LoginMessage, setup_message::SetupMessage, backend_message::BackendMessage};
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Setup(SetupMessage),
     AppView(AppViewMessage),
     Login(LoginMessage),
-    Update(UpdateMessage),
+    Update(BackendMessage),
     Common(CommonMessage),
     ToggleTheme,
     None,

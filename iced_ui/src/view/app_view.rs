@@ -90,8 +90,8 @@ impl<'a> AppView {
 
 
         match self.active_tab {
-            ActiveTab::Accounts(_) => accounts_button = Self::set_style_selected(accounts_button),
-            ActiveTab::Transfer(_) => transfer_button = Self::set_style_selected(transfer_button),
+            ActiveTab::Accounts(_) => accounts_button = accounts_button.style(theme::Button::custom(SelectedMenuButton)),
+            ActiveTab::Transfer(_) => transfer_button = transfer_button.style(theme::Button::custom(SelectedMenuButton)),
         }
 
         let top_space = widget::Space::new(Length::Fill, 75);
@@ -112,11 +112,6 @@ impl<'a> AppView {
         widget::container(scrollable).height(Length::Fill).width(200).style(MenuContainer::style).into()
     }
 
-    fn set_style_selected(
-        button: iced::widget::Button<'a, Message>,
-    ) -> iced::widget::Button<'a, Message> {
-        button.style(theme::Button::custom(SelectedMenuButton))
-    }
 
     fn menu_button(content: &str, message: impl Into<Message>) -> widget::Button<'a, Message> {
         button(

@@ -36,7 +36,7 @@ pub mod create {
     ";
 
     pub const CREATE_TABLE_NON_FUNGIBLE_ASSETS: &'static str = "CREATE TABLE IF NOT EXISTS 
-        non_fungibles_assets (
+        non_fungible_assets (
             asset_id BLOB NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             nfids BLOB NOT NULL,

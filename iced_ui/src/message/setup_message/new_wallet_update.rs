@@ -6,7 +6,7 @@ use iced::futures::SinkExt;
 use zeroize::Zeroize;
 
 use crate::{
-        app::{App, State}, message::Message, view::setup::{new_wallet::NewWalletStage, Setup} 
+        app::{App, AppState}, message::Message, view::setup::{new_wallet::NewWalletStage, Setup} 
     };
 use store::Db;
 use types::{AppError, crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair, SeedPhrase}, Account, AccountAddress, Action, Network};
@@ -47,11 +47,11 @@ impl<'a> WalletMessage {
     pub fn process(self, app: &'a mut App) -> Command<Message> {
         match self {
             Self::New => Self::create_wallet_with_new_seed(app),
-            Self::FromSeed => Self::create_wallet_with_supplied_seed(app),
+            Self::FromSeed => Self::create_wallet_user_supplied_seed(app),
             Self::Back => Self::move_to_previous_step(app),
             Self::UpdatePassword(mut input) => Self::update_password_input(&mut input, app),
             Self::SubmitPassword => Self::submit_password(app),
-            Self::UpdateVerificationPassword(mut input) => Self::update_verified_password_input(&mut input, app), 
+            Self::UpdateVerificationPassword(input) => Self::update_verified_password_input(input, app), 
             Self::VerifiPassword => Self::verifi_password(app),
             Self::UpdateAccName(input) => Self::update_account_name_input(input, app), 
             Self::SubmitAccName => Self::submit_account_name(app),
@@ -63,22 +63,22 @@ impl<'a> WalletMessage {
     }
 
     fn create_wallet_with_new_seed(app: &'a mut App) -> Command<Message> {
-        app.state = State::Initial(Setup::NewWallet(NewWallet::new_with_mnemonic()));
+        app.app_state = AppState::Initial(Setup::NewWallet(NewWallet::new_with_mnemonic()));
 
         Command::none()
     }
 
-    fn create_wallet_with_supplied_seed(app: &'a mut App) -> Command<Message> {
-        app.state = State::Initial(Setup::NewWallet(NewWallet::new_without_mnemonic()));
+    fn create_wallet_user_supplied_seed(app: &'a mut App) -> Command<Message> {
+        app.app_state = AppState::Initial(Setup::NewWallet(NewWallet::new_without_mnemonic()));
 
         Command::none()
     }
 
     fn move_to_previous_step(app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             match new_wallet_state.stage {
                 NewWalletStage::EnterPassword => {
-                    app.state = State::Initial(Setup::SelectCreation)
+                    app.app_state = AppState::Initial(Setup::SelectCreation)
                 }
                 NewWalletStage::VerifyPassword => {
                     new_wallet_state.stage = NewWalletStage::EnterPassword;
@@ -111,7 +111,7 @@ impl<'a> WalletMessage {
     }
 
     fn update_password_input(input: &mut String, app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             new_wallet_state.password.clear();
             new_wallet_state.password.push_str(input.as_str());
             input.zeroize()
@@ -120,7 +120,7 @@ impl<'a> WalletMessage {
     } 
 
     fn submit_password(app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             if !new_wallet_state.password.as_str().is_ascii() {
                 new_wallet_state.notification = NON_ASCII_CHARACTERS
             } else if new_wallet_state.password.as_str().len() < MINIMUM_PASSWORD_LENGTH
@@ -135,8 +135,8 @@ impl<'a> WalletMessage {
         Command::none()
     }
 
-    fn update_verified_password_input(input: &mut String, app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+    fn update_verified_password_input(mut input: String, app: &'a mut App) -> Command<Message> {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             new_wallet_state.verify_password.clear();
             new_wallet_state.verify_password.push_str(input.as_str());
             input.zeroize()
@@ -145,7 +145,7 @@ impl<'a> WalletMessage {
     }
 
     fn verifi_password(app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             if new_wallet_state.verify_password.as_str()
                 == new_wallet_state.password.as_str()
             {
@@ -159,14 +159,14 @@ impl<'a> WalletMessage {
     }
 
     fn update_account_name_input(input: String, app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             new_wallet_state.account_name = input
         }
         Command::none()
     }
 
     fn submit_account_name(app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             if new_wallet_state.account_name.len() == 0 {
                 new_wallet_state.notification = EMPTY_ACCOUNT_NAME;
             } else {
@@ -181,7 +181,7 @@ impl<'a> WalletMessage {
     }
 
     fn show_seed_phrase(app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             new_wallet_state.stage = NewWalletStage::ViewSeedPhrase;
             new_wallet_state.notification = "";
         }
@@ -189,7 +189,7 @@ impl<'a> WalletMessage {
     }
 
     fn verify_seed_phrase(app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             new_wallet_state.stage = NewWalletStage::VerifySeedPhrase;
             new_wallet_state.notification = "";
         }
@@ -197,7 +197,7 @@ impl<'a> WalletMessage {
     }
 
     fn update_input_seed(mut index: usize, words: Vec<String>, app: &'a mut App) -> Command<Message> {
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             for mut word in words {
                 new_wallet_state.seed_phrase.update_word(index, &word);
                 word.zeroize();
@@ -209,7 +209,7 @@ impl<'a> WalletMessage {
 
     fn create_wallet(app: &'a mut App) -> Command<Message> {
         let mut command = Command::none();
-        if let State::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.state {
+        if let AppState::Initial(Setup::NewWallet(ref mut new_wallet_state)) = app.app_state {
             if let None = new_wallet_state.mnemonic {
                 let phrase = new_wallet_state.seed_phrase.phrase();
                 let mnemonic = match Mnemonic::from_phrase(
@@ -291,7 +291,7 @@ impl<'a> WalletMessage {
 
             if let Err(err) = app.login() {
                 match err {
-                    AppError::Fatal(_) => app.state = State::Error(err),
+                    AppError::Fatal(_) => app.app_state = AppState::Error(err),
                     AppError::NonFatal(_err) => { /* impl app message*/ }
                 }
             }
