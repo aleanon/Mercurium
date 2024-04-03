@@ -1,9 +1,6 @@
 use iced::{
     theme, widget::{
-        self, column, container,
-        row,
-        scrollable::{self, Properties},
-        text, Button
+        self, column, container, image::Handle, row, scrollable::{self, Properties}, text, Button
     }, Element, Length, Padding
 };
 
@@ -11,7 +8,7 @@ use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 use ravault_iced_theme::styles::accounts::{AssetListButton, AssetListItem};
 use crate::{message::{app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage, Message}, App};
 
-use super::fungible_view::FungibleView;
+use super::fungible_view::{self, FungibleView};
 
 
 #[derive(Debug, Clone)]
@@ -85,7 +82,7 @@ impl<'a> FungiblesView {
         let icon: iced::Element<'a, Message> =
             match app.appview.resource_icons.get(&fungible.address) {
                 Some(handle) => widget::image(handle.clone()).width(50).height(50).into(),
-                None => widget::Space::new(50, 50).into(),
+                None => widget::image(Handle::from_memory(fungible_view::IMAGE_ICON)).width(50).height(50).into(),
             };
 
         let symbol = match fungible.symbol.len() {

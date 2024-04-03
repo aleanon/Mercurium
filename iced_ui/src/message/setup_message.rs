@@ -3,7 +3,7 @@ pub mod restore_wallet_update;
 
 use iced::Command;
 
-use crate::{app::{App, State}, view::setup::{new_wallet::NewWallet, Setup}}; 
+use crate::{app::{App, AppState}, view::setup::{new_wallet::NewWallet, Setup}}; 
 
 use self::{new_wallet_update::WalletMessage, restore_wallet_update::RestoreWalletMessage};
 
@@ -33,14 +33,14 @@ impl<'a> SetupMessage {
         let mut command = Command::none();
         match self {
             Self::NewWallet => {
-                if let State::Initial(ref mut setup)  = app.state {
+                if let AppState::Initial(ref mut setup)  = app.app_state {
                     if let Setup::SelectCreation = setup {
                         *setup = Setup::NewWallet(NewWallet::new_with_mnemonic())
                     }
                 }
             }
             Self::FromSeed => {
-                if let State::Initial(ref mut setup) = app.state {
+                if let AppState::Initial(ref mut setup) = app.app_state {
                     *setup = Setup::NewWallet(NewWallet::new_without_mnemonic())
                 }
             }

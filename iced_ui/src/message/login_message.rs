@@ -2,7 +2,7 @@ use iced::{futures::SinkExt, Command};
 use types::{Action, AppError};
 use zeroize::Zeroize;
 
-use crate::{app::State, App};
+use crate::{app::AppState, App};
 
 use super::Message;
 
@@ -25,21 +25,21 @@ impl<'a> LoginMessage {
 
         match self {
             LoginMessage::TextInputChanged(mut string) => {
-                if let State::Locked(ref mut loginscreen) = app.state {
+                if let AppState::Locked(ref mut loginscreen) = app.app_state {
                     loginscreen.password.clear();
                     loginscreen.password.push_str(string.as_str());
                     string.zeroize()
                 }
             }
             LoginMessage::Login => {
-                if let State::Locked(ref login) = app.state {
+                if let AppState::Locked(ref login) = app.app_state {
                     // let salt
                     let (key, _salt) = login.password.derive_new_db_encryption_key().unwrap();
                     //take the password, verify and create encryption key and decrypt the database
 
                     if let Err(err) = app.login() {
                         match err {
-                            AppError::Fatal(_) => app.state = State::Error(err),
+                            AppError::Fatal(_) => app.app_state = AppState::Error(err),
                             AppError::NonFatal(_) => { /*In app notification*/ }
                         }
                     };

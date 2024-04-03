@@ -70,14 +70,14 @@ impl<'a> AccountView {
 
 impl<'a> AccountView {
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
-        let db = app
-            .db
+        let db = app.db
             .as_ref()
             .unwrap_or_else(|| unreachable!("{}:{} Database not found", module_path!(), line!()));
 
         let mut accounts = db.get_accounts_map().unwrap_or(BTreeMap::new());
 
         let account = accounts.remove(&self.address).unwrap_or(Account::none());
+        
         let account_name = text(&self.name)
             .line_height(2.5)
             .size(20)
@@ -112,7 +112,7 @@ impl<'a> AccountView {
 
         let history_button = Self::nav_button("History");
 
-        let transfer_button = Self::nav_button("Transfer")
+        let transfer_button = Self::nav_button("Send")
             .on_press(TransactionMessage::FromAccount(account).into());
 
         let receive_button = Self::nav_button("Receive");

@@ -59,7 +59,7 @@ impl<'a> ChooseRecipientMessage {
   fn submit_recipient(app: &'a mut App) -> Command<Message> {
     if let ActiveTab::Transfer(ref mut transaction_view) = app.appview.active_tab {
       if let View::ChooseRecipient(ref mut choose_recipient) = transaction_view.view {
-        let recipient = Recipient::new(choose_recipient.chosen_account);
+        let recipient = Recipient::new(choose_recipient.chosen_account.take());
         transaction_view.recipients[choose_recipient.recipient_index] = recipient;
         transaction_view.view = View::Transaction
 

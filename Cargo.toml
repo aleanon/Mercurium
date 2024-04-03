@@ -28,8 +28,8 @@ scrypto = { git = "https://github.com/radixdlt/radixdlt-scrypto.git", tag = "v1.
 radix-engine-toolkit = { git = "https://github.com/radixdlt/radix-engine-toolkit.git", tag = "v1.0.5" }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = { version = "1.0.111" }
-iced = { version = "0.12.1", features = ["image", "tokio", "wgpu"] }
-iced_aw ={ version = "0.8.0" }
+iced = { version = "0.12.1", features = ["image", "tokio", "wgpu", "svg"] }
+iced_aw ={ version = "0.8.0", features = ["icons"]}
 tokio-rusqlite = "0.5.0"
 reqwest = { version = "0.11.23", features = ["blocking", "json"] }
 rusqlite = { version = "0.31.0", features = ["bundled"] }

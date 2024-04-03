@@ -15,7 +15,7 @@ pub enum TransactionMessage {
     SelectAccount(Account),
     UpdateMessage(String),
     RemoveRecipient(usize),
-    UpdateResourceAmount((AccountAddress ,ResourceAddress, String)),
+    UpdateResourceAmount(usize , usize, String),
     SelectRecipient(usize),
     SelectRadioButton(usize),
     AddRecipient,
@@ -35,7 +35,7 @@ impl<'a> TransactionMessage {
             Self::SelectAccount(account) => Self::select_account(account, app),
             Self::UpdateMessage(message) => Self::update_message(message, app),
             Self::RemoveRecipient(recipient_index) => Self::remove_recipient(recipient_index, app),
-            Self::UpdateResourceAmount((account, resource, amount)) => Self::update_resource_amount(account, resource, amount, app),
+            Self::UpdateResourceAmount(account_index, resource, amount) => Self::update_resource_amount(account_index, resource, amount, app),
             Self::SelectRecipient(recipient_index) => Self::select_recipient(recipient_index, app),
             Self::SelectRadioButton(id) => Self::select_radio_button(id, app),
             Self::AddRecipient => Self::add_recipient(app),
@@ -52,7 +52,7 @@ impl<'a> TransactionMessage {
 
     fn select_account(account: Account, app: &'a mut App) -> Command<Message> {
         if let ActiveTab::Transfer(ref mut transaction_view) = app.appview.active_tab {
-            transaction_view.from_account = Some(account)
+            transaction_view.from_account = Some(account);
         } else {
             unreachable!("{}:{} Invalid state", module_path!(), line!())
         }
@@ -77,7 +77,7 @@ impl<'a> TransactionMessage {
                 transaction_view.recipients[index].resources.clear();
                 
             } else if transaction_view.recipients.len() > index {
-                    transaction_view.recipients.remove(index)
+                    transaction_view.recipients.remove(index);
             }
         } else {
             unreachable!("{},{} Invalid state", module_path!(), line!())
@@ -86,24 +86,15 @@ impl<'a> TransactionMessage {
         Command::none()
     }
 
-    fn update_resource_amount(account: AccountAddress, resource: ResourceAddress, new_amount: String, app: &'a mut App) -> Command<Message> {
+    fn update_resource_amount(account_index: usize , resource_index: usize, new_amount: String, app: &'a mut App) -> Command<Message> {
         //checks that the input value is a valid Decimal type for the Radix network
         if let Err(_) = types::RadixDecimal::try_from(new_amount.as_bytes()) {
             return Command::none()
         }
 
         if let ActiveTab::Transfer(ref mut transaction_view) = app.appview.active_tab {
-            for recipient in transaction_view.recipients.iter_mut() {
-                if recipient.address == Some(account) {
-                    for (_, address, amount) in recipient.resources.iter_mut() {
-                        if *address == resource {
-                            *amount = new_amount;
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
+            transaction_view.recipients[account_index].resources[resource_index].2 =new_amount;
+
         } else {
             unreachable!("{},{} Invalid state", module_path!(), line!())
         }

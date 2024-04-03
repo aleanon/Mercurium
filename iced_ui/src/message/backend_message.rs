@@ -11,17 +11,17 @@ use types::{Action, EntityAccount, ResourceAddress, Update};
 
 use crate::{message::Message, App};
 
-
+// Uses a newtype wrapper because the Update type is used in the backend crate and has to be defined in the types crate
 #[derive(Debug, Clone)]
-pub struct UpdateMessage(pub(crate)Update);
+pub struct BackendMessage(pub(crate)Update);
 
 
-impl<'a> UpdateMessage {
+impl<'a> BackendMessage {
     pub fn process(self, app: &'a mut App) -> Command<Message> {
         match self.0 {
             Update::Sender(action_tx) => Self::store_channel_in_app_state(action_tx, app),
             Update::Icons(icons) => Self::store_icons_in_cache(icons, app), 
-            Update::Accounts(accounts) => Self::save_updated_data_to_disk(accounts, app),
+            Update::Accounts(accounts) => Self::save_updated_data(accounts, app),
             Update::DatabaseLoaded => Self::send_update_all_request(app),
             _ => {Command::none()}
         }
@@ -61,7 +61,7 @@ impl<'a> UpdateMessage {
         Command::none()
     }
 
-    fn save_updated_data_to_disk(accounts: Vec<EntityAccount>, app:&'a mut App) -> Command<Message> {
+    fn save_updated_data(accounts: Vec<EntityAccount>, app:&'a mut App) -> Command<Message> {
          match app.db {
             Some(ref mut db) => {
                 db.update_accounts(accounts.as_slice())
@@ -109,6 +109,9 @@ impl<'a> UpdateMessage {
                 debug_println!("{}:{}No database found", module_path!(), line!())
             }
         };
+
+
+
         Command::none()
     }
 }

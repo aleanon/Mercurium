@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use iced::{
-    widget::{self,  image::Handle, row, text },
+    widget::{self, image::Handle, row, svg, text },
     Length, Padding,
 };
 
@@ -9,8 +9,9 @@ use crate::{app::App, message::Message};
 use types::{Fungible, AppPath};
 
 
-const EMPTY_IMAGE: &'static [u8; 1] = &[0u8; 1];
+const EMPTY_IMAGE: &'static [u8; 1000] = &[255; 1000];
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
+pub const IMAGE_ICON: &'static [u8] = include_bytes!("../../../../../../icons/icons8-image-96.png");
 
 pub struct FungibleView(pub Fungible);
 
@@ -41,7 +42,7 @@ impl<'a> FungibleView {
                 let handle = Handle::from_path(icon_path);
                 widget::image(handle).height(150).width(150)
             }
-            None => widget::image(Handle::from_pixels(150, 150, [0])),
+            None => widget::image(Handle::from_memory(IMAGE_ICON)).height(150).width(150),
         };
 
         let amount = row![
