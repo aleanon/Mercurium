@@ -7,7 +7,7 @@ use iced::widget::text::LineHeight;
 use types::crypto::{Password, SeedPhrase};
 use zeroize::Zeroize;
 
-use crate::{app::App, message::{setup_message::new_wallet_update::WalletMessage, Message}};
+use crate::{app::App, message::{setup_message::{new_wallet_update::WalletMessage, SetupMessage}, Message}};
 
 
 #[derive(Debug)]
@@ -86,7 +86,7 @@ impl<'a> NewWallet {
             .on_input(|input| WalletMessage::UpdatePassword(input).into())
             .secure(true);
 
-        let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
+        let back = Self::nav_button("Back").on_press(SetupMessage::Back.into());
 
         let next = Self::nav_button("Next").on_press(WalletMessage::SubmitPassword.into());
 
@@ -109,7 +109,7 @@ impl<'a> NewWallet {
                 .on_input(|input| WalletMessage::UpdateVerificationPassword(input).into())
                 .secure(true);
 
-        let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
+        let back = Self::nav_button("Back").on_press(SetupMessage::Back.into());
 
         let next = Self::nav_button("Next").on_press(WalletMessage::VerifiPassword.into());
 
@@ -129,7 +129,7 @@ impl<'a> NewWallet {
             .on_submit(WalletMessage::SubmitAccName.into())
             .on_input(|input| WalletMessage::UpdateAccName(input).into());
 
-        let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
+        let back = Self::nav_button("Back").on_press(SetupMessage::Back.into());
 
         let next = Self::nav_button("Next").on_press(WalletMessage::SubmitAccName.into());
 
@@ -175,7 +175,7 @@ impl<'a> NewWallet {
         }
         seed = seed.push(row);
 
-        let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
+        let back = Self::nav_button("Back").on_press(SetupMessage::Back.into());
 
         let next = Self::nav_button("Next").on_press(WalletMessage::VerifySeedPhrase.into());
 
@@ -190,7 +190,7 @@ impl<'a> NewWallet {
     fn enter_seed_phrase_pane(&self) -> Column<'a, Message> {
         let input_seed = self.input_seed();
 
-        let back = Self::nav_button("Back").on_press(WalletMessage::Back.into());
+        let back = Self::nav_button("Back").on_press(SetupMessage::Back.into());
 
         let next = Self::nav_button("Next").on_press(WalletMessage::Finalize.into());
 

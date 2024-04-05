@@ -3,7 +3,7 @@
 use iced::Command;
 use types::AccountAddress;
 
-use crate::{message::{app_view_message::AppViewMessage, Message}, view::app_view::{transaction_view::{Recipient, View}, ActiveTab}, App};
+use crate::{message::{app_view_message::AppViewMessage, Message}, view::app_view::{transaction_view::{choose_recipient::{self, ChooseRecipient}, Recipient, TransactionView, View}, ActiveTab}, App};
 
 use super::TransactionMessage;
 
@@ -26,46 +26,57 @@ impl Into<Message> for ChooseRecipientMessage {
 }
 
 impl<'a> ChooseRecipientMessage {
-  pub fn process(self, app: &'a mut App) -> Command<Message> {
-    match self {
-      Self::RecipientInput(input) => Self::update_recipient_input(input, app),
-      Self::SelectRadioButton(address) => Self::set_selected_radio_button(address, app),
-      Self::Submit => Self::submit_recipient(app),
+  pub fn process(self, parent: &'a mut TransactionView) -> Command<Message> {
+    let view = &mut parent.view;
+
+    if let View::ChooseRecipient(ref mut choose_recipient) = view {
+      let command = Command::none();
+
+      match self {
+        Self::RecipientInput(input) => choose_recipient.recipient_input = input,
+        Self::SelectRadioButton(address) => choose_recipient.chosen_account = Some(address),
+        Self::Submit => {
+          let recipient = Recipient::new(choose_recipient.chosen_account.take());
+          parent.recipients[choose_recipient.recipient_index] = recipient;
+          parent.view = View::Transaction;
+        }
+          
+      }
+
+      command
+
+    } else {
+      unreachable!("{}:{} Invalid state", module_path!(), line!())
     }
   }
 
-  fn update_recipient_input(input: String, app: &'a mut App) -> Command<Message> {
-    if let ActiveTab::Transfer(ref mut transaction_view)= app.appview.active_tab {
-      if let View::ChooseRecipient(ref mut choose_recipient) = transaction_view.view {
-        choose_recipient.recipient_input = input
-        // TODO: Validate the address, if it's a valid address, push it to self.chosen_recipient
-      } else {unreachable!()}
-    } else {unreachable!()}
+  // fn update_recipient_input(input: String, app: &'a mut App) -> Command<Message> {
+  //   if let ActiveTab::Transfer(ref mut transaction_view)= app.appview.active_tab {
+  //     if let View::ChooseRecipient(ref mut choose_recipient) = transaction_view.view {
+  //       choose_recipient.recipient_input = input
+  //       // TODO: Validate the address, if it's a valid address, push it to self.chosen_recipient
+  //     } else {unreachable!()}
+  //   } else {unreachable!()}
 
-    Command::none()
-  }
+  //   Command::none()
+  // }
 
-  fn set_selected_radio_button(address: AccountAddress, app: &'a mut App) -> Command<Message> {
-    if let ActiveTab::Transfer(ref mut transaction_view) = app.appview.active_tab {
-      if let View::ChooseRecipient(ref mut choose_recipient) = transaction_view.view { 
-        choose_recipient.chosen_account = Some(address) 
+  // fn set_selected_radio_button(address: AccountAddress, app: &'a mut App) -> Command<Message> {
+  //   if let ActiveTab::Transfer(ref mut transaction_view) = app.appview.active_tab {
+  //     if let View::ChooseRecipient(ref mut choose_recipient) = transaction_view.view { 
+  //       choose_recipient.chosen_account = Some(address) 
         
-      } else {unreachable!()}
-    }else {unreachable!()}
+  //     } else {unreachable!()}
+  //   }else {unreachable!()}
 
-    Command::none()
-  }
+  //   Command::none()
+  // }
 
-  fn submit_recipient(app: &'a mut App) -> Command<Message> {
-    if let ActiveTab::Transfer(ref mut transaction_view) = app.appview.active_tab {
-      if let View::ChooseRecipient(ref mut choose_recipient) = transaction_view.view {
-        let recipient = Recipient::new(choose_recipient.chosen_account.take());
-        transaction_view.recipients[choose_recipient.recipient_index] = recipient;
-        transaction_view.view = View::Transaction
+  // fn submit_recipient(transaction_view: &'a mut TransactionView, chosen_account: Option<AccountAddress>, recipient_index: usize) -> Command<Message> {
+  //     let recipient = Recipient::new(chosen_account);
+  //     transaction_view.recipients[recipient_index] = recipient;
+  //     transaction_view.view = View::Transaction;
 
-      } else {unreachable!()}
-    } else {unreachable!()}
-
-    Command::none()
-  }
+  //   Command::none()
+  // }
 }

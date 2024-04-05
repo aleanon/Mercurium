@@ -10,7 +10,7 @@ pub fn create_new_wallet(mnemonic: &Mnemonic, password: &Password, account_name:
   let (key, salt) = password.derive_new_db_encryption_key()
     .map_err(|err| AppError::NonFatal(Box::new(err)))?;
 
-  let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic, password.as_str())
+  let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic, &password)
     .map_err(|err| AppError::Fatal(Box::new(err)))?;
 
   encrypted_mnemonic.save_to_store(CREDENTIALS_STORE_NAME)

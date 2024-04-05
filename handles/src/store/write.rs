@@ -12,9 +12,7 @@ pub fn save_accounts_to_database(db: &mut Db, accounts: &Vec<EntityAccount>) {
   for account in accounts {
     save_fungibles_to_database(db, &account.fungibles, &account.address);
 
-    if let Some(ref non_fungibles) = account.non_fungibles {
-      save_non_fungibles_to_database(db, non_fungibles, &account.address);
-    }
+    save_non_fungibles_to_database(db, &account.non_fungibles, &account.address);
   }
 }
 

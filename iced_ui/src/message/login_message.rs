@@ -48,15 +48,14 @@ impl<'a> LoginMessage {
                     //     app.state = State::Error(AppError::Fatal(Box::new(err)))
                     // }
 
-                    if let Some(ref channel) = app.action_tx {
-                        command = {
-                            let mut connection = channel.clone();
-                            Command::perform(
-                                async move { connection.send(Action::LoadDatabase(key)).await },
-                                |_| Message::None,
-                            )
-                        };
-                    }
+                    command = {
+                        let mut connection = app.app_data.backend_sender.clone();
+                        Command::perform(
+                            async move { connection.send(Action::LoadDatabase(key)).await },
+                            |_| Message::None,
+                        )
+                    };
+                    
                 }
             }
         }

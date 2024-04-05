@@ -166,7 +166,7 @@ impl Handle {
         let non_fungibles = non_fungibles??;
 
         account.fungibles = fungibles;
-        account.non_fungibles = Some(non_fungibles);
+        account.non_fungibles = non_fungibles;
         Ok::<_, HandleError>(account)
     }
 

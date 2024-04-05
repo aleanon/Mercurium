@@ -94,7 +94,7 @@ impl<'a> LoginScreen {
             .id(Id::new("password_input"))
             .on_input(|value| LoginMessage::TextInputChanged(value).into());
 
-        let unlock_button = widget::Button::new(
+        let login_button = widget::Button::new(
             widget::text("Login")
                 .size(15)
                 .horizontal_alignment(iced::alignment::Horizontal::Center)
@@ -107,7 +107,7 @@ impl<'a> LoginScreen {
         .style(Button::Primary)
         .on_press(LoginMessage::Login.into());
 
-        let col = widget::column![text_field, unlock_button]
+        let col = widget::column![text_field, login_button]
             .height(Length::Shrink)
             .width(Length::Shrink)
             .align_items(iced::Alignment::Center)

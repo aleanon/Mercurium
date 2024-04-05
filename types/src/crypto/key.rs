@@ -1,19 +1,19 @@
 use std::num::NonZeroU32;
 
 use ring::pbkdf2::{PBKDF2_HMAC_SHA256, self};
-use zeroize::ZeroizeOnDrop;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 use super::{ salt::Salt,password::Password};
 
 
 pub const KEY_LENGTH: usize = 32;
 
-#[derive(Debug, ZeroizeOnDrop)]
+#[derive(Debug, Clone, ZeroizeOnDrop, Zeroize)]
 pub struct Key([u8; KEY_LENGTH]);
 
 
 impl Key{
 
-    //Iteration counts needs to be > 0 else the program will crash
+    //Iteration counts needs to be > 0 else the program will panic
     const DB_KEY_ITERATIONS: u32 = 200000;
     const MNEMONIC_KEY_ITERATIONS: u32 = 2000000;
 

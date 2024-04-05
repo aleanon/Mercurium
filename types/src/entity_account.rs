@@ -20,7 +20,7 @@ pub struct EntityAccount {
     pub name: String,
     pub address: AccountAddress,
     pub fungibles: Fungibles,
-    pub non_fungibles: Option<NonFungibles>,
+    pub non_fungibles: NonFungibles,
     pub transactions: Option<BTreeSet<Transaction>>,
     pub settings: Settings,
 }
@@ -32,7 +32,7 @@ impl EntityAccount {
             name,
             address,
             fungibles: Fungibles::new(),
-            non_fungibles: None,
+            non_fungibles: NonFungibles::new(),
             transactions: None,
             settings: Settings::default(),
         }

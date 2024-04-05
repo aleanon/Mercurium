@@ -28,14 +28,10 @@ impl<'a> FungiblesView {
 
 impl<'a> FungiblesView {
     pub fn view(&self, app: &'a App) -> iced::Element<'a, Message> {
-        let db = app
-            .db
-            .as_ref()
-            .unwrap_or_else(|| unreachable!("{}:{} No database found", module_path!(), line!()));
 
         match self.selected {
             Some(ref address) => {
-                if let Some(fungible) = db.get_fungible(address).unwrap_or(None) {
+                if let Some(fungible) = app.app_data.db.get_fungible(address).unwrap_or(None) {
                     FungibleView(fungible).view(app)
                 } else {
                     // Create a token not found screen
@@ -43,7 +39,7 @@ impl<'a> FungiblesView {
                 }
             }
             None => {
-                let fungibles = db
+                let fungibles = app.app_data.db
                     .get_fungibles_by_account(&self.account_addr)
                     .unwrap_or(Fungibles::new());
 
@@ -82,7 +78,7 @@ impl<'a> FungiblesView {
         let icon: iced::Element<'a, Message> =
             match app.appview.resource_icons.get(&fungible.address) {
                 Some(handle) => widget::image(handle.clone()).width(50).height(50).into(),
-                None => widget::image(Handle::from_memory(fungible_view::IMAGE_ICON)).width(50).height(50).into(),
+                None => widget::image(Handle::from_memory(fungible_view::NO_IMAGE_ICON)).width(50).height(50).into(),
             };
 
         let symbol = match fungible.symbol.len() {
