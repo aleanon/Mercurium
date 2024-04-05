@@ -16,11 +16,12 @@ use ravault_iced_theme::styles::accounts::AssetListItem;
 use crate::app::App;
 use crate::message::app_view_message::accounts_message::account_message::AccountViewMessage;
 use crate::message::app_view_message::transaction_message::TransactionMessage;
+use crate::message::app_view_message::AppViewMessage;
 use crate::message::common_message::CommonMessage;
 use crate::message::Message;
 
 use store::Db;
-use types::{Account, AccountAddress, EntityAccount};
+use types::{Account, AccountAddress, EntityAccount, NonFungibles};
 
 use self::fungibles_view::FungiblesView;
 
@@ -70,11 +71,8 @@ impl<'a> AccountView {
 
 impl<'a> AccountView {
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
-        let db = app.db
-            .as_ref()
-            .unwrap_or_else(|| unreachable!("{}:{} Database not found", module_path!(), line!()));
 
-        let mut accounts = db.get_accounts_map().unwrap_or(BTreeMap::new());
+        let mut accounts = app.app_data.db.get_accounts_map().unwrap_or(BTreeMap::new());
 
         let account = accounts.remove(&self.address).unwrap_or(Account::none());
         
@@ -113,7 +111,7 @@ impl<'a> AccountView {
         let history_button = Self::nav_button("History");
 
         let transfer_button = Self::nav_button("Send")
-            .on_press(TransactionMessage::FromAccount(account).into());
+            .on_press(AppViewMessage::NewTransaction(Some(account)).into());
 
         let receive_button = Self::nav_button("Receive");
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
@@ -146,13 +144,7 @@ impl<'a> AccountView {
 
         let assets = match self.view {
             AssetView::Fungibles(ref fungibles_view) => fungibles_view.view(app),
-            AssetView::NonFungibles => {
-                let db = app
-                    .db
-                    .as_ref()
-                    .unwrap_or_else(|| unreachable!("No database"));
-                self.view_non_fungibles(db)
-            }
+            AssetView::NonFungibles => self.view_non_fungibles(&app.app_data.db),
         };
 
         let col = column![top_row, nav_button_cont, asset_button_cont, assets]
@@ -172,71 +164,66 @@ impl<'a> AccountView {
     pub fn view_non_fungibles(&self, db: &Db) -> iced::Element<'a, Message> {
         let non_fungibles = db
             .get_non_fungibles_by_account(&self.address)
-            .unwrap_or_else(|_| None);
+            .unwrap_or_else(|_| NonFungibles::new());
 
-        let column = match non_fungibles {
-            Some(ref non_fungibles) => {
+        let column = {
                 //Each non-fungible is turned into an element
 
-                let mut elements: Vec<Element<'a, Message>> = Vec::new();
+            let mut elements: Vec<Element<'a, Message>> = Vec::new();
 
-                for non_fungible in non_fungibles {
-                    let icon: iced::Element<'a, Message> = match non_fungible.icon {
-                        Some(ref icon) => {
-                            widget::image(icon.handle()).width(40).height(40).into()
-                        }
-                        None => widget::Space::new(40, 40).into(),
-                    };
+            for non_fungible in &non_fungibles {
+                let icon: iced::Element<'a, Message> = match non_fungible.icon {
+                    Some(ref icon) => {
+                        widget::image(icon.handle()).width(40).height(40).into()
+                    }
+                    None => widget::Space::new(40, 40).into(),
+                };
 
-                    let symbol = text(&non_fungible.symbol)
-                        .size(12)
-                        .height(15)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Left)
-                        .width(Length::Fill);
+                let symbol = text(&non_fungible.symbol)
+                    .size(12)
+                    .height(15)
+                    .vertical_alignment(iced::alignment::Vertical::Center)
+                    .horizontal_alignment(iced::alignment::Horizontal::Left)
+                    .width(Length::Fill);
 
-                    let nr_of_nfts = text(non_fungible.nfids.nr_of_nfts())
-                        .size(10)
-                        .height(15)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Right)
-                        .width(Length::Shrink);
+                let nr_of_nfts = text(non_fungible.nfids.nr_of_nfts())
+                    .size(10)
+                    .height(15)
+                    .vertical_alignment(iced::alignment::Vertical::Center)
+                    .horizontal_alignment(iced::alignment::Horizontal::Right)
+                    .width(Length::Shrink);
 
-                    let col = column![symbol, nr_of_nfts]
-                        .align_items(iced::Alignment::Center)
-                        .width(Length::Fill)
-                        .height(Length::Shrink);
-
-                    let row = row![icon, col]
-                        .height(Length::Fill)
-                        .width(Length::Fill)
-                        .padding(5)
-                        .spacing(5)
-                        .align_items(iced::Alignment::Center);
-
-                    let button = widget::button(row)
-                        .width(Length::Fill)
-                        .height(50)
-                        .on_press(Message::None)
-                        .style(theme::Button::Text);
-
-                    let container = container(button)
-                        .style(AssetListItem::style);
-
-                    elements.push(container.into())
-                }
-
-                column(elements)
+                let col = column![symbol, nr_of_nfts]
                     .align_items(iced::Alignment::Center)
-                    .padding(Padding {
-                        right: 15.,
-                        ..Padding::ZERO
-                    })
                     .width(Length::Fill)
+                    .height(Length::Shrink);
+
+                let row = row![icon, col]
+                    .height(Length::Fill)
+                    .width(Length::Fill)
+                    .padding(5)
+                    .spacing(5)
+                    .align_items(iced::Alignment::Center);
+
+                let button = widget::button(row)
+                    .width(Length::Fill)
+                    .height(50)
+                    .on_press(Message::None)
+                    .style(theme::Button::Text);
+
+                let container = container(button)
+                    .style(AssetListItem::style);
+
+                elements.push(container.into())
             }
-            None => {
-                column![]
-            }
+
+            column(elements)
+                .align_items(iced::Alignment::Center)
+                .padding(Padding {
+                    right: 15.,
+                    ..Padding::ZERO
+                })
+                .width(Length::Fill)
         };
 
         widget::scrollable(column)
@@ -312,137 +299,3 @@ impl ListButton {
         a: 1.0,
     };
 }
-
-// impl button::StyleSheet for ListButton {
-//     type Style = iced::Theme;
-//     fn active(&self, style: &Self::Style) -> button::Appearance {
-//         let (background_color, text_color) = match style {
-//             iced::Theme::Dark => (Self::BACKGROUND_ACTIVE_DARK, SidePanelButton::text_dark()),
-//             iced::Theme::Light => (Self::BACKGROUND_ACTIVE_LIGHT, SidePanelButton::text_light()),
-//             _ => (Self::BACKGROUND_ACTIVE_DARK, SidePanelButton::text_dark()),
-//         };
-
-//         button::Appearance {
-//             background: Some(iced::Background::Color(background_color)),
-//             text_color: text_color,
-//             border_radius: BorderRadius::from(10.),
-//             border_color: background_color,
-//             ..Default::default()
-//         }
-//     }
-
-//     fn hovered(&self, style: &Self::Style) -> button::Appearance {
-//         match style {
-//             iced::Theme::Dark => button::Appearance {
-//                 background: Some(iced::Background::Color(Self::BACKGROUND_HOVERED_DARK)),
-//                 ..self.active(style)
-//             },
-//             iced::Theme::Light => button::Appearance {
-//                 background: Some(iced::Background::Color(Self::BACKGROUND_HOVERED_LIGHT)),
-//                 ..self.active(style)
-//             },
-//             _ => button::Appearance::default(),
-//         }
-//     }
-// }
-
-#[derive(Debug, Clone, Default)]
-pub struct SidePanelButton;
-
-// impl<'a> SidePanelButton {
-//     pub fn render(app: &App, name: &str, message: Message) -> Element<'a, Message> {
-//         if app.appview.menu.collapsed {
-//             Self::render_compact(app, name, message)
-//         } else {
-//             Self::render_expanded(app, name, message)
-//         }
-//     }
-
-//     fn render_compact(_state: &App, name: &str, message: Message) -> Element<'a, Message> {
-//         widget::Button::new(
-//             widget::text(name)
-//                 .size(15)
-//                 .vertical_alignment(alignment::Vertical::Center)
-//                 .horizontal_alignment(alignment::Horizontal::Left),
-//         )
-//         .width(Length::Fill)
-//         .padding([5, 20])
-//         .on_press(message)
-//         .style(SidePanelButton::style())
-//         .into()
-//     }
-
-//     fn render_expanded(_state: &App, name: &str, message: Message) -> Element<'a, Message> {
-//         widget::Button::new(
-//             widget::text(name)
-//                 .size(15)
-//                 .vertical_alignment(alignment::Vertical::Center)
-//                 .horizontal_alignment(alignment::Horizontal::Left),
-//         )
-//         .width(Length::Fill)
-//         .padding([5, 20])
-//         .on_press(message)
-//         .style(SidePanelButton::style())
-//         .into()
-//     }
-
-//     pub fn text_dark() -> Color {
-//         color!(180, 180, 180, 1.)
-//     }
-
-//     pub fn text_light() -> Color {
-//         color!(40, 40, 40, 1.)
-//     }
-
-//     pub fn style_dark() -> button::Appearance {
-//         button::Appearance {
-//             background: Some(Background::Color(Menu::BACKGROUND_DARK)),
-//             text_color: SidePanelButton::text_dark(),
-//             border_width: 0.,
-//             border_color: Menu::BACKGROUND_DARK,
-//             border_radius: BorderRadius::from([4.0; 4]),
-//             shadow_offset: Vector { x: 0.0, y: 0.0 },
-//         }
-//     }
-
-//     pub fn style_light() -> button::Appearance {
-//         button::Appearance {
-//             background: Some(Background::Color(Menu::BACKGROUND_LIGHT)),
-//             text_color: SidePanelButton::text_light(),
-//             border_width: 0.,
-//             border_color: Menu::BACKGROUND_LIGHT,
-//             border_radius: BorderRadius::from([4.0; 4]),
-//             shadow_offset: Vector { x: 0.0, y: 0.0 },
-//         }
-//     }
-
-//     pub fn style() -> iced::theme::Button {
-//         iced::theme::Button::Custom(Box::new(SidePanelButton))
-//     }
-// }
-
-// impl button::StyleSheet for SidePanelButton {
-//     type Style = iced::Theme;
-
-//     fn active(&self, style: &Self::Style) -> button::Appearance {
-//         match style {
-//             iced::Theme::Dark => SidePanelButton::style_dark(),
-//             iced::Theme::Light => SidePanelButton::style_light(),
-//             _ => button::Appearance::default(),
-//         }
-//     }
-
-//     fn hovered(&self, style: &Self::Style) -> button::Appearance {
-//         match style {
-//             iced::Theme::Dark => button::Appearance {
-//                 text_color: color!(230, 230, 230),
-//                 ..SidePanelButton::style_dark()
-//             },
-//             iced::Theme::Light => button::Appearance {
-//                 text_color: color!(20, 20, 20),
-//                 ..SidePanelButton::style_light()
-//             },
-//             _ => button::Appearance::default(),
-//         }
-//     }
-// }

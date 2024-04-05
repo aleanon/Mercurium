@@ -2,6 +2,7 @@ pub mod transaction_message;
 pub mod accounts_message;
 
 use iced::Command;
+use types::Account;
 
 use crate::{app::App, view::app_view::{accounts_view::AccountsView, transaction_view::TransactionView, ActiveTab, TabId}}; 
 
@@ -13,7 +14,9 @@ use super::Message;
 #[derive(Debug, Clone)]
 pub enum AppViewMessage {
     SelectTab(TabId),
+    AccountsOverview,
     AccountsViewMessage(AccountsViewMessage),
+    NewTransaction(Option<Account>),
     TransferMessage(TransactionMessage),
 }
 
@@ -27,6 +30,8 @@ impl<'a> AppViewMessage {
     pub fn process(self, app: &'a mut App) -> Command<Message> {
         match self {
             Self::SelectTab(tab_id) => Self::select_tab(tab_id, app),
+            Self::AccountsOverview => Self::show_all_accounts(app),
+            Self::NewTransaction(from_account) => Self::new_transaction(from_account, app),
             Self::AccountsViewMessage(accounts_message) => accounts_message.process(app),
             Self::TransferMessage(transfer_message) => transfer_message.process(app),
             // Self::CenterPanelMessage(center_panel_message) => center_panel_message.process(app),
@@ -37,8 +42,20 @@ impl<'a> AppViewMessage {
     fn select_tab(tab_id: TabId, app: &'a mut App) -> Command<Message> {
         match tab_id {
             TabId::Accounts => app.appview.active_tab = ActiveTab::Accounts(AccountsView::new()),
-            TabId::Transfer => app.appview.active_tab = ActiveTab::Transfer(TransactionView::new()),
+            TabId::Transfer => app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(None)),
         }
+
+        Command::none()
+    }
+
+    fn show_all_accounts(app:&'a mut App) -> Command<Message> {
+        app.appview.active_tab = ActiveTab::Accounts(AccountsView::new());
+
+        Command::none()
+    }
+
+    fn new_transaction(from_account: Option<Account>, app: &'a mut App) -> Command<Message> {
+        app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(from_account));
 
         Command::none()
     }

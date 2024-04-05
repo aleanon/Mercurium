@@ -5,6 +5,7 @@ use ring::pbkdf2;
 use ring::aead::{NonceSequence, NONCE_LEN, Nonce, BoundKey, AES_256_GCM, UnboundKey, Aad, OpeningKey};
 use ring::rand::{SystemRandom, SecureRandom};
 use thiserror::Error;
+use types::crypto::{Password, Salt};
 use zeroize::Zeroize;
 use serde::{Serialize,Deserialize};
 use std::error::Error as StdError;
@@ -73,20 +74,21 @@ impl NonceSequence for MnemonicNonceSequence {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedMnemonic{
     cypher_text: Vec<u8>,
-    salt: [u8; 32],
+    salt: Salt,
     nonce_bytes: [u8;NONCE_LEN],
 }
 
 impl EncryptedMnemonic {
 
-    pub fn new(mnemonic: &Mnemonic, password: &str) -> Result<Self, EncryptedMnemonicError> {
+    pub fn new(mnemonic: &Mnemonic, password: &Password) -> Result<Self, EncryptedMnemonicError> {
         let mut mnemonic:Vec<u8> = mnemonic.phrase().into();
-        let salt = Self::create_salt()?;
-        let mut encryption_key = Self::derive_encryption_key(password, &salt);
+        let (mut key, salt) = password.derive_new_mnemonic_encryption_key()
+            .map_err(|err| EncryptedMnemonicError::FailedToCreateRandomValue)?;
+
         let nonce_sequence = MnemonicNonceSequence::new()?;
         let nonce = nonce_sequence.get_current();
 
-        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key.as_ref())
+        let unbound_key = UnboundKey::new(&AES_256_GCM, key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
 
@@ -94,18 +96,18 @@ impl EncryptedMnemonic {
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptMnemonic)?;
 
         //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
-        encryption_key.zeroize();
+        key.zeroize();
 
         Ok(Self {
             cypher_text: mnemonic,
-            salt,
+            salt: salt,
             nonce_bytes: nonce,
         })
     }
 
-    pub fn decrypt_mnemonic(&self, password:&str) -> Result<Mnemonic, EncryptedMnemonicError> {
-        let mut encryption_key = Self::derive_encryption_key(&password, &self.salt);
-        let unbound_key = UnboundKey::new(&AES_256_GCM, &encryption_key)
+    pub fn decrypt_mnemonic(&self, password:&Password) -> Result<Mnemonic, EncryptedMnemonicError> {
+        let mut encryption_key = password.derive_mnemonic_encryption_key_from_salt(&self.salt);
+        let unbound_key = UnboundKey::new(&AES_256_GCM, &encryption_key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let nonce_sequence = MnemonicNonceSequence::with_nonce(&Nonce::assume_unique_for_key(self.nonce_bytes.clone()));
         let mut opening_key = OpeningKey::new(unbound_key, nonce_sequence);
@@ -266,7 +268,7 @@ mod test {
     #[test]
     fn test_create_encrypted_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-        let password = "password99";
+        let password = Password::from("password99");
         let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password)
             .unwrap_or_else(|err| panic!("{err}"));
 
@@ -278,13 +280,13 @@ mod test {
     #[test]
     fn test_decrypting_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-        let password = "password99";
-        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), password)
+        let password = Password::from("password99");
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password)
             .unwrap_or_else(|err| panic!("{err}"));
 
         println!("{} \n{:?}", mnemonic.phrase(), encrypted_mnemonic.cypher_text);
 
-        let decrypted = encrypted_mnemonic.decrypt_mnemonic(password)
+        let decrypted = encrypted_mnemonic.decrypt_mnemonic(&password)
             .unwrap_or_else(|err| panic!("{err}"));
 
         assert_eq!(mnemonic.phrase(), decrypted.phrase())
@@ -294,13 +296,13 @@ mod test {
     #[test]
     fn test_save_read_delete_encrypted_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-        let password = "password99";
-        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), password).expect("Failed to create encrypted mnemonic");
+        let password = Password::from("password99");
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password).expect("Failed to create encrypted mnemonic");
         let target_name = "Ravault mnemonic store test";
 
         encrypted_mnemonic.save_to_store(target_name).expect("Failed to save encrypted mnemonic");
         let encrypted_mnemonic = EncryptedMnemonic::from_store(target_name).expect("Failed to retrieve encrypted mnemonic");
-        let decrypted = encrypted_mnemonic.decrypt_mnemonic(password).expect("Failed to decrypt mnemonoic");
+        let decrypted = encrypted_mnemonic.decrypt_mnemonic(&password).expect("Failed to decrypt mnemonoic");
         assert_eq!(decrypted.phrase(), mnemonic.phrase());
 
         EncryptedMnemonic::delete_from_store(target_name).expect("Failed to delete encrypted mnemonic from store");

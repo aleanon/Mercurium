@@ -47,6 +47,11 @@ impl Db {
         Ok(db)
     }
 
+    pub fn placeholder() -> Db {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        Self { connection }
+    }
+
     pub fn load() -> Result<Self, DbError> {
         let connection = super::connection::connection_existing_database()?;
         Ok(Self { connection })

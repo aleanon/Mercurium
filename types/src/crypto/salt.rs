@@ -1,9 +1,9 @@
 use ring::rand::{SecureRandom, SystemRandom};
 use zeroize::ZeroizeOnDrop;
 use super::{key::KEY_LENGTH, encryption_error::EncryptionError};
+use serde::{Serialize, Deserialize};
 
-
-#[derive(Debug, ZeroizeOnDrop)]
+#[derive(Debug, ZeroizeOnDrop, Serialize, Deserialize)]
 pub struct Salt([u8; KEY_LENGTH]);
 
 
@@ -16,5 +16,9 @@ impl Salt{
 
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+
+    pub fn to_inner(self) -> [u8; KEY_LENGTH] {
+        self.0
     }
 }

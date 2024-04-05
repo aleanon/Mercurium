@@ -37,12 +37,8 @@ impl<'a> AccountsView {
     }
 
     pub fn overview(&self, map: &HashMap<String, bool>, app: &'a App) -> Element<'a, Message> {
-        let db = app
-            .db
-            .as_ref()
-            .unwrap_or_else(|| unreachable!("No database found"));
 
-        let accounts = db.get_entityaccounts().unwrap_or_else(|_| Vec::new());
+        let accounts = app.app_data.db.get_entityaccounts().unwrap_or_else(|_| Vec::new());
 
         let header = widget::text("Accounts")
             .size(25)

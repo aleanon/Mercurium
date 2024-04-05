@@ -18,22 +18,19 @@ pub struct BackendMessage(pub(crate)Update);
 
 impl<'a> BackendMessage {
     pub fn process(self, app: &'a mut App) -> Command<Message> {
+        let mut command = Command::none();
         match self.0 {
-            Update::Sender(action_tx) => Self::store_channel_in_app_state(action_tx, app),
+            Update::Sender(action_tx) => app.app_data.backend_sender = action_tx,
             Update::Icons(icons) => Self::store_icons_in_cache(icons, app), 
             Update::Accounts(accounts) => Self::save_updated_data(accounts, app),
-            Update::DatabaseLoaded => Self::send_update_all_request(app),
-            _ => {Command::none()}
+            Update::DatabaseLoaded => command = Self::send_update_all_request(app),
+            _ => {}
         }
+        command
     }
 
-    fn store_channel_in_app_state(action_tx: Sender<Action>, app: &'a mut App) -> Command<Message> {
-        app.action_tx = Some(action_tx);
 
-        Command::none()
-    }
-
-    fn store_icons_in_cache(icons: HashMap<ResourceAddress, Handle>, app: &'a mut App) -> Command<Message> {
+    fn store_icons_in_cache(icons: HashMap<ResourceAddress, Handle>, app: &'a mut App) {
        debug_println!(
             "{}:{} Received {}icons:",
             module_path!(),
@@ -41,77 +38,59 @@ impl<'a> BackendMessage {
             icons.len()
         );
         app.appview.resource_icons = icons; 
-
-        Command::none()
     }
 
     #[cfg(not(feature = "noupdate"))]
-    fn send_update_all_request(app: &'a mut App) -> Command<Message>{
-        if let Some(ref channel) = app.action_tx {
-                let mut channel = channel.clone();
-                Command::perform(
-                    async move { channel.send(Action::UpdateAll).await },
-                    |_| Message::None,
-                )
-        } else {Command::none()}
+    fn send_update_all_request(app: &'a mut App) -> Command<Message> {
+        let mut channel = app.app_data.backend_sender.clone();
+        Command::perform(
+            async move { channel.send(Action::UpdateAll).await },
+            |_| Message::None,
+        )
     }
 
     #[cfg(feature = "noupdate")]
-    fn send_update_all_request(app:&'a mut App) -> Command<Message> {
-        Command::none()
-    }
+    fn send_update_all_request(app:&'a mut App) {}
 
-    fn save_updated_data(accounts: Vec<EntityAccount>, app:&'a mut App) -> Command<Message> {
-         match app.db {
-            Some(ref mut db) => {
-                db.update_accounts(accounts.as_slice())
-                    .unwrap_or_else(|err| {
-                        debug_println!("Unable to update accounts: {err}");
-                    });
-                for account in accounts {
-                    db.update_fungibles_for_account(&account.fungibles, &account.address)
-                        .unwrap_or_else(|err| {
-                            debug_println!(
-                                "{}:{} Unable to update fungibles: {err}",
-                                module_path!(),
-                                line!()
-                            );
-                        });
-                    for fungible in account.fungibles.0 {
-                        if let Some(icon) = fungible.icon {
-                            app.appview.resource_icons.entry(fungible.address)
-                                .and_modify(|handle| *handle = icon.handle())
-                                .or_insert(icon.handle());
-                        }
-                    }
-
-                    if let Some(non_fungibles) = account.non_fungibles {
-                        db.update_non_fungibles_for_account(&non_fungibles, &account.address)
-                            .unwrap_or_else(|err| {
-                                debug_println!(
-                                    "{}:{} Unable to update non fungible: {err}",
-                                    module_path!(),
-                                    line!()
-                                )
-                            });
-
-                        for non_fungible in non_fungibles.0 {
-                            if let Some(icon) = non_fungible.icon {
-                                app.appview.resource_icons.entry(non_fungible.address)
-                                    .and_modify(|handle| *handle = icon.handle())
-                                    .or_insert(icon.handle());
-                            }
-                        }
-                    }
+    fn save_updated_data(accounts: Vec<EntityAccount>, app:&'a mut App) {
+        app.app_data.db.update_accounts(accounts.as_slice())
+            .unwrap_or_else(|err| {
+                debug_println!("Unable to update accounts: {err}");
+            });
+        for account in accounts {
+            app.app_data.db.update_fungibles_for_account(&account.fungibles, &account.address)
+                .unwrap_or_else(|err| {
+                    debug_println!(
+                        "{}:{} Unable to update fungibles: {err}",
+                        module_path!(),
+                        line!()
+                    );
+                });
+            for fungible in account.fungibles.0 {
+                if let Some(icon) = fungible.icon {
+                    app.appview.resource_icons.entry(fungible.address)
+                        .and_modify(|handle| *handle = icon.handle())
+                        .or_insert(icon.handle());
                 }
             }
-            None => {
-                debug_println!("{}:{}No database found", module_path!(), line!())
+
+            app.app_data.db.update_non_fungibles_for_account(&account.non_fungibles, &account.address)
+                .unwrap_or_else(|err| {
+                    debug_println!(
+                        "{}:{} Unable to update non fungible: {err}",
+                        module_path!(),
+                        line!()
+                    )
+                });
+
+            for non_fungible in account.non_fungibles.0 {
+                if let Some(icon) = non_fungible.icon {
+                    app.appview.resource_icons.entry(non_fungible.address)
+                        .and_modify(|handle| *handle = icon.handle())
+                        .or_insert(icon.handle());
+                }
             }
-        };
-
-
-
-        Command::none()
+            
+        }
     }
 }

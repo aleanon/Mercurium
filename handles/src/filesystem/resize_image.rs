@@ -175,14 +175,14 @@ mod test {
         let mut test_folder = PathBuf::from(manifest_dir);
         test_folder.push("test_data");
         let mut file_path = test_folder.clone();
-        file_path.push("gc-token.png");
+        file_path.push("ravault_logo_cropped.jpg");
 
         let image = image::open(file_path).expect("Failed to open image file");
 
-        let new_size = (250, 250);
+        let new_size = (20, 20);
         let image = iced_resize_image(&image, new_size.0, new_size.1);
         let mut new_path = test_folder.clone();
-        new_path.push("resized_image");
+        new_path.push("ravault_logo_cropped_20x20");
         new_path.set_extension("png");
 
         image.save(new_path).expect("Failed to save image");

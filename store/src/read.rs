@@ -59,8 +59,8 @@ impl Db {
     pub fn get_non_fungibles_by_account(
         &self,
         account_address: &AccountAddress,
-    ) -> Result<Option<NonFungibles>, rusqlite::Error> {
-        match self
+    ) -> Result<NonFungibles, rusqlite::Error> {
+        Ok(self
             .connection
             .prepare_cached("SELECT * FROM non_fungibles WHERE account_address = ?")?
             .query_map([account_address], |row| {
@@ -75,12 +75,7 @@ impl Db {
                     metadata: row.get(7)?,
                 })
             })?
-            .collect::<Result<Vec<NonFungible>, rusqlite::Error>>()
-            .optional()?
-        {
-            Some(vec) => Ok(Some(vec.into())),
-            None => Ok(None),
-        }
+            .collect::<Result<NonFungibles, rusqlite::Error>>()?)
     }
 
     pub fn get_entityaccounts(&self) -> Result<Vec<EntityAccount>, rusqlite::Error> {
@@ -227,7 +222,7 @@ impl AsyncDb {
     pub async fn get_non_fungibles_by_account(
         &self,
         account_address: AccountAddress,
-    ) -> Result<Option<NonFungibles>, rusqlite::Error> {
+    ) -> Result<NonFungibles, rusqlite::Error> {
         self.connection
             .call_unwrap(|conn| {
                 conn.prepare_cached("SELECT * FROM non_fungibles WHERE account_address = ?")?
@@ -244,7 +239,6 @@ impl AsyncDb {
                         })
                     })?
                     .collect::<Result<NonFungibles, rusqlite::Error>>()
-                    .optional()
             })
             .await
     }

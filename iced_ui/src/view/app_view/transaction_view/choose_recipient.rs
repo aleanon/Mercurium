@@ -28,8 +28,7 @@ impl ChooseRecipient {
 
 impl<'a> ChooseRecipient {
   pub fn view(&self, app: &'a App) -> Element<'a, Message> {
-    let db = app.db.as_ref().unwrap_or_else(|| unreachable!("Database not found")); 
-    let accounts = db.get_accounts_map().unwrap_or(BTreeMap::new()).into_iter()
+    let accounts = app.app_data.db.get_accounts_map().unwrap_or(BTreeMap::new()).into_iter()
       .map(|(_, account)| account)
       .collect::<BTreeSet<Account>>();
 

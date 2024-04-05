@@ -1,16 +1,18 @@
 pub mod choose_recipient;
+pub mod add_assets;
 
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{self, button, row, text, Button, Container, PickList },
-    Alignment, Element, Length, Padding,
+    advanced::graphics::core::window::icon, widget::{self, button, image::Handle, row, text, Button, Container, PickList }, Alignment, Element, Length, Padding
 };
 use ravault_iced_theme::styles::{self, rule::TextInputRule, text_input::TextInput};
 use crate::{app::App, message::{app_view_message::transaction_message::TransactionMessage, common_message::CommonMessage, Message}};
 use types::{Account, AccountAddress, ResourceAddress};
 
-use self::choose_recipient::ChooseRecipient;
+use self::{add_assets::AddAssets, choose_recipient::ChooseRecipient};
+
+use super::accounts_view::account_view::fungible_view::NO_IMAGE_ICON;
 
 
 // pub struct TransactionView {
@@ -36,14 +38,14 @@ impl Recipient {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum View {
     Transaction,
-    ChooseResource(AccountAddress),
+    ChooseResource(AddAssets),
     ChooseRecipient(ChooseRecipient),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TransactionView {
     pub(crate) from_account: Option<Account>,
     pub(crate) recipients: Vec<Recipient>,
@@ -52,18 +54,9 @@ pub struct TransactionView {
 }
 
 impl TransactionView {
-    pub fn new() -> Self {
+    pub fn new(from_account: Option<Account>) -> Self {
         Self {
-            from_account: None,
-            recipients: vec![Recipient::new(None)],
-            message: String::new(),
-            view: View::Transaction,
-        }
-    }
-
-    pub fn from_account(account: Account) -> Self {
-        Self {
-            from_account: Some(account),
+            from_account,
             recipients: vec![Recipient::new(None)],
             message: String::new(),
             view: View::Transaction,
@@ -84,17 +77,14 @@ impl<'a> TransactionView {
     pub fn view(&'a self, app: &'a App) -> Element<'a, Message> {
         match self.view {
             View::Transaction => self.overview(app),
-            View::ChooseRecipient(ref recipient) => recipient.view(app),
+            View::ChooseRecipient(ref choose_recipient) => choose_recipient.view(app),
             _ => widget::column!().into(),
         }
     }
 
     fn overview(&'a self, app: &'a App) -> Element<'a, Message> {
-        let db = app.db.as_ref().unwrap_or_else(|| {
-            unreachable!("{}:{} Database does not exist", module_path!(), line!())
-        });
 
-        let accounts_map = db.get_accounts_map().unwrap_or(BTreeMap::new());
+        let accounts_map = app.app_data.db.get_accounts_map().unwrap_or(BTreeMap::new());
         let mut accounts = accounts_map
             .values()
             .map(|account| account.clone())
@@ -108,18 +98,20 @@ impl<'a> TransactionView {
         let from_account_field = self.from_account_field(accounts);
         let space2 = widget::Space::new(Length::Fill, 30);
 
-        let recipient_field = self.recipients();
+        let recipient_field = self.recipients(app);
+
+        let space3 = widget::Space::new(Length::Fill, 20);
 
         let add_recipient = button("Add recipient")
             .width(Length::Fill)
             .height(Length::Shrink)
             .on_press(TransactionMessage::AddRecipient.into()); 
 
-        let space3 = widget::Space::new(Length::Fill, 50);
+        let space4 = widget::Space::new(Length::Fill, 50);
 
         let message_field = self.message(app);
 
-        let fields = widget::column![header, space, from_account_field, space2, recipient_field, add_recipient, space3, message_field]
+        let fields = widget::column![header, space, from_account_field, space2, recipient_field, space3, add_recipient, space4, message_field]
             .width(Length::Fill)
             .height(Length::Shrink)
             .padding(Padding {
@@ -195,7 +187,7 @@ impl<'a> TransactionView {
             .height(Length::Shrink)
     }
 
-    fn recipients(&'a self) -> Container<'a, Message> {
+    fn recipients(&'a self, app: &'a App) -> Container<'a, Message> {
         let label = Self::field_label("TO");
         
             //create empty recipient
@@ -222,17 +214,31 @@ impl<'a> TransactionView {
                 remove_recipient = remove_recipient.on_press_maybe(recipient.address.as_ref().and_then(|_| Some(TransactionMessage::RemoveRecipient(recipient_index).into())));
             }
 
-            let address_field = row![address, remove_recipient];
+            let choose_recipient_content = row![address, remove_recipient];
 
-            let add_resource = widget::button(widget::Space::new(5,5))
-                .height(10)
-                .width(10);
+            let choose_recipient = button(choose_recipient_content).width(Length::Fill).height(Length::Shrink)
+                .on_press(TransactionMessage::SelectRecipient(recipient_index).into());
+
+            let add_resource = widget::button(
+                text("Add assets")
+                    .height(Length::Fill)
+                    .width(Length::Fill)
+                    .horizontal_alignment(iced::alignment::Horizontal::Center)
+                    .vertical_alignment(iced::alignment::Vertical::Center)
+            )
+            .height(20)
+            .width(Length::Fill)
+            ;
 
             let mut assets:Vec<Element<'a, Message>> = Vec::with_capacity(recipient.resources.len());
 
             for (resource_index, (symbol, resource_address, amount)) in recipient.resources.iter().enumerate() {
                 //placeholder for actual icon
-                let icon = widget::Space::new(10, 10);
+                let icon_handle = app.appview.resource_icons.get(&resource_address)
+                    .and_then(|handle| Some(handle.clone()))
+                    .unwrap_or(Handle::from_memory(NO_IMAGE_ICON));
+
+                let icon = widget::image(icon_handle).width(20).height(20);
 
                 let symbol = Self::resource_text_field(&symbol);
 
@@ -242,7 +248,14 @@ impl<'a> TransactionView {
                     .on_input(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_index, input).into())
                     .on_paste(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_index, input).into());
 
-                let remove_resource = widget::button(widget::Space::new(5, 5));
+                let remove_resource = widget::button(
+                    text("x")
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .size(10)
+                    )
+                    .height(10)
+                    .width(10);
 
                 let resource_row = row![icon, symbol, address, amount, remove_resource]
                     .spacing(2)
@@ -263,7 +276,7 @@ impl<'a> TransactionView {
                 .spacing(1)
                 .width(Length::Fill);
 
-            let recipient = widget::column![address_field, assets, add_resource]
+            let recipient = widget::column![choose_recipient, assets, add_resource]
                 .spacing(2)
                 .width(Length::Fill)
                 .height(Length::Shrink);
