@@ -15,7 +15,7 @@ pub enum TransactionMessage {
     SelectAccount(Account),
     UpdateMessage(String),
     RemoveRecipient(usize),
-    UpdateResourceAmount(usize , usize, String),
+    UpdateResourceAmount(usize , ResourceAddress, String),
     SelectRecipient(usize),
     AddRecipient,
     ChooseRecipientMessage(ChooseRecipientMessage),
@@ -44,7 +44,7 @@ impl<'a> TransactionMessage {
                 Self::UpdateResourceAmount(account_index, resource, amount) => Self::update_resource_amount(account_index, resource, amount, transaction_view),
                 Self::SelectRecipient(recipient_index) => transaction_view.view = View::ChooseRecipient(ChooseRecipient::new(recipient_index)),
                 Self::AddRecipient => transaction_view.recipients.push(Recipient::new(None)),
-                Self::AddAssets { recipient_index, from_account } => transaction_view.view = View::ChooseResource(AddAssets::new(from_account, recipient_index)),
+                Self::AddAssets { recipient_index, from_account } => Self::create_new_add_assets_view(transaction_view, recipient_index, from_account),
                 Self::AddAssetsMessage(add_assets_message) => command = add_assets_message.process(transaction_view),
                 Self::ChooseRecipientMessage(choose_recipient_message) => command = choose_recipient_message.process(transaction_view),
             }
@@ -76,6 +76,11 @@ impl<'a> TransactionMessage {
     //     Command::none()
     // }
 
+    fn create_new_add_assets_view(transaction_view: &mut TransactionView, recipient_index: usize, from_account: AccountAddress) {
+        let selected = transaction_view.recipients[recipient_index].resources.clone();
+        transaction_view.view = View::ChooseResource(AddAssets::new(from_account, recipient_index, selected))
+    }
+
     fn remove_recipient(index: usize, transaction_view: &'a mut TransactionView) {
         if transaction_view.recipients.len() == 1 {
             transaction_view.recipients[index].address = None;
@@ -86,10 +91,11 @@ impl<'a> TransactionMessage {
         }
     }
 
-    fn update_resource_amount(account_index: usize , resource_index: usize, new_amount: String, transaction_view: &'a mut TransactionView) {
-        //checks that the input value is a valid Decimal type for the Radix network
-        if let Ok(_) = types::RadixDecimal::try_from(new_amount.as_bytes()) {
-            transaction_view.recipients[account_index].resources[resource_index].2 =new_amount;
+    fn update_resource_amount(account_index: usize , resource_address: ResourceAddress, new_amount: String, transaction_view: &'a mut TransactionView) {
+        if new_amount.parse::<f32>().is_ok() || new_amount.is_empty() {
+            if let Some((_, amount)) = transaction_view.recipients[account_index].resources.get_mut(&resource_address) {
+                *amount = new_amount;
+            }
         }
     }
 
@@ -104,6 +110,7 @@ impl<'a> TransactionMessage {
 
     //     Command::none()
     // }
+
 
 
     // fn open_asset_selection(recipient_index: usize, from_account: AccountAddress, transaction_view: &'a mut TransactionView) -> Command<Message> {

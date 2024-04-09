@@ -50,7 +50,7 @@ impl<'a> BackendMessage {
     }
 
     #[cfg(feature = "noupdate")]
-    fn send_update_all_request(app:&'a mut App) {}
+    fn send_update_all_request(app:&'a mut App) -> Command<Message> {Command::none()}
 
     fn save_updated_data(accounts: Vec<EntityAccount>, app:&'a mut App) {
         app.app_data.db.update_accounts(accounts.as_slice())

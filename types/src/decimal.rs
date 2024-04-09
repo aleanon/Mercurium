@@ -6,7 +6,7 @@ use scrypto::prelude::radix_engine_common::math::Decimal as RadixDecimal;
 
 ///Newtype wrapper around the radix engine Decimal type
 #[derive(Debug, Clone)]
-pub struct Decimal(RadixDecimal);
+pub struct Decimal(pub RadixDecimal);
 
 
 
