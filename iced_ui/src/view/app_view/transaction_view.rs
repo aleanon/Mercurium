@@ -1,7 +1,7 @@
 pub mod choose_recipient;
 pub mod add_assets;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use iced::{
     advanced::graphics::core::window::icon, widget::{self, button, image::Handle, row, text, Button, Container, PickList }, Alignment, Element, Length, Padding
@@ -26,14 +26,14 @@ const PICK_LIST_DEFAULT_TEXT: &'static str = "Select account";
 #[derive(Debug, Clone)]
 pub struct Recipient {
     pub(crate) address: Option<AccountAddress>,
-    pub(crate) resources: Vec<(String, ResourceAddress, String)>,
+    pub(crate) resources: HashMap<ResourceAddress,(String, String)>,
 }
 
 impl Recipient {
     pub fn new(address: Option<AccountAddress>) -> Self {
         Self {
             address,
-            resources: Vec::new(),
+            resources: HashMap::new(),
         }
     }
 }
@@ -75,10 +75,10 @@ impl TransactionView {
 
 impl<'a> TransactionView {
     pub fn view(&'a self, app: &'a App) -> Element<'a, Message> {
-        match self.view {
+        match &self.view {
             View::Transaction => self.overview(app),
-            View::ChooseRecipient(ref choose_recipient) => choose_recipient.view(app),
-            _ => widget::column!().into(),
+            View::ChooseRecipient(choose_recipient) => choose_recipient.view(app),
+            View::ChooseResource(choose_assets) => choose_assets.view(app),
         }
     }
 
@@ -228,11 +228,13 @@ impl<'a> TransactionView {
             )
             .height(20)
             .width(Length::Fill)
-            ;
+            .on_press_maybe(self.from_account.as_ref()
+                .and_then(|account| Some(TransactionMessage::AddAssets { recipient_index: recipient_index, from_account: account.address.clone() }.into()))
+            );
 
             let mut assets:Vec<Element<'a, Message>> = Vec::with_capacity(recipient.resources.len());
 
-            for (resource_index, (symbol, resource_address, amount)) in recipient.resources.iter().enumerate() {
+            for (resource_index, (resource_address, (symbol, amount))) in recipient.resources.iter().enumerate() {
                 //placeholder for actual icon
                 let icon_handle = app.appview.resource_icons.get(&resource_address)
                     .and_then(|handle| Some(handle.clone()))
@@ -245,8 +247,8 @@ impl<'a> TransactionView {
                 let address = Self::resource_text_field(&resource_address.truncate());
 
                 let amount = widget::text_input("Amount", &amount)
-                    .on_input(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_index, input).into())
-                    .on_paste(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_index, input).into());
+                    .on_input(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_address.clone(), input).into())
+                    .on_paste(move |input| TransactionMessage::UpdateResourceAmount(recipient_index, resource_address.clone(), input).into());
 
                 let remove_resource = widget::button(
                     text("x")

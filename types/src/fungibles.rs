@@ -55,7 +55,15 @@ impl<'a> IntoIterator for &'a Fungibles {
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
     }
-} 
+}
+
+impl IntoIterator for Fungibles {
+    type Item = Fungible;
+    type IntoIter = std::collections::btree_set::IntoIter<Fungible>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
 
 impl Deref for Fungibles {
     type Target = BTreeSet<Fungible>;
