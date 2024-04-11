@@ -100,7 +100,6 @@ impl<'a> AppView {
         let mut transaction_button =
             Self::menu_button(transaction_icon, "Transaction", AppViewMessage::SelectTab(TabId::Transfer).into());
 
-
         match self.active_tab {
             ActiveTab::Accounts(_) => accounts_button = accounts_button.style(theme::Button::custom(SelectedMenuButton)),
             ActiveTab::Transfer(_) => transaction_button = transaction_button.style(theme::Button::custom(SelectedMenuButton)),

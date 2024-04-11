@@ -1,0 +1,565 @@
+{
+  "items": [
+    {
+      "address": "resource_rdx1nfyg2f68jw7hfdlg5hzvd8ylsa7e0kjl68t5t62v3ttamtejc9wlxa",
+      "details": {
+        "non_fungible_id_type": "String",
+        "role_assignments": {
+          "entries": [
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "AllowAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "burner"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "burner_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "access_rule": {
+                    "proof_rule": {
+                      "requirement": {
+                        "non_fungible": {
+                          "local_id": {
+                            "id_type": "Bytes",
+                            "sbor_hex": "5cc00220e1e0e6e8c6977d0856806427ca1b32c58f51f66aa9305bc4700c9567ee1f35ec",
+                            "simple_rep": "[e1e0e6e8c6977d0856806427ca1b32c58f51f66aa9305bc4700c9567ee1f35ec]"
+                          },
+                          "resource_address": "resource_rdx1nfxxxxxxxxxxglcllrxxxxxxxxx002350006550xxxxxxxxxglcllr"
+                        },
+                        "type": "NonFungible"
+                      },
+                      "type": "Require"
+                    },
+                    "type": "ProofRule"
+                  },
+                  "type": "Protected"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "minter"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "minter_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "freezer"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "freezer_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "recaller"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "recaller_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "AllowAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "depositor"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "depositor_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "AllowAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "withdrawer"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "withdrawer_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "burner_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "burner_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "minter_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "minter_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "freezer_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "freezer_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "recaller_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "recaller_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "depositor_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "depositor_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "withdrawer_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "withdrawer_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "non_fungible_data_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "non_fungible_data_updater_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "explicit_rule": {
+                  "type": "DenyAll"
+                },
+                "resolution": "Explicit"
+              },
+              "role_key": {
+                "module": "Main",
+                "name": "non_fungible_data_updater_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Main",
+                  "name": "non_fungible_data_updater_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "resolution": "Owner"
+              },
+              "role_key": {
+                "module": "Metadata",
+                "name": "metadata_locker"
+              },
+              "updater_roles": [
+                {
+                  "module": "Metadata",
+                  "name": "metadata_locker_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "resolution": "Owner"
+              },
+              "role_key": {
+                "module": "Metadata",
+                "name": "metadata_locker_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Metadata",
+                  "name": "metadata_locker_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "resolution": "Owner"
+              },
+              "role_key": {
+                "module": "Metadata",
+                "name": "metadata_setter"
+              },
+              "updater_roles": [
+                {
+                  "module": "Metadata",
+                  "name": "metadata_setter_updater"
+                }
+              ]
+            },
+            {
+              "assignment": {
+                "resolution": "Owner"
+              },
+              "role_key": {
+                "module": "Metadata",
+                "name": "metadata_setter_updater"
+              },
+              "updater_roles": [
+                {
+                  "module": "Metadata",
+                  "name": "metadata_setter_updater"
+                }
+              ]
+            }
+          ],
+          "owner": {
+            "rule": {
+              "access_rule": {
+                "proof_rule": {
+                  "requirement": {
+                    "non_fungible": {
+                      "local_id": {
+                        "id_type": "Bytes",
+                        "sbor_hex": "5cc0021e0d0e5cdf7b603aa6cdcf976c48db309364cfccb5b8b93802193da8a79e37",
+                        "simple_rep": "[0d0e5cdf7b603aa6cdcf976c48db309364cfccb5b8b93802193da8a79e37]"
+                      },
+                      "resource_address": "resource_rdx1nfxxxxxxxxxxpkgwnrxxxxxxxxx002558553505xxxxxxxxxpkgwnr"
+                    },
+                    "type": "NonFungible"
+                  },
+                  "type": "Require"
+                },
+                "type": "ProofRule"
+              },
+              "type": "Protected"
+            },
+            "updater": "Owner"
+          }
+        },
+        "total_burned": "0",
+        "total_minted": "2777",
+        "total_supply": "2777",
+        "type": "NonFungibleResource"
+      },
+      "explicit_metadata": {
+        "items": [
+          {
+            "is_locked": true,
+            "key": "name",
+            "last_updated_at_state_version": 974,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "kind": "String",
+                    "value": "GC Member Cards"
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 0
+              },
+              "raw_hex": "5c2200010c0f4743204d656d626572204361726473",
+              "typed": {
+                "type": "String",
+                "value": "GC Member Cards"
+              }
+            }
+          },
+          {
+            "is_locked": true,
+            "key": "description",
+            "last_updated_at_state_version": 974,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "kind": "String",
+                    "value": "Member Card holders automatically get a 50% discount on purchases at the Gumball Club."
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 0
+              },
+              "raw_hex": "5c2200010c564d656d626572204361726420686f6c64657273206175746f6d61746963616c6c792067657420612035302520646973636f756e74206f6e20707572636861736573206174207468652047756d62616c6c20436c75622e",
+              "typed": {
+                "type": "String",
+                "value": "Member Card holders automatically get a 50% discount on purchases at the Gumball Club."
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "fungible_resources": {
+        "items": [],
+        "total_count": 0
+      },
+      "metadata": {
+        "items": [
+          {
+            "is_locked": false,
+            "key": "icon_url",
+            "last_updated_at_state_version": 983,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "kind": "String",
+                    "value": "https://gumball-club.radixdlt.com/assets/member-card.png"
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 13
+              },
+              "raw_hex": "5c220d010c3868747470733a2f2f67756d62616c6c2d636c75622e7261646978646c742e636f6d2f6173736574732f6d656d6265722d636172642e706e67",
+              "typed": {
+                "type": "Url",
+                "value": "https://gumball-club.radixdlt.com/assets/member-card.png"
+              }
+            }
+          },
+          {
+            "is_locked": false,
+            "key": "dapp_definitions",
+            "last_updated_at_state_version": 983,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "element_kind": "Reference",
+                    "elements": [
+                      {
+                        "kind": "Reference",
+                        "value": "account_rdx12xuhw6v30chdkhcu7qznz9vu926vxefr4h4tdvc0mdckg9rq4afx9t"
+                      }
+                    ],
+                    "kind": "Array"
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 136
+              },
+              "raw_hex": "5c22880120800151b97769917e2edb5f1cf00531159c2ab4c36523adeab6b30fdb71641460",
+              "typed": {
+                "type": "GlobalAddressArray",
+                "values": [
+                  "account_rdx12xuhw6v30chdkhcu7qznz9vu926vxefr4h4tdvc0mdckg9rq4afx9t"
+                ]
+              }
+            }
+          },
+          {
+            "is_locked": true,
+            "key": "tags",
+            "last_updated_at_state_version": 974,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "element_kind": "String",
+                    "elements": [
+                      {
+                        "kind": "String",
+                        "value": "badge"
+                      }
+                    ],
+                    "kind": "Array"
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 128
+              },
+              "raw_hex": "5c228001200c01056261646765",
+              "typed": {
+                "type": "StringArray",
+                "values": [
+                  "badge"
+                ]
+              }
+            }
+          },
+          {
+            "is_locked": true,
+            "key": "description",
+            "last_updated_at_state_version": 974,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "kind": "String",
+                    "value": "Member Card holders automatically get a 50% discount on purchases at the Gumball Club."
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 0
+              },
+              "raw_hex": "5c2200010c564d656d626572204361726420686f6c64657273206175746f6d61746963616c6c792067657420612035302520646973636f756e74206f6e20707572636861736573206174207468652047756d62616c6c20436c75622e",
+              "typed": {
+                "type": "String",
+                "value": "Member Card holders automatically get a 50% discount on purchases at the Gumball Club."
+              }
+            }
+          },
+          {
+            "is_locked": true,
+            "key": "name",
+            "last_updated_at_state_version": 974,
+            "value": {
+              "programmatic_json": {
+                "fields": [
+                  {
+                    "kind": "String",
+                    "value": "GC Member Cards"
+                  }
+                ],
+                "kind": "Enum",
+                "variant_id": 0
+              },
+              "raw_hex": "5c2200010c0f4743204d656d626572204361726473",
+              "typed": {
+                "type": "String",
+                "value": "GC Member Cards"
+              }
+            }
+          }
+        ],
+        "total_count": 5
+      },
+      "non_fungible_resources": {
+        "items": [],
+        "total_count": 0
+      }
+    }
+  ],
+  "ledger_state": {
+    "epoch": 88616,
+    "network": "mainnet",
+    "proposer_round_timestamp": "2024-04-10T07:48:54.868Z",
+    "round": 827,
+    "state_version": 69586639
+  }
+}

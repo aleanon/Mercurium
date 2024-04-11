@@ -1,15 +1,26 @@
 use iced::{
-    theme, widget::{
-        self, column, container, image::Handle, row, scrollable::{self, Properties}, text, Button
-    }, Element, Length, Padding
+    theme,
+    widget::{
+        self, column, container,
+        image::Handle,
+        row,
+        scrollable::{self, Properties},
+        text, Button,
+    },
+    Element, Length, Padding,
 };
 
-use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
+use crate::{
+    message::{
+        app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage,
+        Message,
+    },
+    App,
+};
 use ravault_iced_theme::styles::accounts::{AssetListButton, AssetListItem};
-use crate::{message::{app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage, Message}, App};
+use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 
 use super::fungible_view::{self, FungibleView};
-
 
 #[derive(Debug, Clone)]
 pub struct FungiblesView {
@@ -28,7 +39,6 @@ impl<'a> FungiblesView {
 
 impl<'a> FungiblesView {
     pub fn view(&self, app: &'a App) -> iced::Element<'a, Message> {
-
         match self.selected {
             Some(ref address) => {
                 if let Some(fungible) = app.app_data.db.get_fungible(address).unwrap_or(None) {
@@ -39,18 +49,19 @@ impl<'a> FungiblesView {
                 }
             }
             None => {
-                let fungibles = app.app_data.db
+                let fungibles = app
+                    .app_data
+                    .db
                     .get_fungibles_by_account(&self.account_addr)
                     .unwrap_or(Fungibles::new());
 
-                let mut elements:Vec<Element<'a, Message>> = Vec::new();
-                
+                let mut elements: Vec<Element<'a, Message>> = Vec::new();
+
                 for fungible in fungibles.0 {
                     let button = Self::fungible_list_button(&fungible, app)
                         .on_press(FungiblesMessage::SelectFungible(fungible.address).into());
-                    
-                    let button_container = container(button)
-                        .style(AssetListItem::style);
+
+                    let button_container = container(button).style(AssetListItem::style);
 
                     let rule = widget::Rule::horizontal(2);
 
@@ -78,7 +89,10 @@ impl<'a> FungiblesView {
         let icon: iced::Element<'a, Message> =
             match app.appview.resource_icons.get(&fungible.address) {
                 Some(handle) => widget::image(handle.clone()).width(50).height(50).into(),
-                None => widget::image(Handle::from_memory(fungible_view::NO_IMAGE_ICON)).width(50).height(50).into(),
+                None => widget::image(Handle::from_memory(fungible_view::NO_IMAGE_ICON))
+                    .width(50)
+                    .height(50)
+                    .into(),
             };
 
         let symbol = match fungible.symbol.len() {
@@ -118,7 +132,9 @@ impl<'a> FungiblesView {
             .spacing(15)
             .align_items(iced::Alignment::Center);
 
-        widget::button(row).width(Length::Fill).height(85)
+        widget::button(row)
+            .width(Length::Fill)
+            .height(85)
             .style(theme::Button::custom(AssetListButton))
     }
 }

@@ -77,15 +77,11 @@ impl<'a> AccountView {
         let account = accounts.remove(&self.address).unwrap_or(Account::none());
         
         let account_name = text(&self.name)
-            .line_height(2.5)
             .size(20)
-            .width(Length::Shrink)
             .vertical_alignment(alignment::Vertical::Bottom);
 
         let account_address = text(self.address.truncate())
-            .line_height(1.5)
             .size(15)
-            .width(Length::Shrink)
             .vertical_alignment(iced::alignment::Vertical::Bottom);
 
         let account_address_button = Button::new(account_address)
