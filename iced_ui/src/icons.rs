@@ -16,9 +16,12 @@ pub struct Icons {
   pub transaction: Handle,
   pub menu_logo: Handle,
 }
+pub const TRANSACTION: char = '\u{F12B}';
 
 
 impl Icons {
+  pub const TRANSACTION: char = '\u{F12B}';
+
   pub fn new() -> Self {
     Self {
       no_image: Handle::from_memory(NO_IMAGE_ICON),

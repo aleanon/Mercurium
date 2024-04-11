@@ -20,6 +20,7 @@ pub struct AddAssets {
   pub recipient_index: usize,
   pub filter: String,
   pub selected: HashMap<ResourceAddress, (String, String)>,
+  pub select_all: bool,
 }
 
 
@@ -31,6 +32,7 @@ impl<'a> AddAssets {
       recipient_index,
       filter: String::new(),
       selected, 
+      select_all: false,
     }
   }
 
@@ -73,27 +75,30 @@ impl<'a> AddAssets {
 
     let buttons = row![tokens_button, nfts_button].spacing(100).align_items(iced::Alignment::Center);
     let buttons = container(buttons).center_x().width(Length::Fill);
+    
+    let mut amounts_within_limits = true;
 
     let asset_tab = match self.tab {
-      AssetTab::Tokens => self.tokens_tab(app),
-      AssetTab::NFTs => self.nfts_tab(app),
+      AssetTab::Tokens => self.tokens_tab(app, &mut amounts_within_limits),
+      AssetTab::NFTs => self.nfts_tab(app, &mut amounts_within_limits),
     };
 
-    let submit_button = button(text("Submit")
-      .size(16)
-      .line_height(2.)
-      .width(Length::Fill)
-      .height(Length::Fill)
-      .horizontal_alignment(iced::alignment::Horizontal::Center)
-      .vertical_alignment(iced::alignment::Vertical::Center)
-    )
-    .width(150)
-    .height(30)
-    .on_press_maybe(if self.selected.is_empty() {
-        None
-      } else {
-        Some(AddAssetsMessage::SubmitAssets.into())
-      });
+    let submit_button = button(
+      text("Submit")
+        .size(16)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .horizontal_alignment(iced::alignment::Horizontal::Center)
+        .vertical_alignment(iced::alignment::Vertical::Center)
+      )
+      .width(150)
+      .height(40)
+      .on_press_maybe(if self.selected.is_empty() | !amounts_within_limits {
+          None
+        } else {
+          Some(AddAssetsMessage::SubmitAssets.into())
+        }
+      );
 
     let bottom_button_container = container(submit_button)
       .center_x()
@@ -102,14 +107,51 @@ impl<'a> AddAssets {
       .height(Length::Shrink);
 
     column![header, space, search_field, space2, buttons, asset_tab, bottom_button_container]
-      .spacing(10)
+      .spacing(5)
       .width(Length::Fill)
       .height(Length::Fill)
       .into()
   }
 
-  fn tokens_tab(&'a self, app:&'a App) -> Container<'a, Message> {
+  fn tokens_tab(&'a self, app:&'a App, within_limits: &mut bool) -> Container<'a, Message> {
     let fungibles = app.app_data.db.get_fungibles_by_account(&self.from_account).unwrap_or(Fungibles::new());
+
+    let headers:Element<'a, Message> = {
+      let token_name = text("Token")
+        .size(12);
+
+      let space = widget::Space::new(Length::Fill, 1);
+
+      let balance = text("Available balance")
+        .size(12);
+
+
+      let amount = container(
+        button(text("Set max").size(12) 
+        ).padding(0).style(theme::Button::Text)
+        .on_press(AddAssetsMessage::InputMaxSelected.into())
+      ).width(85).height(Length::Fill).center_x().center_y();
+
+      let selected = checkbox("", self.select_all)
+        .size(12)
+        .on_toggle(|select| if select {
+          AddAssetsMessage::SelectAllTokens.into()
+        } else {
+          AddAssetsMessage::UnselectAllTokens.into()
+        }
+      );
+
+      let row = row![token_name, space, balance, amount, selected]
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .spacing(10)
+        .padding(5)
+        .align_items(iced::Alignment::Center);
+
+      container(row).width(Length::Fill).height(30).padding(Padding {right: 15., ..Padding::ZERO}).into()
+
+    };
+
 
     let elements: Vec<Element<'a, Message>> = fungibles.into_iter()
       .filter(|token| 
@@ -120,7 +162,7 @@ impl<'a> AddAssets {
       .map(|token| {
         let selected = self.selected.get(&token.address)
           .and_then(|selected| Some((true, selected.1.as_str())))
-          .unwrap_or((false, ""));
+          .unwrap_or((self.select_all, ""));
 
         let icon_handle = app.appview.resource_icons
           .get(&token.address)
@@ -145,12 +187,12 @@ impl<'a> AddAssets {
         let token_address = token.address.clone();
         let token_symbol = token.symbol.clone();
         let amount = TextInput::new("Amount", selected.1)
-          .line_height(1.5)
+          //.line_height(1.5)
           .size(10)
           .width(80)
           .on_input(move|input| AddAssetsMessage::InputAmount(token_address.clone(), token_symbol.clone(), input).into());
 
-        let checkbox = checkbox("", selected.0).size(10)
+        let checkbox = checkbox("", selected.0).size(12)
           .on_toggle(move |select| if select {
             AddAssetsMessage::SelectAsset(token.address.clone(), token.symbol.clone()).into()
           } else {
@@ -170,6 +212,7 @@ impl<'a> AddAssets {
         if selected.0 {
           if let Ok(decimal) = types::RadixDecimal::from_str(selected.1) {
             if decimal > token.amount.0 {
+              *within_limits = false;
               let warning = text("Amount exceeds available balance")
                 .size(10)
                 .line_height(1.5)
@@ -191,14 +234,14 @@ impl<'a> AddAssets {
         .padding(Padding {right: 15., ..Padding::ZERO}))
         .height(Length::Shrink);
 
-        container(scrollable)
+        container(column![headers,scrollable])
           .padding(10)
           .width(Length::Fill)
           .height(Length::Fill)
 
   }
   
-  fn nfts_tab(&self, app: &'a App) -> Container<'a, Message> {
+  fn nfts_tab(&self, app: &'a App, within_limits: &mut bool) -> Container<'a, Message> {
     let non_fungibles = app.app_data.db.get_non_fungibles_by_account(&self.from_account).unwrap_or(NonFungibles::new());
     let scrollable = widget::scrollable(column!());
 
