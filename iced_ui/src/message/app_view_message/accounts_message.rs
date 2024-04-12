@@ -1,13 +1,20 @@
 pub mod account_message;
+pub mod fungibles_message;
 
 use iced::Command;
 
-use crate::{app::App, message::Message, view::app_view::{accounts_view::{account_view::AccountView, AccountsView}, ActiveTab}};
+use crate::{
+    app::App,
+    message::Message,
+    view::app_view::{
+        accounts_view::{account_view::AccountView, AccountsView},
+        ActiveTab,
+    },
+};
 
 use self::account_message::AccountViewMessage;
 
 use super::AppViewMessage;
-
 
 #[derive(Debug, Clone)]
 pub enum AccountsViewMessage {

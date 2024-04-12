@@ -5,23 +5,19 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::{
     app::App,
-    message::{
-        app_view_message::transaction_message::TransactionMessage, common_message::CommonMessage,
-        Message,
-    },
+    message::{app_view_message::transaction_message::TransactionMessage, Message},
 };
 use iced::{
-    advanced::graphics::core::window::icon,
     theme,
-    widget::{self, button, image::Handle, row, text, Button, Container, PickList},
+    widget::{self, button, image::Handle, row, shader::wgpu::naga::Function, text, Container},
     Alignment, Element, Length, Padding,
 };
-use ravault_iced_theme::styles::{self, rule::TextInputRule, text_input::AssetAmount};
-use types::{Account, AccountAddress, ResourceAddress};
+use ravault_iced_theme::styles::{self, rule::TextInputRule};
+use types::{Account, AccountAddress, Decimal, Fungible, ResourceAddress};
 
 use self::{add_assets::AddAssets, choose_recipient::ChooseRecipient};
 
-use super::accounts_view::account_view::fungible_view::NO_IMAGE_ICON;
+use super::accounts_view::fungible_view::NO_IMAGE_ICON;
 
 // pub struct TransactionView {
 //     from_account: Option<String>,
@@ -56,15 +52,20 @@ pub enum View {
 #[derive(Debug)]
 pub struct TransactionView {
     pub(crate) from_account: Option<Account>,
+    pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
     pub(crate) message: String,
     pub(crate) view: View,
 }
 
 impl TransactionView {
-    pub fn new(from_account: Option<Account>) -> Self {
+    pub fn new(
+        from_account: Option<Account>,
+        account_resources: Option<HashMap<ResourceAddress, Decimal>>,
+    ) -> Self {
         Self {
             from_account,
+            resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
             message: String::new(),
             view: View::Transaction,
@@ -74,6 +75,7 @@ impl TransactionView {
     pub fn from_recipient(address: AccountAddress) -> Self {
         Self {
             from_account: None,
+            resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
             message: String::new(),
             view: View::Transaction,
@@ -149,7 +151,8 @@ impl<'a> TransactionView {
             widget::Space::new(Length::Fill, 1)
         ];
 
-        let scrollable = widget::scrollable(row);
+        let scrollable = widget::scrollable(row)
+            .style(theme::Scrollable::custom(styles::scrollable::Scrollable));
 
         // let left_space = widget::Space::new(Length::Fill, Length::Fill);
         // let right_space = widget::Space::new(Length::Fill, Length::Fill);

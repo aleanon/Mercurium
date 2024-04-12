@@ -11,13 +11,13 @@ use iced::{
 };
 
 use crate::{
-    message::{
-        app_view_message::accounts_message::account_message::fungibles_update::FungiblesMessage,
-        Message,
-    },
+    message::{app_view_message::accounts_message::fungibles_message::FungiblesMessage, Message},
     App,
 };
-use ravault_iced_theme::styles::accounts::{AssetListButton, AssetListItem};
+use ravault_iced_theme::styles::{
+    self,
+    accounts::{AssetListButton, AssetListItem},
+};
 use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 
 use super::fungible_view::{self, FungibleView};
@@ -80,6 +80,7 @@ impl<'a> FungiblesView {
                     .direction(scrollable::Direction::Vertical(Properties::default()))
                     .height(Length::Fill)
                     .width(Length::Fill)
+                    .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
                     .into()
             }
         }

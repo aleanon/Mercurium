@@ -1,15 +1,21 @@
-pub mod transaction_message;
 pub mod accounts_message;
+pub mod transaction_message;
+
+use std::collections::HashMap;
 
 use iced::Command;
-use types::Account;
+use types::{Account, Decimal, Fungibles, ResourceAddress};
 
-use crate::{app::App, view::app_view::{accounts_view::AccountsView, transaction_view::TransactionView, ActiveTab, TabId}}; 
+use crate::{
+    app::App,
+    view::app_view::{
+        accounts_view::AccountsView, transaction_view::TransactionView, ActiveTab, TabId,
+    },
+};
 
 use self::{accounts_message::AccountsViewMessage, transaction_message::TransactionMessage};
 
 use super::Message;
-
 
 #[derive(Debug, Clone)]
 pub enum AppViewMessage {
@@ -42,20 +48,41 @@ impl<'a> AppViewMessage {
     fn select_tab(tab_id: TabId, app: &'a mut App) -> Command<Message> {
         match tab_id {
             TabId::Accounts => app.appview.active_tab = ActiveTab::Accounts(AccountsView::new()),
-            TabId::Transfer => app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(None)),
+            TabId::Transfer => {
+                app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(None, None))
+            }
         }
 
         Command::none()
     }
 
-    fn show_all_accounts(app:&'a mut App) -> Command<Message> {
+    fn show_all_accounts(app: &'a mut App) -> Command<Message> {
         app.appview.active_tab = ActiveTab::Accounts(AccountsView::new());
 
         Command::none()
     }
 
     fn new_transaction(from_account: Option<Account>, app: &'a mut App) -> Command<Message> {
-        app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(from_account));
+        match from_account {
+            Some(ref account) => {
+                let resource_amounts = app
+                    .app_data
+                    .db
+                    .get_fungibles_by_account(&account.address)
+                    .and_then(|fungibles| {
+                        Ok(fungibles
+                            .into_iter()
+                            .map(|fungible| (fungible.address, fungible.amount))
+                            .collect::<HashMap<ResourceAddress, Decimal>>())
+                    })
+                    .ok();
+                app.appview.active_tab =
+                    ActiveTab::Transfer(TransactionView::new(from_account, resource_amounts));
+            }
+            None => {
+                app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(None, None));
+            }
+        }
 
         Command::none()
     }

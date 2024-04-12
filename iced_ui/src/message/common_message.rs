@@ -3,7 +3,6 @@ use types::crypto::Key;
 
 use crate::{message::Message, App};
 
-
 #[derive(Debug, Clone)]
 pub enum CommonMessage {
     CopyToClipBoard(String),
@@ -15,12 +14,10 @@ impl<'a> CommonMessage {
         let mut command = Command::none();
         match self {
             Self::CopyToClipBoard(input) => command = clipboard::write(input),
-            Self::PerformLogin(_key) => {app.login();},
+            Self::PerformLogin(_key) => {
+                app.login();
+            }
         };
         command
-    }
-
-    fn copy_to_clipboard(input: String) -> Command<Message> {
-        iced::clipboard::write(input)
     }
 }

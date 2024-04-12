@@ -1,17 +1,18 @@
 use std::ops::Deref;
 
 use iced::{
-    widget::{self, image::Handle, row, svg, text },
+    theme,
+    widget::{self, image::Handle, row, svg, text},
     Length, Padding,
 };
+use ravault_iced_theme::styles;
 
 use crate::{app::App, message::Message};
-use types::{Fungible, AppPath};
-
+use types::{AppPath, Fungible};
 
 const EMPTY_IMAGE: &'static [u8; 1000] = &[255; 1000];
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
-pub const NO_IMAGE_ICON: &'static [u8] = include_bytes!("../../../../../../icons/icons8-image-96.png");
+pub const NO_IMAGE_ICON: &'static [u8] = include_bytes!("../../../../../icons/icons8-image-96.png");
 
 pub struct FungibleView(pub Fungible);
 
@@ -21,8 +22,6 @@ impl Deref for FungibleView {
         &self.0
     }
 }
-
-
 
 impl<'a> FungibleView {
     pub fn view(&self, app: &'a App) -> iced::Element<'a, Message> {
@@ -42,7 +41,9 @@ impl<'a> FungibleView {
                 let handle = Handle::from_path(icon_path);
                 widget::image(handle).height(150).width(150)
             }
-            None => widget::image(Handle::from_memory(NO_IMAGE_ICON)).height(150).width(150),
+            None => widget::image(Handle::from_memory(NO_IMAGE_ICON))
+                .height(150)
+                .width(150),
         };
 
         let amount = row![
@@ -101,7 +102,8 @@ impl<'a> FungibleView {
             .width(FUNGIBLE_VIEW_WIDTH)
             .padding(Padding::from([0, 10]));
 
-        let scrollable = widget::scrollable(col);
+        let scrollable = widget::scrollable(col)
+            .style(theme::Scrollable::custom(styles::scrollable::Scrollable));
 
         let space_left = widget::Space::new(Length::Fill, Length::Fill);
         let space_right = widget::Space::new(Length::Fill, Length::Fill);
