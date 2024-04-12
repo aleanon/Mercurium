@@ -1,30 +1,28 @@
-pub mod fungibles_view;
-pub mod fungible_view;
-
 use std::collections::BTreeMap;
 
-
-use iced::theme;
-use iced::widget::button;
-use iced::{
-    alignment, border::Radius, color, widget::{
-        self, column, container, row,
-        scrollable::{self, Properties},
-        text, Button }, Background, Color, Element, Length, Padding, Vector 
-};
-use ravault_iced_theme::styles::accounts::AssetListItem;
 use crate::app::App;
 use crate::message::app_view_message::accounts_message::account_message::AccountViewMessage;
-use crate::message::app_view_message::transaction_message::TransactionMessage;
 use crate::message::app_view_message::AppViewMessage;
 use crate::message::common_message::CommonMessage;
 use crate::message::Message;
+use iced::theme;
+use iced::{
+    alignment,
+    border::Radius,
+    color,
+    widget::{
+        self, column, container, row,
+        scrollable::{self, Properties},
+        text, Button,
+    },
+    Background, Color, Element, Length, Padding, Vector,
+};
+use ravault_iced_theme::styles::accounts::AssetListItem;
 
 use store::Db;
 use types::{Account, AccountAddress, EntityAccount, NonFungibles};
 
-use self::fungibles_view::FungiblesView;
-
+use super::fungibles_view::FungiblesView;
 
 #[derive(Debug, Clone)]
 pub enum AssetView {
@@ -71,11 +69,14 @@ impl<'a> AccountView {
 
 impl<'a> AccountView {
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
-
-        let mut accounts = app.app_data.db.get_accounts_map().unwrap_or(BTreeMap::new());
+        let mut accounts = app
+            .app_data
+            .db
+            .get_accounts_map()
+            .unwrap_or(BTreeMap::new());
 
         let account = accounts.remove(&self.address).unwrap_or(Account::none());
-        
+
         let account_name = text(&self.name)
             .size(20)
             .vertical_alignment(alignment::Vertical::Bottom);
@@ -106,8 +107,8 @@ impl<'a> AccountView {
 
         let history_button = Self::nav_button("History");
 
-        let transfer_button = Self::nav_button("Send")
-            .on_press(AppViewMessage::NewTransaction(Some(account)).into());
+        let transfer_button =
+            Self::nav_button("Send").on_press(AppViewMessage::NewTransaction(Some(account)).into());
 
         let receive_button = Self::nav_button("Receive");
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
@@ -163,15 +164,13 @@ impl<'a> AccountView {
             .unwrap_or_else(|_| NonFungibles::new());
 
         let column = {
-                //Each non-fungible is turned into an element
+            //Each non-fungible is turned into an element
 
             let mut elements: Vec<Element<'a, Message>> = Vec::new();
 
             for non_fungible in &non_fungibles {
                 let icon: iced::Element<'a, Message> = match non_fungible.icon {
-                    Some(ref icon) => {
-                        widget::image(icon.handle()).width(40).height(40).into()
-                    }
+                    Some(ref icon) => widget::image(icon.handle()).width(40).height(40).into(),
                     None => widget::Space::new(40, 40).into(),
                 };
 
@@ -207,8 +206,7 @@ impl<'a> AccountView {
                     .on_press(Message::None)
                     .style(theme::Button::Text);
 
-                let container = container(button)
-                    .style(AssetListItem::style);
+                let container = container(button).style(AssetListItem::style);
 
                 elements.push(container.into())
             }
@@ -256,8 +254,16 @@ impl<'a> AccountView {
     pub fn style(_theme: &iced::Theme) -> container::Appearance {
         container::Appearance {
             //background: Some(iced::Background::Color(Color::TRANSPARENT)),
-            border: iced::Border { color: Color::TRANSPARENT, width: 1., radius: Radius::from([0.5;4])},
-            shadow: iced::Shadow { color: Color::BLACK, offset: Vector::new(0.5, 0.5), blur_radius: 0.5 },
+            border: iced::Border {
+                color: Color::TRANSPARENT,
+                width: 1.,
+                radius: Radius::from([0.5; 4]),
+            },
+            shadow: iced::Shadow {
+                color: Color::BLACK,
+                offset: Vector::new(0.5, 0.5),
+                blur_radius: 0.5,
+            },
             background: Some(iced::Background::Color(ListButton::BACKGROUND_ACTIVE_DARK)),
             text_color: Some(AccountView::text_color()),
         }

@@ -1,14 +1,16 @@
-pub mod fungibles_update;
-
 use iced::Command;
 
-use crate::{app::App, message::{app_view_message::AppViewMessage, Message}, view::app_view::{accounts_view::{account_view::{fungibles_view::FungiblesView, AssetView}, AccountsView}, ActiveTab}};
+use crate::{
+    app::App,
+    message::{app_view_message::AppViewMessage, Message},
+    view::app_view::{
+        accounts_view::{account_view::AssetView, fungibles_view::FungiblesView, AccountsView},
+        ActiveTab,
+    },
+};
 use types::{AccountAddress, Fungible};
 
-use self::fungibles_update::FungiblesMessage;
-
-use super::AccountsViewMessage;
-
+use super::{fungibles_message::FungiblesMessage, AccountsViewMessage};
 
 #[derive(Debug, Clone)]
 pub enum AccountViewMessage {

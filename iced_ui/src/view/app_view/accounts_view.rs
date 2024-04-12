@@ -1,19 +1,25 @@
 pub mod account_view;
+pub mod fungible_view;
+pub mod fungibles_view;
 
 use std::collections::HashMap;
 
+use crate::{
+    app::App,
+    message::{app_view_message::accounts_message::AccountsViewMessage, Message},
+};
 use iced::{
-    theme, widget::{
+    theme,
+    widget::{
         self, column, container, row,
         scrollable::{self, Properties},
-    }, Element, Length
+    },
+    Element, Length,
 };
-use ravault_iced_theme::styles::accounts::AccountButton;
-use crate::{app::App, message::{app_view_message::accounts_message::AccountsViewMessage, Message}};
+use ravault_iced_theme::styles::{self, accounts::AccountButton};
 use types::EntityAccount;
 
 use self::account_view::AccountView;
-
 
 #[derive(Debug, Clone)]
 pub enum AccountsView {
@@ -27,7 +33,6 @@ impl AccountsView {
     }
 }
 
-
 impl<'a> AccountsView {
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
         match self {
@@ -37,8 +42,11 @@ impl<'a> AccountsView {
     }
 
     pub fn overview(&self, map: &HashMap<String, bool>, app: &'a App) -> Element<'a, Message> {
-
-        let accounts = app.app_data.db.get_entityaccounts().unwrap_or_else(|_| Vec::new());
+        let accounts = app
+            .app_data
+            .db
+            .get_entityaccounts()
+            .unwrap_or_else(|_| Vec::new());
 
         let header = widget::text("Accounts")
             .size(25)
@@ -46,7 +54,7 @@ impl<'a> AccountsView {
             .width(Length::Fill)
             .horizontal_alignment(iced::alignment::Horizontal::Center);
 
-        let mut children:Vec<Element<'a, Message>> = Vec::new();
+        let mut children: Vec<Element<'a, Message>> = Vec::new();
 
         for account in accounts.iter() {
             let expanded = map.get(&account.name).unwrap_or(&false).to_owned();
@@ -64,6 +72,7 @@ impl<'a> AccountsView {
         let scrollable = scrollable::Scrollable::new(col)
             .height(Length::Fill)
             .width(Length::Fill)
+            .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
             .direction(scrollable::Direction::Vertical(Properties::default()));
 
         let content = widget::column![header, scrollable]
@@ -92,16 +101,13 @@ impl<'a> AccountsView {
         expanded: bool,
         account: &EntityAccount,
     ) -> iced::widget::Container<'a, Message> {
-
         let account_name = account.get_name();
         let account_address = account.get_address().truncate();
-
 
         let account_name_widget = widget::text(account_name)
             .horizontal_alignment(iced::alignment::Horizontal::Left)
             .vertical_alignment(iced::alignment::Vertical::Center)
             .size(20);
-            
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);
 
@@ -112,20 +118,18 @@ impl<'a> AccountsView {
 
         let name_address_row = row![account_name_widget, space, account_address_widget];
 
-
         let space = iced::widget::Space::new(Length::Fill, Length::Fill);
 
-        
         let columns = column![name_address_row, space];
         let button = widget::button(columns)
             .height(100)
             .width(Length::Fill)
             .style(theme::Button::custom(AccountButton))
             .padding(5)
-            .on_press(AccountsViewMessage::SelectAccount(AccountView::from_account(account)).into());       
+            .on_press(
+                AccountsViewMessage::SelectAccount(AccountView::from_account(account)).into(),
+            );
 
-        container(button)
-            .width(Length::Fill)
-            .height(Length::Shrink)
+        container(button).width(Length::Fill).height(Length::Shrink)
     }
 }
