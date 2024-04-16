@@ -1,13 +1,10 @@
 pub mod accounts_view;
+pub mod overlay;
 pub mod transaction_view;
 
 use iced::{
     theme,
-    widget::{
-        self, button,
-        image::{self, Handle},
-        row, text, Row, Text,
-    },
+    widget::{self, button, image::Handle, row, text, Row, Text},
     Element, Length,
 };
 use ravault_iced_theme::styles::{
@@ -25,7 +22,7 @@ use crate::{
     },
 };
 
-use self::{accounts_view::AccountsView, transaction_view::TransactionView};
+use self::{accounts_view::AccountsView, overlay::Overlay, transaction_view::TransactionView};
 
 const THEME_ICON: &'static [u8] = include_bytes!("../../../icons/theme.png");
 const ACCOUNTS_ICON: &'static [u8] = include_bytes!("../../../icons/bank-account.png");
@@ -48,6 +45,7 @@ pub enum TabId {
 pub struct AppView {
     pub notification: Option<String>,
     pub active_tab: ActiveTab,
+    pub overlay: Option<Overlay>,
     //pub menu: Menu,
     //pub center_panel: CenterPanel,
     pub resource_icons: HashMap<ResourceAddress, Handle>,
@@ -58,6 +56,7 @@ impl AppView {
         Self {
             notification: None,
             active_tab: ActiveTab::Accounts(AccountsView::new()),
+            overlay: None,
             //menu: Menu::new(),
             //center_panel: CenterPanel::new(),
             resource_icons: HashMap::new(),
@@ -94,7 +93,17 @@ impl<'a> AppView {
             panels = menu_center_row.into()
         }
 
-        widget::container(panels).style(MainWindow::style).into()
+        let appview = widget::container(panels).style(MainWindow::style);
+
+        let overlay = self
+            .overlay
+            .as_ref()
+            .and_then(|overlay| Some(overlay.view(app)));
+
+        iced_aw::modal(appview, overlay)
+            .on_esc(AppViewMessage::CloseOverlay.into())
+            .backdrop(AppViewMessage::CloseOverlay.into())
+            .into()
     }
 
     fn menu(&self, app: &'a App) -> Element<'a, Message> {

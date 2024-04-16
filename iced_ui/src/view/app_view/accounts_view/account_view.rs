@@ -8,16 +8,13 @@ use crate::message::Message;
 use iced::theme;
 use iced::{
     alignment,
-    border::Radius,
-    color,
     widget::{
         self, column, container, row,
         scrollable::{self, Properties},
         text, Button,
-    },
-    Color, Element, Length, Padding, Vector,
+    }, Element, Length, Padding,
 };
-use iced_aw::style;
+
 use ravault_iced_theme::styles;
 use ravault_iced_theme::styles::container::AssetListItem;
 

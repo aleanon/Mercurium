@@ -6,7 +6,10 @@ use std::collections::HashMap;
 
 use crate::{
     app::App,
-    message::{app_view_message::accounts_message::AccountsViewMessage, Message},
+    message::{
+        app_view_message::{accounts_message::AccountsViewMessage, AppViewMessage},
+        Message,
+    },
 };
 use iced::{
     theme,
@@ -17,6 +20,8 @@ use ravault_iced_theme::styles::{self, button::AccountButton};
 use types::EntityAccount;
 
 use self::account_view::AccountView;
+
+use super::overlay::{add_account_view::AddAccountView, Overlay};
 
 #[derive(Debug, Clone)]
 pub enum AccountsView {
@@ -57,7 +62,7 @@ impl<'a> AccountsView {
             .align_items(iced::Alignment::End),
         )
         .style(theme::Button::custom(styles::button::GeneralButton))
-        .on_press(AccountsViewMessage::NewAccount.into());
+        .on_press(AppViewMessage::SpawnOverlay(Overlay::AddAccount(AddAccountView::new())).into());
 
         let header = row![title, widget::Space::new(Length::Fill, 1), new_account]
             .align_items(iced::Alignment::End)
@@ -107,7 +112,7 @@ impl<'a> AccountsView {
 
     pub fn view_account_summary(
         &self,
-        expanded: bool,
+        _expanded: bool,
         account: &EntityAccount,
     ) -> iced::widget::Container<'a, Message> {
         let account_name = account.get_name();

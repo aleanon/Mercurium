@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use debug_print::debug_println;
-use image::{DynamicImage, ImageFormat};
+use image::{DynamicImage};
 
 pub fn save_image(image: &DynamicImage, path: &PathBuf) {
     let mut path = path.clone();

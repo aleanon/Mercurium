@@ -8,10 +8,9 @@ use crate::{
     message::{app_view_message::transaction_message::TransactionMessage, Message},
 };
 use iced::{
-    border::Radius,
     theme,
-    widget::{self, button, container, image::Handle, row, text, Container},
-    Alignment, Border, Element, Length, Padding,
+    widget::{self, button, container, row, text, Container},
+    Alignment, Element, Length, Padding,
 };
 use ravault_iced_theme::styles::{self, rule::TextInputRule};
 use types::{Account, AccountAddress, Decimal, ResourceAddress};
@@ -169,7 +168,7 @@ impl<'a> TransactionView {
             .into()
     }
 
-    fn message(&self, app: &'a App) -> Container<'a, Message> {
+    fn message(&self, _app: &'a App) -> Container<'a, Message> {
         let label = Self::field_label("Message");
 
         let text_field = widget::text_input("Enter Message", &self.message)
@@ -191,7 +190,7 @@ impl<'a> TransactionView {
     fn from_account_field(&'a self, accounts: Vec<Account>) -> Container<'a, Message> {
         let label = Self::field_label("From");
 
-        let (account_name, account_address) = match self.from_account {
+        let (_account_name, _account_address) = match self.from_account {
             Some(ref account) => (account.name.as_str(), account.address.truncate()),
             None => ("Select Account", String::with_capacity(0)),
         };

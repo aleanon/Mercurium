@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use debug_print::debug_println;
-use iced::futures::channel::mpsc::Sender;
+
 use iced::widget::image::Handle;
 use iced::Command;
 use iced::futures::SinkExt;

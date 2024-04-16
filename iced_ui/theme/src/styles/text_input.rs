@@ -1,10 +1,55 @@
 use iced::{
     border::Radius,
+    theme,
     widget::text_input::{self, StyleSheet},
     Border, Color, Theme,
 };
 
 pub struct GeneralInput;
+
+impl text_input::StyleSheet for GeneralInput {
+    type Style = Theme;
+
+    fn active(&self, style: &Self::Style) -> text_input::Appearance {
+        let mut appearance = style.active(&theme::TextInput::Default);
+        appearance.border.radius = Radius::from(5.);
+        appearance
+    }
+
+    fn disabled(&self, style: &Self::Style) -> text_input::Appearance {
+        let mut appearance = style.disabled(&theme::TextInput::Default);
+        appearance.border.radius = Radius::from(5.);
+        appearance
+    }
+
+    fn focused(&self, style: &Self::Style) -> text_input::Appearance {
+        let mut appearance = style.focused(&theme::TextInput::Default);
+        appearance.border.radius = Radius::from(5.);
+        appearance
+    }
+
+    fn hovered(&self, style: &Self::Style) -> text_input::Appearance {
+        let mut appearance = style.hovered(&theme::TextInput::Default);
+        appearance.border.radius = Radius::from(5.);
+        appearance
+    }
+
+    fn disabled_color(&self, style: &Self::Style) -> Color {
+        style.disabled_color(&iced::theme::TextInput::Default)
+    }
+
+    fn placeholder_color(&self, style: &Self::Style) -> Color {
+        style.placeholder_color(&iced::theme::TextInput::Default)
+    }
+
+    fn selection_color(&self, style: &Self::Style) -> Color {
+        style.selection_color(&iced::theme::TextInput::Default)
+    }
+
+    fn value_color(&self, style: &Self::Style) -> Color {
+        style.value_color(&iced::theme::TextInput::Default)
+    }
+}
 
 pub struct AssetAmount;
 

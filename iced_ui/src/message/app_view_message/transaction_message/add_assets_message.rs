@@ -1,10 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap};
 
-use debug_print::{debug_print, debug_println};
+
 use iced::Command;
-use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
+use types::{Fungible, Fungibles, ResourceAddress};
 
-use crate::{app::AppData, message::{app_view_message::AppViewMessage, Message}, view::app_view::{transaction_view::{self, add_assets::{AddAssets, AssetTab}, Recipient, TransactionView, View}, ActiveTab, AppView}, App};
+use crate::{app::AppData, message::{app_view_message::AppViewMessage, Message}, view::app_view::{transaction_view::{add_assets::{AddAssets, AssetTab}, Recipient, TransactionView, View}}};
 
 use super::TransactionMessage;
 
@@ -69,7 +69,7 @@ impl<'a> AddAssetsMessage {
     let fungibles = appdata.db.get_fungibles_by_account(&add_assets.from_account).unwrap_or(Fungibles::new())
       .into_iter().map(|fungible| (fungible.address.clone(), fungible)).collect::<HashMap<ResourceAddress, Fungible>>();
 
-    for (resource_address, (symbol, amount)) in &mut add_assets.selected {
+    for (resource_address, (_symbol, amount)) in &mut add_assets.selected {
       let fungible = fungibles.get(&resource_address).unwrap_or_else(|| unreachable!("Selected asset does not exist"));
 
       *amount = fungible.amount.to_string();

@@ -2,9 +2,7 @@ use iced::{
     theme,
     widget::{
         self, column, container,
-        image::Handle,
         row,
-        scrollable::{self, Properties},
         text, Button,
     },
     Element, Length, Padding,
@@ -17,7 +15,7 @@ use crate::{
 use ravault_iced_theme::styles::{self, button::AssetListButton, container::AssetListItem};
 use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 
-use super::fungible_view::{self, FungibleView};
+use super::fungible_view::{FungibleView};
 
 #[derive(Debug, Clone)]
 pub struct FungiblesView {
