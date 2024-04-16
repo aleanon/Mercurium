@@ -15,7 +15,6 @@ use crate::{
     message::{
         app_view_message::transaction_message::add_assets_message::AddAssetsMessage, Message,
     },
-    view::app_view::accounts_view::fungible_view::NO_IMAGE_ICON,
     App,
 };
 
@@ -206,14 +205,25 @@ impl<'a> AddAssets {
                     .and_then(|selected| Some((true, selected.1.as_str())))
                     .unwrap_or((self.select_all, ""));
 
-                let icon_handle = app
+                let icon: Element<'a, Message> = app
                     .appview
                     .resource_icons
                     .get(&token.address)
-                    .and_then(|handle| Some(handle.clone()))
-                    .unwrap_or(Handle::from_memory(NO_IMAGE_ICON));
-
-                let icon = widget::image(icon_handle).width(40).height(40);
+                    .and_then(|handle| {
+                        Some(widget::image(handle.clone()).width(40).height(40).into())
+                    })
+                    .unwrap_or(
+                        container(
+                            text(iced_aw::BootstrapIcon::Image)
+                                .font(iced_aw::BOOTSTRAP_FONT)
+                                .size(30),
+                        )
+                        .width(40)
+                        .height(40)
+                        .center_x()
+                        .center_y()
+                        .into(),
+                    );
 
                 let name = text(&token.name).size(12);
                 let symbol = text(&token.symbol).size(10);

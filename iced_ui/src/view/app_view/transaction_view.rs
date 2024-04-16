@@ -8,16 +8,15 @@ use crate::{
     message::{app_view_message::transaction_message::TransactionMessage, Message},
 };
 use iced::{
+    border::Radius,
     theme,
-    widget::{self, button, image::Handle, row, shader::wgpu::naga::Function, text, Container},
-    Alignment, Element, Length, Padding,
+    widget::{self, button, container, image::Handle, row, text, Container},
+    Alignment, Border, Element, Length, Padding,
 };
 use ravault_iced_theme::styles::{self, rule::TextInputRule};
-use types::{Account, AccountAddress, Decimal, Fungible, ResourceAddress};
+use types::{Account, AccountAddress, Decimal, ResourceAddress};
 
 use self::{add_assets::AddAssets, choose_recipient::ChooseRecipient};
-
-use super::accounts_view::fungible_view::NO_IMAGE_ICON;
 
 // pub struct TransactionView {
 //     from_account: Option<String>,
@@ -222,52 +221,67 @@ impl<'a> TransactionView {
 
         let mut recipients: Vec<Element<'a, Message>> = Vec::with_capacity(self.recipients.len());
 
-        for (recipient_index, ref recipient) in self.recipients.iter().enumerate() {
+        for (recipient_index, recipient) in self.recipients.iter().enumerate() {
             let choose_recipient_button = {
                 let address = recipient
                     .address
                     .as_ref()
                     .and_then(|address| Some(address.truncate_long()))
-                    .unwrap_or("Choose recipient".to_owned());
+                    .unwrap_or("Choose account".to_owned());
 
                 let address = text(address).size(15).line_height(1.5).width(Length::Fill);
 
-                let mut remove_recipient_button = widget::button(widget::Space::new(8, 8))
-                    .width(Length::Shrink)
-                    .height(Length::Shrink);
+                let mut remove_recipient_button = button(
+                    text(iced_aw::BootstrapIcon::XLg)
+                        .font(iced_aw::BOOTSTRAP_FONT)
+                        .line_height(1.),
+                )
+                .padding(0)
+                .style(theme::Button::custom(styles::button::ChooseAccount))
+                .on_press(TransactionMessage::RemoveRecipient(recipient_index).into());
 
-                if recipient_index != 0 {
-                    remove_recipient_button = remove_recipient_button
-                        .on_press(TransactionMessage::RemoveRecipient(recipient_index).into());
-                } else {
-                    remove_recipient_button = remove_recipient_button.on_press_maybe(
-                        recipient.address.as_ref().and_then(|_| {
-                            Some(TransactionMessage::RemoveRecipient(recipient_index).into())
-                        }),
-                    );
+                if recipient_index == 0 {
+                    if let None = &recipient.address {
+                        remove_recipient_button = button(text("")).style(theme::Button::Text);
+                    }
                 }
 
-                let choose_recipient_content = row![address, remove_recipient_button];
+                let choose_recipient_content = row![address, remove_recipient_button]
+                    .align_items(Alignment::Center)
+                    .height(Length::Fill);
 
                 button(choose_recipient_content)
                     .width(Length::Fill)
-                    .height(Length::Shrink)
+                    .height(50)
+                    .padding(10)
+                    .style(theme::Button::custom(styles::button::ChooseAccount))
                     .on_press(TransactionMessage::SelectRecipient(recipient_index).into())
             };
 
             let assets = {
-                let mut elements: Vec<Element<'a, Message>> =
+                let mut assets: Vec<Element<'a, Message>> =
                     Vec::with_capacity(recipient.resources.len());
 
                 for (resource_address, (symbol, amount)) in recipient.resources.iter() {
-                    let icon_handle = app
+                    let icon: Element<'a, Message> = app
                         .appview
                         .resource_icons
                         .get(&resource_address)
-                        .and_then(|handle| Some(handle.clone()))
-                        .unwrap_or(Handle::from_memory(NO_IMAGE_ICON));
-
-                    let icon = widget::image(icon_handle).width(25).height(25);
+                        .and_then(|handle| {
+                            Some(widget::image(handle.clone()).width(25).height(25).into())
+                        })
+                        .unwrap_or(
+                            container(
+                                text(iced_aw::BootstrapIcon::Image)
+                                    .font(iced_aw::BOOTSTRAP_FONT)
+                                    .size(18),
+                            )
+                            .width(25)
+                            .height(25)
+                            .center_x()
+                            .center_y()
+                            .into(),
+                        );
 
                     let symbol = Self::resource_text_field(&symbol);
 
@@ -295,16 +309,18 @@ impl<'a> TransactionView {
                             .into()
                         });
 
-                    let remove_resource = widget::button(text("x").size(18).line_height(1.))
-                        .padding(0)
-                        .style(theme::Button::Text)
-                        .on_press(
-                            TransactionMessage::RemoveAsset(
-                                recipient_index,
-                                resource_address.clone(),
-                            )
+                    let remove_resource = widget::button(
+                        text(iced_aw::BootstrapIcon::XLg)
+                            .font(iced_aw::BOOTSTRAP_FONT)
+                            .size(15)
+                            .line_height(1.),
+                    )
+                    .padding(0)
+                    .style(theme::Button::Text)
+                    .on_press(
+                        TransactionMessage::RemoveAsset(recipient_index, resource_address.clone())
                             .into(),
-                        );
+                    );
 
                     let resource_row = row![icon, symbol, space, amount, remove_resource]
                         .spacing(10)
@@ -317,10 +333,10 @@ impl<'a> TransactionView {
                         .height(Length::Shrink)
                         .width(Length::Fill);
 
-                    elements.push(resource.into())
+                    assets.push(resource.into())
                 }
 
-                widget::column(elements).spacing(1).width(Length::Fill)
+                widget::column(assets).spacing(1).width(Length::Fill)
             };
 
             let add_resource = widget::button(
@@ -350,7 +366,7 @@ impl<'a> TransactionView {
             recipients.push(recipient.into())
         }
 
-        let recipients = widget::column(recipients);
+        let recipients = widget::column(recipients).spacing(10);
 
         widget::container(widget::column![label, recipients])
     }

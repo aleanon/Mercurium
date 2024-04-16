@@ -4,6 +4,8 @@ use iced::{
     Border, Color, Theme,
 };
 
+pub struct GeneralInput;
+
 pub struct AssetAmount;
 
 impl text_input::StyleSheet for AssetAmount {

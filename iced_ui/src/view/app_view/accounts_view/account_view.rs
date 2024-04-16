@@ -15,9 +15,11 @@ use iced::{
         scrollable::{self, Properties},
         text, Button,
     },
-    Background, Color, Element, Length, Padding, Vector,
+    Color, Element, Length, Padding, Vector,
 };
-use ravault_iced_theme::styles::accounts::AssetListItem;
+use iced_aw::style;
+use ravault_iced_theme::styles;
+use ravault_iced_theme::styles::container::AssetListItem;
 
 use store::Db;
 use types::{Account, AccountAddress, EntityAccount, NonFungibles};
@@ -85,7 +87,11 @@ impl<'a> AccountView {
             .size(15)
             .vertical_alignment(iced::alignment::Vertical::Bottom);
 
-        let account_address_button = Button::new(account_address)
+        let icon = text(iced_aw::BootstrapIcon::Copy)
+            .font(iced_aw::BOOTSTRAP_FONT)
+            .size(15);
+
+        let account_address_button = Button::new(row!(account_address, icon).spacing(5))
             .style(iced::theme::Button::Text)
             .on_press(Message::Common(CommonMessage::CopyToClipBoard(
                 self.address.to_string(),
@@ -114,35 +120,34 @@ impl<'a> AccountView {
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
 
         let nav_button_row = row![history_button, transfer_button, receive_button]
-            .width(Length::Shrink)
-            .height(Length::Shrink)
+            // .width(Length::Shrink)
+            // .height(Length::Shrink)
             .spacing(20);
 
-        let nav_button_cont = container(nav_button_row)
-            .center_x()
-            .width(Length::Fill)
-            .height(Length::Shrink);
+        let nav_button_cont = container(nav_button_row).center_x().width(Length::Fill);
+        // .height(Length::Shrink);
 
-        let fung_button = Self::select_asset_button("Tokens")
+        let mut fung_button = Self::select_asset_button("Tokens")
             .on_press(AccountViewMessage::FungiblesView(self.address.clone()).into());
 
-        let nft_button = Self::select_asset_button("NFTs")
+        let mut nft_button = Self::select_asset_button("NFTs")
             .on_press(AccountViewMessage::NonFungiblesView(self.address.clone()).into());
 
-        let asset_button_row = row![fung_button, nft_button]
-            .spacing(100)
-            .height(Length::Shrink)
-            .width(Length::Shrink);
-
-        let asset_button_cont = container(asset_button_row)
-            .center_x()
-            .width(Length::Fill)
-            .height(Length::Shrink);
-
         let assets = match self.view {
-            AssetView::Fungibles(ref fungibles_view) => fungibles_view.view(app),
-            AssetView::NonFungibles => self.view_non_fungibles(&app.app_data.db),
+            AssetView::Fungibles(ref fungibles_view) => {
+                fung_button =
+                    fung_button.style(theme::Button::custom(styles::button::GeneralSelectedButton));
+                fungibles_view.view(app)
+            }
+            AssetView::NonFungibles => {
+                nft_button =
+                    nft_button.style(theme::Button::custom(styles::button::GeneralSelectedButton));
+                self.view_non_fungibles(&app.app_data.db)
+            }
         };
+
+        let asset_button_row = row![fung_button, nft_button].spacing(100);
+        let asset_button_cont = container(asset_button_row).center_x().width(Length::Fill);
 
         let col = column![top_row, nav_button_cont, asset_button_cont, assets]
             .width(Length::Fill)
@@ -244,60 +249,6 @@ impl<'a> AccountView {
                 .height(Length::Fill)
                 .width(Length::Fill),
         )
-        // .style(iced::theme::Button::Custom(Box::new(ListButton)))
+        .style(theme::Button::custom(styles::button::GeneralButton))
     }
-
-    pub fn text_color() -> Color {
-        color!(255, 255, 255)
-    }
-
-    pub fn style(_theme: &iced::Theme) -> container::Appearance {
-        container::Appearance {
-            //background: Some(iced::Background::Color(Color::TRANSPARENT)),
-            border: iced::Border {
-                color: Color::TRANSPARENT,
-                width: 1.,
-                radius: Radius::from([0.5; 4]),
-            },
-            shadow: iced::Shadow {
-                color: Color::BLACK,
-                offset: Vector::new(0.5, 0.5),
-                blur_radius: 0.5,
-            },
-            background: Some(iced::Background::Color(ListButton::BACKGROUND_ACTIVE_DARK)),
-            text_color: Some(AccountView::text_color()),
-        }
-    }
-}
-
-pub struct ListButton;
-
-impl ListButton {
-    pub const BACKGROUND_ACTIVE_DARK: Color = Color {
-        r: 0.25,
-        g: 0.25,
-        b: 0.30,
-        a: 1.0,
-    };
-
-    pub const BACKGROUND_ACTIVE_LIGHT: iced::Color = iced::Color {
-        r: 0.92,
-        g: 0.92,
-        b: 0.92,
-        a: 1.0,
-    };
-
-    pub const BACKGROUND_HOVERED_DARK: Color = Color {
-        r: 0.23,
-        g: 0.23,
-        b: 0.28,
-        a: 1.0,
-    };
-
-    pub const BACKGROUND_HOVERED_LIGHT: iced::Color = iced::Color {
-        r: 0.93,
-        g: 0.93,
-        b: 0.93,
-        a: 1.0,
-    };
 }

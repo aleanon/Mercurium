@@ -23,6 +23,7 @@ use super::{AppViewMessage, TransactionView};
 
 #[derive(Debug, Clone)]
 pub enum TransactionMessage {
+    OverView,
     SelectAccount(Account),
     UpdateMessage(String),
     RemoveRecipient(usize),
@@ -53,6 +54,7 @@ impl<'a> TransactionMessage {
             let mut command = Command::none();
 
             match self {
+                Self::OverView => transaction_view.view = View::Transaction,
                 Self::SelectAccount(account) => transaction_view.from_account = Some(account),
                 Self::UpdateMessage(message) => transaction_view.message = message,
                 Self::RemoveRecipient(recipient_index) => {

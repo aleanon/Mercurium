@@ -14,10 +14,7 @@ use crate::{
     message::{app_view_message::accounts_message::fungibles_message::FungiblesMessage, Message},
     App,
 };
-use ravault_iced_theme::styles::{
-    self,
-    accounts::{AssetListButton, AssetListItem},
-};
+use ravault_iced_theme::styles::{self, button::AssetListButton, container::AssetListItem};
 use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 
 use super::fungible_view::{self, FungibleView};
@@ -77,7 +74,6 @@ impl<'a> FungiblesView {
                     .width(Length::Fill);
 
                 widget::scrollable(column)
-                    .direction(scrollable::Direction::Vertical(Properties::default()))
                     .height(Length::Fill)
                     .width(Length::Fill)
                     .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
@@ -89,53 +85,41 @@ impl<'a> FungiblesView {
     fn fungible_list_button(fungible: &Fungible, app: &'a App) -> Button<'a, Message> {
         let icon: iced::Element<'a, Message> =
             match app.appview.resource_icons.get(&fungible.address) {
-                Some(handle) => widget::image(handle.clone()).width(50).height(50).into(),
-                None => widget::image(Handle::from_memory(fungible_view::NO_IMAGE_ICON))
-                    .width(50)
-                    .height(50)
-                    .into(),
+                Some(handle) => widget::image(handle.clone()).width(40).height(40).into(),
+                None => container(
+                    text(iced_aw::BootstrapIcon::Image)
+                        .font(iced_aw::BOOTSTRAP_FONT)
+                        .size(30),
+                )
+                .width(40)
+                .height(40)
+                .center_x()
+                .center_y()
+                .into(),
             };
 
-        let symbol = match fungible.symbol.len() {
-            0 => {
-                if fungible.name.len() != 0 {
-                    &fungible.name
-                } else {
-                    "NoName"
-                }
-            }
-            _ => &fungible.symbol,
-        };
+        let name_and_symbol = column![
+            text(&fungible.name).size(16),
+            text(&fungible.symbol).size(14)
+        ]
+        .spacing(3)
+        .align_items(iced::Alignment::Start);
 
-        let symbol = text(symbol)
-            .size(20)
-            .height(30)
-            .vertical_alignment(iced::alignment::Vertical::Center)
-            .horizontal_alignment(iced::alignment::Horizontal::Left)
-            .width(Length::Fill);
+        let list_button_content = row![
+            icon,
+            name_and_symbol,
+            widget::Space::new(Length::Fill, 1),
+            text(format!("{} {}", &fungible.amount, &fungible.symbol)).size(18)
+        ]
+        .padding(Padding {
+            left: 10.,
+            right: 10.,
+            bottom: 5.,
+            top: 5.,
+        })
+        .spacing(15)
+        .align_items(iced::Alignment::Center);
 
-        let amount = text(&fungible.amount)
-            .size(20)
-            .height(30)
-            .vertical_alignment(iced::alignment::Vertical::Center)
-            .horizontal_alignment(iced::alignment::Horizontal::Right)
-            .width(Length::Shrink);
-
-        let row = row![icon, symbol, amount]
-            .height(Length::Fill)
-            .width(Length::Fill)
-            .padding(Padding {
-                left: 10.,
-                right: 10.,
-                bottom: 5.,
-                top: 5.,
-            })
-            .spacing(15)
-            .align_items(iced::Alignment::Center);
-
-        widget::button(row)
-            .width(Length::Fill)
-            .height(85)
-            .style(theme::Button::custom(AssetListButton))
+        widget::button(list_button_content).style(theme::Button::custom(AssetListButton))
     }
 }

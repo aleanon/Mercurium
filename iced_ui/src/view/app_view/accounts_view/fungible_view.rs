@@ -2,17 +2,15 @@ use std::ops::Deref;
 
 use iced::{
     theme,
-    widget::{self, image::Handle, row, svg, text},
-    Length, Padding,
+    widget::{self, container, image::Handle, row, text},
+    Element, Length, Padding,
 };
 use ravault_iced_theme::styles;
 
 use crate::{app::App, message::Message};
-use types::{AppPath, Fungible};
+use types::Fungible;
 
-const EMPTY_IMAGE: &'static [u8; 1000] = &[255; 1000];
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
-pub const NO_IMAGE_ICON: &'static [u8] = include_bytes!("../../../../../icons/icons8-image-96.png");
 
 pub struct FungibleView(pub Fungible);
 
@@ -33,17 +31,28 @@ impl<'a> FungibleView {
 
         let name = text(name).size(15).line_height(2.);
 
-        let image = match self.icon {
-            Some(_) => {
-                let mut icon_path = AppPath::new().unwrap().icons_directory().clone();
-                icon_path.push(self.address.as_str());
-                icon_path.set_extension("png");
-                let handle = Handle::from_path(icon_path);
-                widget::image(handle).height(150).width(150)
-            }
-            None => widget::image(Handle::from_memory(NO_IMAGE_ICON))
+        let image: Element<'a, Message> = {
+            let directory = app.app_data.app_path.icons_directory();
+            let mut icon_path = directory.clone();
+            icon_path.push(&self.address.to_string());
+            icon_path.set_extension("png");
+            if icon_path.exists() {
+                widget::image(Handle::from_path(icon_path))
+                    .width(150)
+                    .height(150)
+                    .into()
+            } else {
+                container(
+                    text(iced_aw::BootstrapIcon::Image)
+                        .font(iced_aw::BOOTSTRAP_FONT)
+                        .size(100),
+                )
+                .width(150)
                 .height(150)
-                .width(150),
+                .center_x()
+                .center_y()
+                .into()
+            }
         };
 
         let amount = row![

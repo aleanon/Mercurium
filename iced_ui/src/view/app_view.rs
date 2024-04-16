@@ -6,20 +6,23 @@ use iced::{
     widget::{
         self, button,
         image::{self, Handle},
-        row, text, Row,
+        row, text, Row, Text,
     },
     Element, Length,
 };
 use ravault_iced_theme::styles::{
-    center_panel::CenterPanel, main_window::MainWindow, menu::SelectedMenuButton, MenuButton,
-    MenuContainer,
+    button::{MenuButton, SelectedMenuButton},
+    container::{CenterPanel, MainWindow, MenuContainer},
 };
 use std::collections::HashMap;
 use types::ResourceAddress;
 
 use crate::{
     app::App,
-    message::{app_view_message::AppViewMessage, Message},
+    message::{
+        app_view_message::{transaction_message::TransactionMessage, AppViewMessage},
+        Message,
+    },
 };
 
 use self::{accounts_view::AccountsView, transaction_view::TransactionView};
@@ -105,23 +108,46 @@ impl<'a> AppView {
             .center_y();
 
         let theme_button_text = format!("{}", app.app_data.settings.theme);
-        let theme_icon = image::Image::new(Handle::from_memory(THEME_ICON));
+        let theme_icon = text(iced_aw::BootstrapIcon::Palette).font(iced_aw::BOOTSTRAP_FONT);
         let toggle_theme_button =
             Self::menu_button(theme_icon, &theme_button_text, Message::ToggleTheme.into());
 
-        let accounts_icon = image::Image::new(Handle::from_memory(ACCOUNTS_ICON));
+        let accounts_icon = text(iced_aw::BootstrapIcon::PersonVcard).font(iced_aw::BOOTSTRAP_FONT);
         let mut accounts_button = Self::menu_button(
             accounts_icon,
             "Accounts",
             AppViewMessage::SelectTab(TabId::Accounts).into(),
         );
 
-        let transaction_icon = image::Image::new(Handle::from_memory(TRANSACTION_ICON));
-        let mut transaction_button = Self::menu_button(
-            transaction_icon,
-            "Transaction",
-            AppViewMessage::SelectTab(TabId::Transfer).into(),
-        );
+        let transaction_icon =
+            text(iced_aw::BootstrapIcon::ArrowBarUp).font(iced_aw::BOOTSTRAP_FONT);
+        let message = match &self.active_tab {
+            ActiveTab::Transfer(_) => {
+                AppViewMessage::TransferMessage(TransactionMessage::OverView).into()
+            }
+            _ => AppViewMessage::SelectTab(TabId::Transfer).into(),
+        };
+        let mut transaction_button = Self::menu_button(transaction_icon, "Send", message);
+
+        // let mut transaction_button = {
+        //     let icon = text(iced_aw::BootstrapIcon::ArrowBarUp).font(iced_aw::BOOTSTRAP_FONT);
+
+        //     let text = text("Send")
+        //         .size(15)
+        //         .line_height(2.)
+        //         .width(Length::Fill)
+        //         .horizontal_alignment(iced::alignment::Horizontal::Left);
+
+        //     let content = row![icon, text]
+        //         .spacing(10)
+        //         .align_items(iced::Alignment::Center);
+
+        //     button(content)
+        //         .height(Length::Shrink)
+        //         .width(Length::Fill)
+        //         .style(theme::Button::custom(MenuButton))
+        //         .on_press(AppViewMessage::SelectTab(TabId::Transfer).into())
+        // };
 
         match self.active_tab {
             ActiveTab::Accounts(_) => {
@@ -153,13 +179,7 @@ impl<'a> AppView {
             .into()
     }
 
-    fn menu_button(
-        icon: image::Image<Handle>,
-        name: &str,
-        message: Message,
-    ) -> widget::Button<'a, Message> {
-        let icon = icon.width(20).height(20);
-
+    fn menu_button(icon: Text<'a>, name: &str, message: Message) -> widget::Button<'a, Message> {
         let text = text(name)
             .size(15)
             .line_height(2.)

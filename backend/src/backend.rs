@@ -1,5 +1,3 @@
-
-
 use std::{collections::HashMap, num::NonZeroU32, path::PathBuf};
 
 use anyhow::Result;
@@ -12,7 +10,7 @@ use iced::{
 };
 
 use handles::filesystem::resize_image::resize_image;
-use types::{Action, AppPath, Update, ResourceAddress};
+use types::{Action, AppPath, ResourceAddress, Update};
 
 use super::handle::Handle;
 
@@ -66,7 +64,7 @@ impl BackEnd {
             }
         } else {
             debug_println!("{}:{} No icons found", module_path!(), line!());
-        } 
+        }
 
         Ok(())
     }
@@ -182,8 +180,8 @@ impl BackEnd {
                 let image = image::open(file_path).ok()?;
                 let resized = resize_image(
                     &image,
-                    NonZeroU32::new(50).unwrap(),
-                    NonZeroU32::new(50).unwrap(),
+                    NonZeroU32::new(40).unwrap(),
+                    NonZeroU32::new(40).unwrap(),
                 )?;
                 Some((
                     address,
