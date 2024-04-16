@@ -10,13 +10,10 @@ use crate::{
 };
 use iced::{
     theme,
-    widget::{
-        self, column, container, row,
-        scrollable::{self, Properties},
-    },
+    widget::{self, button, column, container, row, scrollable, text},
     Element, Length,
 };
-use ravault_iced_theme::styles::{self, accounts::AccountButton};
+use ravault_iced_theme::styles::{self, button::AccountButton};
 use types::EntityAccount;
 
 use self::account_view::AccountView;
@@ -48,11 +45,23 @@ impl<'a> AccountsView {
             .get_entityaccounts()
             .unwrap_or_else(|_| Vec::new());
 
-        let header = widget::text("Accounts")
-            .size(25)
-            .line_height(3.)
-            .width(Length::Fill)
-            .horizontal_alignment(iced::alignment::Horizontal::Center);
+        let title = text("Accounts").size(25);
+
+        let new_account = button(
+            row![
+                text(iced_aw::BootstrapIcon::Plus)
+                    .font(iced_aw::BOOTSTRAP_FONT)
+                    .size(16),
+                text("Account").size(16)
+            ]
+            .align_items(iced::Alignment::End),
+        )
+        .style(theme::Button::custom(styles::button::GeneralButton))
+        .on_press(AccountsViewMessage::NewAccount.into());
+
+        let header = row![title, widget::Space::new(Length::Fill, 1), new_account]
+            .align_items(iced::Alignment::End)
+            .padding(20);
 
         let mut children: Vec<Element<'a, Message>> = Vec::new();
 
@@ -66,14 +75,14 @@ impl<'a> AccountsView {
 
         let col = iced::widget::Column::with_children(children)
             .spacing(30)
-            .width(Length::FillPortion(9))
+            // .width(Length::FillPortion(9))
             .padding([0, 15, 15, 0]);
 
         let scrollable = scrollable::Scrollable::new(col)
             .height(Length::Fill)
             .width(Length::Fill)
-            .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
-            .direction(scrollable::Direction::Vertical(Properties::default()));
+            .style(theme::Scrollable::custom(styles::scrollable::Scrollable));
+        // .direction(scrollable::Direction::Vertical(Properties::default()));
 
         let content = widget::column![header, scrollable]
             .width(Length::Fill)

@@ -1,13 +1,12 @@
 use std::collections::{BTreeSet, HashMap};
 
+use debug_print::debug_println;
 use iced::widget::image::Handle;
 use iced::Subscription;
-use types::{Account, Action, AppError, Fungible, NonFungible, ResourceAddress};
-use debug_print::debug_println;
-use iced::{Application, Command,  Theme, futures::channel::mpsc::Sender as MpscSender};
+use iced::{futures::channel::mpsc::Sender as MpscSender, Application, Command, Theme};
+use types::{Account, Action, AppError, AppPath, Fungible, NonFungible, ResourceAddress};
 // use iced_futures::futures::channel::mpsc::Sender as MpscSender;
 // use iced_futures::futures::SinkExt;
-
 
 use crate::icons::Icons;
 use crate::message::backend_message::BackendMessage;
@@ -25,14 +24,13 @@ pub struct AppSettings {
 
 impl AppSettings {
     pub fn new() -> Self {
-        Self { 
-            theme: Theme::Dark
-        }
+        Self { theme: Theme::Dark }
     }
 }
 
 #[derive(Debug)]
 pub struct AppData {
+    pub app_path: AppPath,
     pub accounts: BTreeSet<Account>,
     pub fungibles: BTreeSet<Fungible>,
     pub non_fungibles: BTreeSet<NonFungible>,
@@ -44,9 +42,9 @@ pub struct AppData {
 }
 
 impl AppData {
-    pub fn new(settings: Option<AppSettings>) -> Self {
-
+    pub fn new(settings: Option<AppSettings>, app_path: AppPath) -> Self {
         Self {
+            app_path,
             accounts: BTreeSet::new(),
             fungibles: BTreeSet::new(),
             non_fungibles: BTreeSet::new(),
@@ -75,7 +73,7 @@ pub struct App {
     pub(crate) app_data: AppData,
     // pub(crate) db: Option<Db>,
     // pub(crate) action_tx: Option<MpscSender<Action>>,
-    // Holds the gui unlocked state
+    // Holds the gui unlocked state, not held in the AppState enum to be able to return to last state on login
     pub(crate) appview: AppView,
     // pub(crate) theme: Theme,
 }
@@ -87,7 +85,7 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Message>) {
-        let state;
+        let mut state;
 
         match Db::exits() {
             Ok(exists) => {
@@ -102,9 +100,11 @@ impl Application for App {
             }
         }
 
+        let app_path = AppPath::new().expect("Unable to establish app directory");
+
         let appstate = App {
             app_state: state,
-            app_data: AppData::new(None),
+            app_data: AppData::new(None, app_path),
             // db: None,
             // action_tx: None,
             appview: AppView::new(),
@@ -124,10 +124,8 @@ impl Application for App {
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {
-        Subscription::batch([
-            crate::subscription::BackendWorker::backend_subscription()
-                .map(|update| Message::Update(BackendMessage(update))),
-        ])
+        Subscription::batch([crate::subscription::BackendWorker::backend_subscription()
+            .map(|update| Message::Update(BackendMessage(update)))])
     }
 
     fn theme(&self) -> Theme {
@@ -137,12 +135,9 @@ impl Application for App {
     fn title(&self) -> String {
         String::from("RaVault")
     }
-
 }
 
 impl<'a> App {
-    
-
     pub fn login(&mut self /*key: Key*/) -> Result<(), AppError> {
         // match self.db {
         //     Some(_) => {
@@ -190,8 +185,5 @@ impl<'a> App {
                 Err(crate::app::AppError::Fatal(Box::new(err)))
             }
         }
-        
-
     }
 }
- 
