@@ -3,7 +3,7 @@ use std::{collections::HashMap, str::FromStr};
 use iced::{
     theme,
     widget::{
-        self, button, checkbox, column, container, image::Handle, row, text, Container, TextInput,
+        self, button, checkbox, column, container, row, text, Container, TextInput,
     },
     Element, Length, Padding,
 };
@@ -315,8 +315,8 @@ impl<'a> AddAssets {
             .height(Length::Fill)
     }
 
-    fn nfts_tab(&self, app: &'a App, within_limits: &mut bool) -> Container<'a, Message> {
-        let non_fungibles = app
+    fn nfts_tab(&self, app: &'a App, _within_limits: &mut bool) -> Container<'a, Message> {
+        let _non_fungibles = app
             .app_data
             .db
             .get_non_fungibles_by_account(&self.from_account)

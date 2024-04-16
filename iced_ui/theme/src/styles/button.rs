@@ -1,6 +1,6 @@
 use iced::{border::Radius, widget::button, Background, Border, Color, Shadow, Theme, Vector};
 
-use crate::palette;
+
 
 pub struct GeneralSelectedButton;
 
@@ -181,7 +181,7 @@ impl button::StyleSheet for AccountButton {
     fn hovered(&self, style: &Self::Style) -> button::Appearance {
         let extended_palette = style.extended_palette();
         let mut background_color = extended_palette.background.weak.color;
-        let text_color = extended_palette.background.base.text;
+        let _text_color = extended_palette.background.base.text;
         background_color.a = 0.1;
 
         button::Appearance {

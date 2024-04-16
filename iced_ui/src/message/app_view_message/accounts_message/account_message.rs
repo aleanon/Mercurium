@@ -71,7 +71,7 @@ impl<'a> AccountViewMessage {
     }
 
     fn set_view_non_fungibles(
-        account_address: AccountAddress,
+        _account_address: AccountAddress,
         app: &'a mut App,
     ) -> Command<Message> {
         if let ActiveTab::Accounts(AccountsView::Account(ref mut account_view)) =
@@ -84,7 +84,7 @@ impl<'a> AccountViewMessage {
         Command::none()
     }
 
-    fn set_view_poolunits(app: &'a mut App) -> Command<Message> {
+    fn set_view_poolunits(_app: &'a mut App) -> Command<Message> {
         // if let AccountsView::Account(mut account_view) = app.appview.center_panel.accounts {
         //     if let View::Fungibles = account_view.view {
         //         account_view.view =
@@ -97,22 +97,22 @@ impl<'a> AccountViewMessage {
         Command::none()
     }
 
-    fn select_fungible(fungible: Fungible, app: &'a mut App) -> Command<Message> {
+    fn select_fungible(_fungible: Fungible, _app: &'a mut App) -> Command<Message> {
         Command::none()
     }
 
     fn select_non_fungible(
-        account_id: usize,
-        non_fungible_id: usize,
-        app: &'a mut App,
+        _account_id: usize,
+        _non_fungible_id: usize,
+        _app: &'a mut App,
     ) -> Command<Message> {
         Command::none()
     }
 
     fn select_poolunit(
-        account_id: usize,
-        poolunit_id: usize,
-        app: &'a mut App,
+        _account_id: usize,
+        _poolunit_id: usize,
+        _app: &'a mut App,
     ) -> Command<Message> {
         Command::none()
     }

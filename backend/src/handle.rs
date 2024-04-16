@@ -7,16 +7,16 @@ use std::{
     sync::Arc,
 };
 
-use image::{imageops::FilterType, ImageFormat};
+use image::{imageops::FilterType};
 use store::{DbError, AsyncDb};
-use handles::filesystem::{resize_image::resize_image, save_image::save_image};
+use handles::filesystem::{resize_image::resize_image};
 use types::{
        RadixDecimal, AppPath, ParseAddrError ,Fungible, Fungibles, Icon, MetaData, NFIDs, NonFungible, NonFungibles, ResourceAddress, EntityAccount, response_models::{NonFungibleResource, FungibleResource, Entity}
     };
 
 use bytes::Bytes;
-use debug_print::debug_println;
-use iced::futures::{future::{join, join_all}, task::LocalSpawnExt};
+
+use iced::futures::{future::{join, join_all}};
 use thiserror::Error;
 use tokio::task::JoinError;
 

@@ -85,7 +85,7 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Message>) {
-        let mut state;
+        let state;
 
         match Db::exits() {
             Ok(exists) => {

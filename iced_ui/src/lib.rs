@@ -10,8 +10,8 @@ use std::borrow::Cow;
 
 pub use app::App;
 use iced::{
-    window::{self, Icon},
-    Application, Font, Settings,
+    window::{self},
+    Application, Settings,
 };
 const WINDOW_ICON: &'static [u8] = include_bytes!("../../icons/ravault_window_icon.png");
 

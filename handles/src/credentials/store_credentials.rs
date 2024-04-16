@@ -1,7 +1,10 @@
-
 #[cfg(windows)]
-use windows::{ Win32::Security::Credentials::{self, CRED_TYPE_GENERIC, CRED_PERSIST_LOCAL_MACHINE, CredWriteW},core::PWSTR};
-
+use windows::{
+    core::PWSTR,
+    Win32::Security::Credentials::{
+        self, CredWriteW, CRED_PERSIST_LOCAL_MACHINE, CRED_TYPE_GENERIC,
+    },
+};
 
 ///Stores username and passwords exactly as passed in, remember to hash the password before passing it to the function
 /// credentials are stored with identifier "ravault-credentials"
@@ -11,7 +14,6 @@ pub fn store_credentials(username: String, mut password: String) {
     // let password = password.encode_utf16().collect::<Vec<u16>>();
     let mut target_name = "ravault-credentials".encode_utf16().collect::<Vec<u16>>();
     target_name.push(0);
-
 
     unsafe {
         let cred = Credentials::CREDENTIALW {

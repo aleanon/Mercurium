@@ -29,7 +29,7 @@ impl<'a> FungiblesMessage {
         }
     }
 
-    fn back(app: &'a mut App) -> Command<Message> {
+    fn back(_app: &'a mut App) -> Command<Message> {
         Command::none()
     }
 

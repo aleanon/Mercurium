@@ -4,16 +4,16 @@ pub mod choose_recipient_message;
 use iced::Command;
 
 use crate::{
-    app::{self, App},
+    app::{App},
     message::Message,
     view::app_view::{
         transaction_view::{
-            self, add_assets::AddAssets, choose_recipient::ChooseRecipient, Recipient, View,
+            add_assets::AddAssets, choose_recipient::ChooseRecipient, Recipient, View,
         },
         ActiveTab,
     },
 };
-use types::{Account, AccountAddress, Decimal, ResourceAddress};
+use types::{Account, AccountAddress, ResourceAddress};
 
 use self::{
     add_assets_message::AddAssetsMessage, choose_recipient_message::ChooseRecipientMessage,

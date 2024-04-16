@@ -5,12 +5,9 @@ use crate::{
     message::{app_view_message::AppViewMessage, Message},
     view::app_view::{
         transaction_view::{
-            choose_recipient::{self, ChooseRecipient},
-            Recipient, TransactionView, View,
+            TransactionView, View,
         },
-        ActiveTab,
     },
-    App,
 };
 
 use super::TransactionMessage;

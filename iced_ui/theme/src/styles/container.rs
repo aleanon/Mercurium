@@ -1,7 +1,11 @@
 use iced::{
     border::Radius,
+    color,
     gradient::{ColorStop, Linear},
-    widget::container,
+    widget::{
+        container,
+        shader::wgpu::{naga::back, util::backend_bits_from_env},
+    },
     Background, Border, Color, Gradient, Radians, Shadow, Theme, Vector,
 };
 
@@ -136,3 +140,30 @@ impl AssetListItem {
 //         container::Appearance { border: Border {} }
 //     }
 // }
+
+pub struct OverlayContainer;
+
+impl OverlayContainer {
+    pub fn style(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+        let mut background_color = palette.background.base.color;
+        background_color.a = 0.2;
+
+        container::Appearance {
+            background: Some(Background::Color(background_color)),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct OverlayInner;
+
+impl OverlayInner {
+    pub fn style(theme: &Theme) -> container::Appearance {
+        let mut appearance = CenterPanel::style(theme);
+        appearance.border.radius = Radius::from(10.);
+        appearance.border.width = 1.;
+        appearance.border.color = theme.extended_palette().primary.weak.color;
+        appearance
+    }
+}

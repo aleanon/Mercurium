@@ -82,7 +82,6 @@ impl Password {
 }
 
 impl From<&str> for Password {
-    ///Will drop
     fn from(value: &str) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
         match value.len() {

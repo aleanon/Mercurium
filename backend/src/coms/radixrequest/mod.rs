@@ -7,7 +7,7 @@ use serde_json::json;
 use urls::*;
 use flate2::bufread::GzDecoder;
 use reqwest::header::{CONTENT_TYPE, USER_AGENT, ACCEPT, ACCEPT_ENCODING, CONNECTION, HeaderMap};
-use serde::{Serialize, Deserialize};
+
 use thiserror::Error;
 
 

@@ -133,7 +133,7 @@ fn iced_resize_image(image: &DynamicImage, new_height: u32, new_width: u32) -> D
 mod test {
     use std::{io::Write, path::PathBuf};
 
-    use fr::Image;
+    
 
     use super::*;
 

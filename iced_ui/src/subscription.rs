@@ -28,7 +28,7 @@ impl BackendWorker {
               let action = backend.action_rx.select_next_some().await;
 
               match action {
-                  Action::LoadDatabase(key) => backend.action_load_db(&mut output).await,
+                  Action::LoadDatabase(_key) => backend.action_load_db(&mut output).await,
                   Action::UpdateAll => backend.action_update_all(&mut output).await,
                   _ => {
                       output.send(Update::None).await.unwrap();
