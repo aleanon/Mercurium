@@ -61,7 +61,7 @@ pub fn create_account_from_mnemonic(
         });
 
     let account = Account::new(
-        0,
+        id,
         account_name,
         network,
         path,

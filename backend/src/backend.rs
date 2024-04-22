@@ -10,7 +10,7 @@ use iced::{
 };
 
 use handles::filesystem::resize_image::resize_image;
-use types::{Action, AppPath, ResourceAddress, Update};
+use types::{AccountAddress, Action, AppPath, ResourceAddress, Update};
 
 use super::handle::Handle;
 
@@ -153,6 +153,18 @@ impl BackEnd {
                         )
                     });
             }
+        }
+    }
+
+    pub async fn action_update_account(
+        &mut self,
+        account_address: AccountAddress,
+        output: &mut Sender<Update>,
+    ) {
+        let updated_account = self.handle.update_account(account_address).await;
+
+        if let Ok(entity_account) = updated_account {
+            output.send(Update::Account(entity_account)).await.ok();
         }
     }
 

@@ -6,7 +6,7 @@ members = [
   "store",
   "types",
   "iced_ui",
-  "iced_ui/theme"
+  "iced_ui/theme",
 ]
 resolver = "2"
 
@@ -28,8 +28,14 @@ scrypto = { git = "https://github.com/radixdlt/radixdlt-scrypto.git", tag = "v1.
 radix-engine-toolkit = { git = "https://github.com/radixdlt/radix-engine-toolkit.git", tag = "v1.0.5" }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = { version = "1.0.111" }
-iced = { version = "0.12.1", features = ["image", "tokio", "wgpu", "svg"] }
-iced_aw ={ version = "0.8.0", features = ["icons"]}
+iced = { version = "0.12.1", features = [
+  "image",
+  "tokio",
+  "wgpu",
+  "svg",
+  "qr_code",
+] }
+iced_aw = { version = "0.8.0", features = ["icons"] }
 tokio-rusqlite = "0.5.0"
 reqwest = { version = "0.11.23", features = ["blocking", "json"] }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
@@ -44,6 +50,6 @@ slip10_ed25519 = "0.1.3"
 ed25519-dalek-fiat = "0.1.0"
 rand = "0.8.5"
 ring = "0.17.7"
-zeroize = {version = "1.7.0", features = ["zeroize_derive"]}
+zeroize = { version = "1.7.0", features = ["zeroize_derive"] }
 debug_print = "1.0.0"
-hot-lib-reloader = { version = "0.7.0"}
+hot-lib-reloader = { version = "0.7.0" }

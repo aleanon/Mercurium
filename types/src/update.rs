@@ -11,7 +11,7 @@ pub enum Update {
     Icons(HashMap<ResourceAddress, Handle>),
     DatabaseLoaded,
     Transaction,
-    Account,
+    Account(EntityAccount),
     Accounts(Vec<EntityAccount>),
     Error(String),
 }

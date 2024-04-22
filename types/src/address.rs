@@ -1,24 +1,22 @@
-pub mod resource_address;
 pub mod account_address;
-pub mod internal_vault_address;
 pub mod component_address;
+pub mod internal_vault_address;
+pub mod resource_address;
 
-use std::fmt::Display;
+use std::{array::TryFromSliceError, fmt::Display};
 use thiserror::Error;
 
-pub use resource_address::ResourceAddress;
 pub use account_address::AccountAddress;
-
+pub use resource_address::ResourceAddress;
 
 #[derive(Debug, Error)]
 pub enum ParseAddrError {
     #[error("Non ASCII character")]
     NonAsciiCharacter,
-    #[error("Invalid length, expected: {expected}, found: {found}")]
-    InvalidLength {
-        expected: usize,
-        found: usize,
-    }
+    #[error("{0}")]
+    InvalidLength(#[from] TryFromSliceError),
+    #[error("Invalid network prefix")]
+    InvalidPrefix,
 }
 
 pub enum Address {
@@ -33,11 +31,10 @@ impl Display for Address {
         match self {
             Address::AccountAddress(address) => write!(f, "{}", address.as_str()),
             Address::ResourceAddress(address) => write!(f, "{}", address.as_str()),
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }
-
 
 impl From<AccountAddress> for Address {
     fn from(value: AccountAddress) -> Self {

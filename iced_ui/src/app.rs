@@ -4,7 +4,8 @@ use debug_print::debug_println;
 use iced::widget::image::Handle;
 use iced::Subscription;
 use iced::{futures::channel::mpsc::Sender as MpscSender, Application, Command, Theme};
-use types::{Account, Action, AppError, AppPath, Fungible, NonFungible, ResourceAddress};
+use types::radix_request_client::{self, RadixDltRequestClient};
+use types::{Account, Action, AppError, AppPath, Fungible, Network, NonFungible, ResourceAddress};
 // use iced_futures::futures::channel::mpsc::Sender as MpscSender;
 // use iced_futures::futures::SinkExt;
 
@@ -20,11 +21,15 @@ use store::Db;
 #[derive(Debug)]
 pub struct AppSettings {
     pub theme: Theme,
+    pub network: Network,
 }
 
 impl AppSettings {
     pub fn new() -> Self {
-        Self { theme: Theme::Dark }
+        Self {
+            theme: Theme::Dark,
+            network: Network::Mainnet,
+        }
     }
 }
 
@@ -36,6 +41,7 @@ pub struct AppData {
     pub non_fungibles: BTreeSet<NonFungible>,
     pub resource_icons: HashMap<ResourceAddress, Handle>,
     pub icons: Icons,
+    pub radix_dlt_request_client: RadixDltRequestClient,
     pub settings: AppSettings,
     pub backend_sender: MpscSender<Action>,
     pub db: Db,
@@ -43,6 +49,8 @@ pub struct AppData {
 
 impl AppData {
     pub fn new(settings: Option<AppSettings>, app_path: AppPath) -> Self {
+        let radix_request_client = RadixDltRequestClient::new().unwrap();
+
         Self {
             app_path,
             accounts: BTreeSet::new(),
@@ -50,6 +58,7 @@ impl AppData {
             non_fungibles: BTreeSet::new(),
             resource_icons: HashMap::new(),
             icons: Icons::new(),
+            radix_dlt_request_client: radix_request_client,
             settings: settings.unwrap_or(AppSettings::new()),
             // Placeholder channel until the usable channel is returned from the subscription
             backend_sender: iced::futures::channel::mpsc::channel::<Action>(0).0,

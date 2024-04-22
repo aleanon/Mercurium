@@ -14,6 +14,7 @@ use iced::{
     Application, Settings,
 };
 const WINDOW_ICON: &'static [u8] = include_bytes!("../../icons/ravault_window_icon.png");
+const CREDENTIALS_STORE_NAME: &'static str = "ravault_secret";
 
 pub fn run() -> Result<(), iced::Error> {
     let icon = window::icon::from_file_data(
