@@ -7,7 +7,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
-
 [lib]
 #crate-type = ["dylib"]
 
@@ -17,20 +16,19 @@ reload = ["dep:hot-lib-reloader"]
 noupdate = []
 
 [dependencies]
-types = { path = "../types"}
-store = { path = "../store"}
-backend = { path = "../backend"}
-handles = { path = "../handles"}
-ravault_iced_theme ={ path = "./theme"}
+types = { path = "../types" }
+store = { path = "../store" }
+backend = { path = "../backend" }
+handles = { path = "../handles" }
+ravault_iced_theme = { path = "./theme" }
 iced = { workspace = true }
-iced_aw = { workspace = true, features = ["icons"]}
-zeroize = {workspace = true}
+iced_aw = { workspace = true, features = ["icons"] }
+zeroize = { workspace = true }
 thiserror = { workspace = true }
-tiny-bip39 = {workspace = true}
+tiny-bip39 = { workspace = true }
+reqwest = { workspace = true }
 
 debug_print.workspace = true
-hot-lib-reloader = {workspace = true, optional = true}
+hot-lib-reloader = { workspace = true, optional = true }
 
 [dev-dependencies]
-
-

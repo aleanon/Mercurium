@@ -7,21 +7,25 @@ use std::{
     sync::Arc,
 };
 
-use image::{imageops::FilterType};
-use store::{DbError, AsyncDb};
-use handles::filesystem::{resize_image::resize_image};
+use handles::filesystem::resize_image::resize_image;
+use image::imageops::FilterType;
+use store::{AsyncDb, DbError};
 use types::{
-       RadixDecimal, AppPath, ParseAddrError ,Fungible, Fungibles, Icon, MetaData, NFIDs, NonFungible, NonFungibles, ResourceAddress, EntityAccount, response_models::{NonFungibleResource, FungibleResource, Entity}
-    };
+    response_models::{Entity, FungibleResource, NonFungibleResource},
+    AccountAddress, AppPath, EntityAccount, Fungible, Fungibles, Icon, MetaData, NFIDs,
+    NonFungible, NonFungibles, ParseAddrError, RadixDecimal, ResourceAddress,
+};
 
 use bytes::Bytes;
 
-use iced::futures::{future::{join, join_all}};
+use iced::futures::{
+    future::{join, join_all},
+    FutureExt, TryFutureExt,
+};
 use thiserror::Error;
 use tokio::task::JoinError;
 
 use crate::coms::{radixrequest::RadixDltRequestError, Coms, ComsError};
-
 
 #[derive(Debug, Error)]
 pub enum HandleError {
@@ -60,6 +64,31 @@ impl Handle {
         Ok(Self { coms, db: None })
     }
 
+    pub async fn update_account(
+        &self,
+        account_address: AccountAddress,
+    ) -> Result<EntityAccount, HandleError> {
+        let account = self
+            .db
+            .as_ref()
+            .ok_or(HandleError::NoDatabase)?
+            .get_entity_account(&account_address)
+            .await
+            .map_err(|err| HandleError::EntityNotFound(err.to_string()))?;
+
+        let coms = self.coms.clone();
+        let mut entity_details_response = self
+            .coms
+            .radixdlt_request_builder
+            .get_entity_details(&[account.address.as_str()])
+            .await?;
+        if entity_details_response.items.len() == 1 {
+            Self::update_account_data(coms, entity_details_response.items.remove(0), account).await
+        } else {
+            Err(HandleError::NoDetailsFound)
+        }
+    }
+
     pub async fn update_accounts(&self) -> Result<Vec<EntityAccount>, HandleError> {
         let mut accounts = self
             .db
@@ -84,7 +113,6 @@ impl Handle {
 
         // Create a task for each account that will get the details of each asset in the account
         let tasks = accounts_response.into_iter().map(|entity_account| {
-            
             let coms = self.coms.clone();
             let account = accounts
                 .iter()
@@ -98,9 +126,7 @@ impl Handle {
 
             tokio::spawn(async move {
                 match account {
-                    Some(account) => {
-                        Self::update_account_data(coms, entity_account, account).await
-                    }
+                    Some(account) => Self::update_account_data(coms, entity_account, account).await,
                     None => Err(HandleError::EntityNotFound(entity_account.address)),
                 }
             })
@@ -391,7 +417,6 @@ impl Handle {
         let with_guessed_format = reader.with_guessed_format().ok()?;
         let format = with_guessed_format.format()?;
         let image = with_guessed_format.decode().ok()?;
-        
 
         if let Some(path) = icon_path {
             path.set_extension(handles::filesystem::image_extension::get_extension(&format));
@@ -399,13 +424,13 @@ impl Handle {
         }
 
         let resized = image.resize(50, 50, FilterType::Lanczos3);
-        let mut write_buffer = BufWriter::new(Cursor::new(Vec::new()));        
+        let mut write_buffer = BufWriter::new(Cursor::new(Vec::new()));
         resized.write_to(&mut write_buffer, format).ok()?;
 
         let inner = write_buffer.into_inner().ok()?.into_inner();
         let icon = Icon::new(Bytes::from(inner));
 
-        Some(icon)         
+        Some(icon)
 
         // if let Some(response) = response {
         //     let bytes = response.bytes().await.ok();
@@ -470,8 +495,8 @@ impl Handle {
 mod test {
     use super::*;
     use crate::backend::BackEnd;
-    use types::{Account, AccountAddress, Network};
     use scrypto::crypto::Ed25519PublicKey;
+    use types::{Account, AccountAddress, Network};
 
     #[tokio::test]
     async fn test_get_account_data() {

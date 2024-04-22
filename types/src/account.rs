@@ -1,4 +1,3 @@
-
 use scrypto::prelude::radix_engine_common::crypto::Ed25519PublicKey;
 
 use super::{entity_account::Settings, AccountAddress, Network};
@@ -58,7 +57,6 @@ impl Account {
                 .expect("Can not create public key from slice, module Account"),
             hidden: false,
             settings: Settings::default(),
-            
         }
     }
 
@@ -74,6 +72,10 @@ impl Account {
         }
 
         path
+    }
+
+    pub fn derivation_index(&self) -> u32 {
+        self.derivation_path()[5]
     }
 }
 
@@ -101,7 +103,6 @@ impl Ord for Account {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use scrypto::crypto::Ed25519PublicKey;
@@ -114,11 +115,18 @@ mod test {
 
     #[test]
     fn test_derivation_path() {
-        let derivation_path:[u32;6] = [3244,1022,1,525,1460,1];
+        let derivation_path: [u32; 6] = [3244, 1022, 1, 525, 1460, 1];
 
-        let public_key = Ed25519PublicKey([0;Ed25519PublicKey::LENGTH]);
+        let public_key = Ed25519PublicKey([0; Ed25519PublicKey::LENGTH]);
 
-        let account = Account::new(0, "test".to_owned(), super::Network::Mainnet, derivation_path.clone(), AccountAddress::empty(), public_key);
+        let account = Account::new(
+            0,
+            "test".to_owned(),
+            super::Network::Mainnet,
+            derivation_path.clone(),
+            AccountAddress::empty(),
+            public_key,
+        );
 
         let reconstructed_derivation_path = account.derivation_path();
 
@@ -128,11 +136,25 @@ mod test {
     #[test]
     fn test_derivation_path_random() {
         for _ in 0..1000 {
-            let derivation_path:[u32;6] = [rand::random(),rand::random(),rand::random(),rand::random(),rand::random(),rand::random()];
+            let derivation_path: [u32; 6] = [
+                rand::random(),
+                rand::random(),
+                rand::random(),
+                rand::random(),
+                rand::random(),
+                rand::random(),
+            ];
 
-            let public_key = Ed25519PublicKey([0;Ed25519PublicKey::LENGTH]);
+            let public_key = Ed25519PublicKey([0; Ed25519PublicKey::LENGTH]);
 
-            let account = Account::new(0, "test".to_owned(), super::Network::Mainnet, derivation_path.clone(), AccountAddress::empty(), public_key); 
+            let account = Account::new(
+                0,
+                "test".to_owned(),
+                super::Network::Mainnet,
+                derivation_path.clone(),
+                AccountAddress::empty(),
+                public_key,
+            );
 
             let reconstructed_derivation_path = account.derivation_path();
 

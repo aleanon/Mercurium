@@ -18,6 +18,7 @@ pub enum View {
 
 #[derive(Debug, Clone)]
 pub struct AddAccountView {
+    pub notification: String,
     pub account_name: String,
     pub password: Password,
     pub view: View,
@@ -26,6 +27,7 @@ pub struct AddAccountView {
 impl AddAccountView {
     pub fn new() -> Self {
         Self {
+            notification: String::new(),
             account_name: String::new(),
             password: Password::new(),
             view: View::InputAccountName,
@@ -39,8 +41,11 @@ impl<'a> AddAccountView {
             View::InputAccountName => self.input_account_name(app),
             View::InputPassword => self.input_password(app),
         };
+        let notification = text(&self.notification);
 
-        widget::container(content)
+        let column = column![notification, content];
+
+        widget::container(column)
             .width(400)
             .height(400)
             .padding(10)
@@ -79,7 +84,7 @@ impl<'a> AddAccountView {
             column![label, password_input].spacing(2)
         };
 
-        let submit_button = button("Submit").on_press(AddAccountMessage::Next.into());
+        let submit_button = button("Submit").on_press(AddAccountMessage::Submit.into());
 
         column![password_input, submit_button].spacing(20).into()
     }

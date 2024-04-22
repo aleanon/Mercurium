@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use thiserror::Error;
 use types::crypto::{Password, Salt};
+use windows::core::HSTRING;
+use windows::Win32::Foundation::E_POINTER;
 use zeroize::Zeroize;
 
 const ITERATIONS: u32 = 1000000;
@@ -182,6 +184,8 @@ impl EncryptedMnemonic {
     //Stores the mnemonic using the windows credentials manager
     pub fn save_to_store(self, target_name: &str) -> Result<(), EncryptedMnemonicError> {
         let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
+        target_name.push(0);
+
         let mut blob = serde_json::to_vec(&self)
             .map_err(|_| EncryptedMnemonicError::FailedToParseEncryptedMnemonic)?;
 
@@ -208,44 +212,46 @@ impl EncryptedMnemonic {
     ///Retrieves the EncryptedMnemonic from the Windows Credential Store.
     pub fn from_store(target_name: &str) -> Result<Self, EncryptedMnemonicError> {
         let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
-        let cred_ptr = std::ptr::null_mut();
+        target_name.push(0);
+        let mut cred_ptr: *mut CREDENTIALW = std::ptr::null_mut();
 
         let result: Result<Self, EncryptedMnemonicError>;
 
         unsafe {
             match CredReadW(
-                PCWSTR(target_name.as_mut_ptr()),
+                PCWSTR(target_name.as_ptr()),
                 CRED_TYPE_GENERIC,
                 0,
-                cred_ptr,
+                &mut cred_ptr,
             ) {
-                Ok(_) => match cred_ptr.is_null() {
-                    false => {
-                        let cred = &**cred_ptr;
+                Ok(_) => {
+                    if !cred_ptr.is_null() {
+                        let cred = &*cred_ptr;
                         let serialized = std::slice::from_raw_parts(
                             cred.CredentialBlob,
-                            cred.CredentialBlobSize as usize,
+                            cred.CredentialBlobSize as usize / 2,
                         );
                         let encryptedmnemonic = serde_json::from_slice::<EncryptedMnemonic>(
                             serialized,
                         )
                         .map_err(|_| EncryptedMnemonicError::FailedToParseEncryptedMnemonic)?;
-                        result = Ok(encryptedmnemonic)
-                    }
-                    true => {
+
+                        result = Ok(encryptedmnemonic);
+                        CredFree(cred_ptr as *mut _)
+                    } else {
                         result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
-                            Box::new(windows::core::Error::OK),
+                            Box::new(windows::core::Error::new(
+                                E_POINTER,
+                                HSTRING::from("Null pointer received for credentials."),
+                            )),
                         ))
                     }
-                },
+                }
                 Err(err) => {
                     result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
                         Box::new(err),
                     ))
                 }
-            }
-            if !cred_ptr.is_null() {
-                CredFree(cred_ptr as *mut _)
             }
         }
 
@@ -256,6 +262,7 @@ impl EncryptedMnemonic {
 
     pub fn delete_from_store(target_name: &str) -> Result<(), EncryptedMnemonicError> {
         let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
+        target_name.push(0);
 
         let result: Result<(), EncryptedMnemonicError>;
         unsafe {

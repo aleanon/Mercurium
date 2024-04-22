@@ -10,7 +10,7 @@ pub enum PasswordError {
 }
 
 ///A secure wrapper around a ``String`` that implements ``ZeroizeOnDrop`` to make sure the password is cleaned from memory before it is dropped.
-///It allocates with the max password size once, to make sure the ``zeroize`` method works, as ``Zeroize`` can't guarantee data is properly removed
+///It allocates with the max password size once, to make sure the ``zeroize`` method works. ``Zeroize`` can not guarantee data is properly removed
 ///if the memory has been reallocated.
 #[derive(Debug, Clone, ZeroizeOnDrop, PartialEq)]
 pub struct Password(String);
@@ -24,7 +24,7 @@ impl Password {
 
     pub fn push(&mut self, c: char) {
         if self.0.len() < Self::MAX_LEN {
-            self.push(c)
+            self.0.push(c)
         }
         //Else do nothing
     }
@@ -34,19 +34,14 @@ impl Password {
     }
 
     pub fn push_str(&mut self, s: &str) {
-        match self.0.len() {
-            len if len < Self::MAX_LEN => {
-                let max_len = Self::MAX_LEN - len;
-                match s.len() {
-                    s_len if s_len <= max_len => {
-                        self.0.push_str(s);
-                    }
-                    _ => {
-                        self.0.push_str(s[..max_len].trim());
-                    }
-                }
+        let len = self.0.len();
+        if len < Self::MAX_LEN {
+            let max_len = Self::MAX_LEN - len;
+            if s.len() <= max_len {
+                self.0.push_str(s);
+            } else {
+                self.0.push_str(&s[..max_len]);
             }
-            _ => { /*Do nothing*/ }
         }
     }
 
@@ -85,17 +80,9 @@ impl From<&str> for Password {
     fn from(value: &str) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
         match value.len() {
-            len if len > 1 && len <= Self::MAX_LEN => string.push_str(
-                value
-                    .get(0..len)
-                    .expect("Failed to copy password, invalid index"),
-            ),
+            len if len > 0 && len <= Self::MAX_LEN => string.push_str(&value[0..len]),
             0 => {}
-            _ => string.push_str(
-                value
-                    .get(0..Self::MAX_LEN)
-                    .expect("Failed to copy password, invalid index"),
-            ),
+            _ => string.push_str(&value[0..Self::MAX_LEN]),
         };
 
         Self(string)
@@ -106,21 +93,14 @@ impl From<String> for Password {
     fn from(mut value: String) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
         match value.len() {
-            0 => {}
-            len if len > 1 && len <= Self::MAX_LEN => {
-                string.push_str(
-                    value
-                        .get(0..len)
-                        .expect("Failed to copy password, invalid index"),
-                );
+            len if len > 0 && len <= Self::MAX_LEN => {
+                string.push_str(&value[0..len]);
                 value.zeroize()
             }
+            0 => {}
             _ => {
-                string.push_str(
-                    value
-                        .get(0..Self::MAX_LEN)
-                        .expect("Failed to copy password, invalid index"),
-                );
+                string.push_str(&value[0..Self::MAX_LEN]);
+                value.zeroize()
             }
         }
         Self(string)
@@ -138,6 +118,10 @@ mod tests {
         assert_eq!(password, Password(phrase.to_string()));
 
         let phrase = "";
+        let password = Password::from(phrase);
+        assert_eq!(password, Password(phrase.to_string()));
+
+        let phrase = "p";
         let password = Password::from(phrase);
         assert_eq!(password, Password(phrase.to_string()));
 
@@ -168,6 +152,10 @@ mod tests {
         let mut password = Password::new();
         password.push_str("");
         assert_eq!(password, Password("".to_string()));
+
+        let mut password = Password::new();
+        password.push_str("1");
+        assert_eq!(password, Password("1".to_string()));
 
         let phrase = "password99";
         let mut password = Password(phrase.to_string());

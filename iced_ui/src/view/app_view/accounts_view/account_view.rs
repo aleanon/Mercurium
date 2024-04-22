@@ -5,6 +5,8 @@ use crate::message::app_view_message::accounts_message::account_message::Account
 use crate::message::app_view_message::AppViewMessage;
 use crate::message::common_message::CommonMessage;
 use crate::message::Message;
+use crate::view::app_view::overlay::receive::Receive;
+use crate::view::app_view::overlay::Overlay;
 use iced::theme;
 use iced::{
     alignment,
@@ -12,7 +14,8 @@ use iced::{
         self, column, container, row,
         scrollable::{self, Properties},
         text, Button,
-    }, Element, Length, Padding,
+    },
+    Element, Length, Padding,
 };
 
 use ravault_iced_theme::styles;
@@ -113,7 +116,10 @@ impl<'a> AccountView {
         let transfer_button =
             Self::nav_button("Send").on_press(AppViewMessage::NewTransaction(Some(account)).into());
 
-        let receive_button = Self::nav_button("Receive");
+        let receive_button = Self::nav_button("Receive").on_press(
+            AppViewMessage::SpawnOverlay(Overlay::Receive(Receive::new(self.address.clone())))
+                .into(),
+        );
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
 
         let nav_button_row = row![history_button, transfer_button, receive_button]

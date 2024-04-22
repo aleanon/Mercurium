@@ -9,6 +9,7 @@ use crate::{
     app::AppData,
     message::{common_message::CommonMessage, Message},
     view::setup::{new_wallet::NewWalletStage, Setup},
+    CREDENTIALS_STORE_NAME,
 };
 use store::Db;
 use types::{crypto::Password, Action, Network};
@@ -293,7 +294,7 @@ impl<'a> WalletMessage {
         let save_mnemonic = Command::perform(
             async move {
                 EncryptedMnemonic::new(&mnemonic, &password).and_then(|encrypted_mnemonic| {
-                    encrypted_mnemonic.save_to_store("ravault_secret")
+                    encrypted_mnemonic.save_to_store(CREDENTIALS_STORE_NAME)
                 })
             },
             |result| match result {

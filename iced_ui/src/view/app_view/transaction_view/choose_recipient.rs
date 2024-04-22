@@ -1,9 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use iced::{
+    theme,
     widget::{self, button, column, container, row, text},
-    Element, Length,
+    Element, Length, Padding,
 };
+use ravault_iced_theme::styles;
 use types::{Account, AccountAddress};
 
 use crate::{
@@ -108,26 +110,31 @@ impl<'a> ChooseRecipient {
             .width(Length::Fill)
             .height(Length::Shrink);
 
-        let buttons = widget::scrollable(buttons)
-            .width(Length::Fill)
-            .height(Length::Shrink);
-        let space3 = widget::Space::new(Length::Fill, 10);
+        let buttons = widget::scrollable(buttons.padding(Padding {
+            right: 15.,
+            ..Padding::ZERO
+        }))
+        .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
+        .width(Length::Fill)
+        .height(Length::Shrink);
 
-        let submit = button("Submit")
-            .width(Length::Fill)
-            .height(Length::Shrink)
-            .on_press_maybe({
-                self.chosen_account
-                    .as_ref()
-                    .and_then(|_| Some(ChooseRecipientMessage::Submit.into()))
-            });
+        let col = column![header, space, text_input, space2, buttons].width(500);
 
-        let col = column![header, space, text_input, space2, buttons, space3, submit].width(500);
-
-        container(col)
+        let main_content = container(col)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
+            .center_x();
+
+        let submit = button("Submit").on_press_maybe({
+            self.chosen_account
+                .as_ref()
+                .and_then(|_| Some(ChooseRecipientMessage::Submit.into()))
+        });
+        let submit = container(submit).width(Length::Fill).padding(10).center_x();
+
+        column!(main_content, submit)
+            .height(Length::Fill)
+            .width(Length::Fill)
             .into()
     }
 }

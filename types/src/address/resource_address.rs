@@ -59,12 +59,7 @@ impl TryFrom<&[u8]> for ResourceAddress {
             return Err(ParseAddrError::NonAsciiCharacter);
         }
 
-        Ok(Self(value.try_into().map_err(|_| {
-            ParseAddrError::InvalidLength {
-                expected: RESOURCE_ADDRESS_LEN,
-                found: value.len(),
-            }
-        })?))
+        Ok(Self(value.try_into()?))
     }
 }
 
@@ -84,12 +79,7 @@ impl FromStr for ResourceAddress {
             return Err(ParseAddrError::NonAsciiCharacter);
         }
 
-        Ok(Self(s.as_bytes().try_into().map_err(|_| {
-            ParseAddrError::InvalidLength {
-                expected: RESOURCE_ADDRESS_LEN,
-                found: s.len(),
-            }
-        })?))
+        Ok(Self(s.as_bytes().try_into()?))
     }
 }
 
@@ -116,12 +106,7 @@ impl<'de> Deserialize<'de> for ResourceAddress {
         use serde::de::Error;
         let slice: &[u8] = Deserialize::deserialize(deserializer)?;
 
-        Ok(Self(slice.try_into().map_err(|_| {
-            Error::custom(ParseAddrError::InvalidLength {
-                expected: RESOURCE_ADDRESS_LEN,
-                found: slice.len(),
-            })
-        })?))
+        Ok(Self(slice.try_into().map_err(|err| Error::custom(err))?))
     }
 }
 
