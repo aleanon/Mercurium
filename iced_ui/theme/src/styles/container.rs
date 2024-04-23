@@ -167,3 +167,29 @@ impl OverlayInner {
         appearance
     }
 }
+
+pub struct NotificationSuccess;
+
+impl NotificationSuccess {
+    pub fn style(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+        container::Appearance {
+            background: Some(Background::Color(palette.success.weak.color)),
+            text_color: Some(palette.success.weak.text),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct NotificationError;
+
+impl NotificationError {
+    pub fn style(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+        container::Appearance {
+            background: Some(Background::Color(palette.danger.weak.color)),
+            text_color: Some(palette.danger.weak.text),
+            ..Default::default()
+        }
+    }
+}
