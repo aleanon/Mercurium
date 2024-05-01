@@ -29,6 +29,7 @@ pub mod create {
             id BLOB NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             amount TEXT NOT NULL,
+            last_updated INTEGER NOT NULL,
             account_address BLOB NOT NULL,
             FOREIGN KEY(resource_address) REFERENCES resources(address),
             FOREIGN KEY(account_address) REFERENCES accounts(address)
@@ -40,6 +41,7 @@ pub mod create {
             asset_id BLOB NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             nfids BLOB NOT NULL,
+            last_updated INTEGER NOT NULL,
             account_address BLOB NOT NULL,
             FOREIGN KEY(resource_address) REFERENCES resources(address),
             FOREIGN KEY(account_address) REFERENCES accounts(address)
@@ -57,8 +59,8 @@ pub mod create {
     ";
 }
 
-pub mod update {
-    pub const UPDATE_ACCOUNT: &'static str = "INSERT INTO 
+pub mod upsert {
+    pub const UPSERT_ACCOUNT: &'static str = "INSERT INTO 
         accounts (
             address,
             id,
@@ -81,7 +83,7 @@ pub mod update {
             settings = excluded.settings
         ";
 
-    pub const UPDATE_RESOURCE: &'static str = "INSERT INTO
+    pub const UPSERT_RESOURCE: &'static str = "INSERT INTO
         resources (
             address,
             name,
@@ -103,11 +105,12 @@ pub mod update {
             settings = excluded.settings
     ";
 
-    pub const UPDATE_FUNGIBLE_ASSET: &'static str = "INSERT INTO
+    pub const UPSERT_FUNGIBLE_ASSET: &'static str = "INSERT INTO
         fungible_assets (
             id,
             resource_address,
             amount,
+            last_updated,
             account_address
         )
         VALUES (1?, 2?, 3?, 4?)
@@ -116,11 +119,12 @@ pub mod update {
             amount = excluded.amount
     ";
 
-    pub const UPDATE_NON_FUNGIBLE_ASSET: &'static str = "INSERT INTO
+    pub const UPSERT_NON_FUNGIBLE_ASSET: &'static str = "INSERT INTO
         non_fungible_assets (
             id,
             resource_address,
             nfids,
+            last_updated,
             account_address
         )
         VALUES (1?, 2?, 3?, 4?)
@@ -129,7 +133,7 @@ pub mod update {
             nfids = excluded.nfids
     ";
 
-    pub const UPDATE_TRANSACTION: &'static str = "INSERT INTO
+    pub const UPSERT_TRANSACTION: &'static str = "INSERT INTO
         transactions (
             id,
             timestamp,

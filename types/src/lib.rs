@@ -3,6 +3,7 @@ pub mod action;
 pub mod address;
 pub mod app_error;
 pub mod app_path;
+pub mod assets;
 pub mod crypto;
 pub mod decimal;
 pub mod entity_account;

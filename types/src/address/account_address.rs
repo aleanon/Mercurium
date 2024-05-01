@@ -27,9 +27,11 @@ const ACC_TRUNCATE_LEN: usize = 13;
 // }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AccountAddress([u8; ACC_ADDR_LENGTH]);
+pub struct AccountAddress([u8; Self::LENGTH]);
 
 impl AccountAddress {
+    pub const LENGTH: usize = 66;
+    pub const CHECKSUM_LEN: usize = 6;
     const TRUNCATED_LEN: usize = 13;
     const TRUNCATED_LONG_LEN: usize = 21;
     const PREFIX: &'static str = "account_";
@@ -87,6 +89,16 @@ impl AccountAddress {
             );
             std::str::from_utf8_unchecked(slice)
         }
+    }
+
+    pub fn checksum(&self) -> [u8; 6] {
+        self.0[ACC_ADDR_LENGTH - 6..]
+            .try_into()
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    pub fn checksum_str(&self) -> &str {
+        unsafe { std::str::from_utf8_unchecked(&self.0[ACC_ADDR_LENGTH - 6..]) }
     }
 
     // Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters
@@ -189,4 +201,7 @@ mod tests {
         let truncated_long = addr.truncate_long_str();
         assert!(truncated_long == "account_rdx1...t2a5ax");
     }
+
+    #[test]
+    fn test_truncate_long_str() {}
 }

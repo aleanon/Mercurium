@@ -1,7 +1,9 @@
-use std::{collections::BTreeSet, ops::{Deref, DerefMut}};
+use std::{
+    collections::BTreeSet,
+    ops::{Deref, DerefMut},
+};
 
 use super::{Decimal, Icon, MetaData, ResourceAddress};
-
 
 #[derive(Debug, Clone)]
 pub struct Fungibles(pub BTreeSet<Fungible>);
@@ -13,14 +15,11 @@ impl Fungibles {
     pub fn with_fungibles(fungibles: BTreeSet<Fungible>) -> Self {
         Self(fungibles)
     }
-
-
 }
-
 
 // impl From<Vec<Fungible>> for Fungibles {
 //     fn from(value: Vec<Fungible>) -> Self {
-//         let map = value.into_iter().map(|fungible| 
+//         let map = value.into_iter().map(|fungible|
 //             (fungible.address.clone(), fungible)
 //         )
 //         .collect::<HashMap<ResourceAddress, Fungible>>();
@@ -43,9 +42,7 @@ impl From<BTreeSet<Fungible>> for Fungibles {
 
 impl FromIterator<Fungible> for Fungibles {
     fn from_iter<T: IntoIterator<Item = Fungible>>(iter: T) -> Self {
-        Self(
-            iter.into_iter().collect::<BTreeSet<Fungible>>()
-        )
+        Self(iter.into_iter().collect::<BTreeSet<Fungible>>())
     }
 }
 
@@ -78,15 +75,13 @@ impl DerefMut for Fungibles {
     }
 }
 
-
 // impl Iterator for Fungibles {
 //     type Item = Fungible;
 //     fn next(&mut self) -> Option<Self::Item> {
 //         self.next()
 //     }
-    
-// }
 
+// }
 
 #[derive(Debug, Clone)]
 pub struct Fungible {
@@ -97,7 +92,7 @@ pub struct Fungible {
     pub amount: Decimal,
     pub description: Option<String>,
     pub last_updated_at_state_version: i64,
-    pub current_supply: String,
+    pub total_supply: String,
     pub metadata: MetaData,
 }
 
@@ -110,8 +105,7 @@ impl PartialEq for Fungible {
     }
 }
 
-impl Eq for Fungible{}
-
+impl Eq for Fungible {}
 
 impl PartialOrd for Fungible {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -119,19 +113,21 @@ impl PartialOrd for Fungible {
     }
 }
 
-
 impl Ord for Fungible {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if self.address.as_str() == "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd" {
-            return std::cmp::Ordering::Less
-        } else if other.address.as_str() == "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd" {
-            return std::cmp::Ordering::Greater
+        if self.address.as_str()
+            == "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd"
+        {
+            return std::cmp::Ordering::Less;
+        } else if other.address.as_str()
+            == "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd"
+        {
+            return std::cmp::Ordering::Greater;
         }
 
         self.symbol.cmp(&other.symbol)
     }
 }
-
 
 // impl From<FungibleResource> for Fungible {
 //     fn from(value: FungibleResource) -> Self {

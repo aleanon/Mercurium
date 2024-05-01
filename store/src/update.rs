@@ -1,17 +1,18 @@
-use super::{Db, statements::update};
-use types::{
-    Account, AccountAddress, EntityAccount, Fungibles, NonFungibles,
-};
+use crate::statements;
+
+use super::{statements::upsert, Db};
 use anyhow::Result;
 use rusqlite::params;
+use types::{
+    assets::FungibleAsset, Account, AccountAddress, EntityAccount, Fungibles, NonFungibles,
+};
 
 use super::AsyncDb;
-
 
 impl Db {
     pub fn update_account(&mut self, account: &Account) -> Result<(), rusqlite::Error> {
         self.connection
-            .prepare_cached(update::UPDATE_ACCOUNT)?
+            .prepare_cached(upsert::UPSERT_ACCOUNT)?
             .execute(params![
                 account.address,
                 account.id as i64,
@@ -91,7 +92,7 @@ impl Db {
                     fungible.symbol,
                     fungible.icon,
                     fungible.amount,
-                    fungible.current_supply,
+                    fungible.total_supply,
                     fungible.description,
                     fungible.last_updated_at_state_version,
                     fungible.metadata,
@@ -158,23 +159,48 @@ impl Db {
         tx.commit()?;
         Ok(())
     }
+
+    fn upsert_fungible_assets(
+        &mut self,
+        account_address: &AccountAddress,
+        fungibles: &[FungibleAsset],
+    ) -> Result<(), rusqlite::Error> {
+        let tx = self.connection.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(upsert::UPSERT_FUNGIBLE_ASSET)?;
+
+            for fungible_asset in fungibles {
+                stmt.execute(params![
+                    fungible_asset.id,
+                    fungible_asset.resource_address,
+                    fungible_asset.amount,
+                    fungible_asset.last_updated,
+                    account_address,
+                ])?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
 }
 
 impl AsyncDb {
     pub async fn update_account(&mut self, account: Account) -> Result<(), rusqlite::Error> {
         self.connection
             .call_unwrap(move |conn| {
-                conn.prepare_cached(update::UPDATE_ACCOUNT)?
-                .execute(params![
-                    account.address,
-                    account.id as i64,
-                    account.name,
-                    account.network,
-                    account.derivation_path,
-                    account.public_key.0,
-                    account.hidden,
-                    account.settings,
-                ])?;
+                conn.prepare_cached(upsert::UPSERT_ACCOUNT)?
+                    .execute(params![
+                        account.address,
+                        account.id as i64,
+                        account.name,
+                        account.network,
+                        account.derivation_path,
+                        account.public_key.0,
+                        account.hidden,
+                        account.settings,
+                    ])?;
                 Ok::<(), rusqlite::Error>(())
             })
             .await?;
@@ -257,7 +283,7 @@ impl AsyncDb {
                             fungible.symbol,
                             fungible.icon,
                             fungible.amount,
-                            fungible.current_supply,
+                            fungible.total_supply,
                             fungible.description,
                             fungible.last_updated_at_state_version,
                             fungible.metadata,

@@ -98,7 +98,7 @@ impl<'a> FungibleView {
         let current_supply = row![
             text("Current Supply:").size(12),
             space,
-            text(&self.current_supply).size(12),
+            text(&self.total_supply).size(12),
         ];
 
         let rule = widget::Rule::horizontal(2);
