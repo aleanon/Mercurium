@@ -8,11 +8,68 @@ use std::sync::Arc;
 use bytes::Bytes;
 use image::imageops::FilterType;
 use types::non_fungibles::NonFungible;
-use types::response_models::{Entity, NonFungibleResource};
-use types::{AppPath, Icon, MetaData, NFIDs, ResourceAddress};
+use types::response_models::{Entity, FungibleResource, NonFungibleResource};
+use types::{AppPath, Fungible, Icon, MetaData, NFIDs, RadixDecimal, ResourceAddress};
 
 use crate::filesystem::resize_image::resize_image;
 
+async fn parse_fungible_response(
+    fungible_resources: Arc<HashMap<String, FungibleResource>>,
+    fungible: Entity,
+) -> Option<Fungible> {
+    let (last_updated, amount) = match fungible_resources.get(&*fungible.address) {
+        Some(fungible_resource) => {
+            let mut amount = RadixDecimal::ZERO;
+            let mut last_updated = 0;
+            for vault in &fungible_resource.vaults.items {
+                amount +=
+                    RadixDecimal::from_str(&vault.amount).unwrap_or_else(|_| RadixDecimal::ZERO);
+                if last_updated < vault.last_updated_at_state_version {
+                    last_updated = vault.last_updated_at_state_version
+                }
+            }
+            (last_updated, amount.into())
+        }
+        None => (0, RadixDecimal::ZERO.into()),
+    };
+
+    let address = ResourceAddress::from_str(&fungible.address).ok()?;
+
+    let mut name = None;
+    let mut symbol = None;
+    let mut description = None;
+    let mut icon_url = None;
+    let mut metadata = MetaData::new();
+    let total_supply = fungible.details.total_supply.unwrap_or(String::new());
+
+    for item in fungible.metadata.items {
+        match &*item.key {
+            "name" => name = item.value.typed.value,
+            "symbol" => symbol = item.value.typed.value,
+            "description" => description = item.value.typed.value,
+            "icon_url" => icon_url = item.value.typed.value.filter(|value| value.len() != 0),
+            _ => metadata.push(item.into()),
+        }
+    }
+
+    let icon = get_icon(icon_url, &address).await;
+
+    let fungible = Fungible {
+        address,
+        amount,
+        total_supply,
+        description,
+        name: name.unwrap_or(String::new()),
+        symbol: symbol.unwrap_or(String::new()),
+        icon,
+        last_updated_at_state_version: last_updated as i64,
+        metadata,
+    };
+    Some(fungible)
+}
+
+/// Takes a map where the address is the key of the map, the `NonFungibleResource` is the response
+/// model from for a NonFungible after a gateway request
 async fn parse_non_fungible_response(
     non_fungible_resources: Arc<HashMap<String, NonFungibleResource>>,
     non_fungible: Entity,
@@ -38,7 +95,7 @@ async fn parse_non_fungible_response(
     let mut description = None;
     let mut icon_url = None;
     let mut metadata = MetaData::new();
-    let _current_supply = "non_fungible.details.total_supply".to_owned();
+    let _current_supply = non_fungible.details.total_supply.unwrap_or(String::new());
 
     for item in non_fungible.metadata.items {
         match &*item.key {
@@ -55,8 +112,8 @@ async fn parse_non_fungible_response(
     let non_fungible = NonFungible {
         address,
         description,
-        name: name.unwrap_or(String::with_capacity(0)),
-        symbol: symbol.unwrap_or(String::with_capacity(0)),
+        name: name.unwrap_or(String::new()),
+        symbol: symbol.unwrap_or(String::new()),
         icon,
         nfids,
         last_updated_at_state_version: last_updated as i64,

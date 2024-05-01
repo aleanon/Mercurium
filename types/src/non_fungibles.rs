@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, ops::{Deref, DerefMut}};
+use std::{
+    collections::BTreeSet,
+    ops::{Deref, DerefMut},
+};
 
 use crate::response_models::entity_details::NFTVaults;
 
 use super::{Icon, MetaData, ResourceAddress};
-
 
 #[derive(Debug, Clone)]
 pub struct NonFungibles(pub BTreeSet<NonFungible>);
@@ -82,10 +84,7 @@ impl PartialEq for NonFungible {
 impl Eq for NonFungible {}
 
 impl PartialOrd for NonFungible {
-    fn partial_cmp(
-        &self,
-        other: &Self,
-    ) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -122,7 +121,7 @@ impl From<NFTVaults> for NFIDs {
                         id,
                         description: None,
                         icon: None,
-                        nfdata: None,
+                        nfdata: Vec::new(),
                     })
                 })
                 .collect(),
@@ -141,7 +140,7 @@ impl From<&NFTVaults> for NFIDs {
                         id: id.clone(),
                         description: None,
                         icon: None,
-                        nfdata: None,
+                        nfdata: Vec::new(),
                     })
                 })
                 .collect(),
@@ -154,7 +153,7 @@ pub struct NFID {
     id: String,
     icon: Option<Icon>,
     description: Option<String>,
-    nfdata: Option<Vec<NFData>>,
+    nfdata: Vec<NFData>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::ledger_state::LedgerState;
 
@@ -7,7 +7,6 @@ pub struct EntityDetailsResponse {
     pub ledger_state: LedgerState,
     pub items: Vec<Entity>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entity {
@@ -26,8 +25,7 @@ pub struct FungibleResources {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct 
-FungibleResource {
+pub struct FungibleResource {
     pub vaults: Vaults,
     pub aggregation_level: String,
     pub resource_address: String,
@@ -61,7 +59,6 @@ pub struct MetadataItem {
     pub last_updated_at_state_version: u64,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Value {
     pub raw_hex: String,
@@ -86,7 +83,7 @@ pub struct Field {
 pub struct Typed {
     pub value: Option<String>,
     #[serde(rename = "type")]
-    pub type_field: String
+    pub type_field: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -125,7 +122,7 @@ pub struct Metadata {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Details {
-    //pub total_supply: Option<String>,
+    pub total_supply: Option<String>,
     //pub divisibility: Option<u32>,
     //package_address: String,
     //blueprint_name: String,

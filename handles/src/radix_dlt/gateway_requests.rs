@@ -19,8 +19,8 @@ use super::urls::{
 };
 
 pub async fn get_all_fungibles_for_account(
-    client: RadixDltRequestClient,
-    component: AccountAddress,
+    client: &RadixDltRequestClient,
+    account: &AccountAddress,
     network: Network,
 ) -> Result<AllFungiblesResponse, RadixDltRequestError> {
     let url = match network {
@@ -29,7 +29,7 @@ pub async fn get_all_fungibles_for_account(
     };
 
     let body = json!({
-        "address": component.as_str(),
+        "address": account.as_str(),
     });
 
     let response = client.post(url).json(&body).send().await?;
@@ -42,8 +42,8 @@ pub async fn get_all_fungibles_for_account(
 }
 
 pub async fn get_all_nfts_for_account(
-    client: RadixDltRequestClient,
-    component: AccountAddress,
+    client: &RadixDltRequestClient,
+    account: &AccountAddress,
     network: Network,
 ) -> Result<AllNFTsResponse, RadixDltRequestError> {
     let url = match network {
@@ -52,7 +52,7 @@ pub async fn get_all_nfts_for_account(
     };
 
     let body = json!({
-        "address": component.as_str()
+        "address": account.as_str()
     });
 
     let response = client.post(url).json(&body).send().await?;
@@ -64,8 +64,8 @@ pub async fn get_all_nfts_for_account(
 }
 
 pub async fn get_fungible_vaults_for_account(
-    client: RadixDltRequestClient,
-    component: AccountAddress,
+    client: &RadixDltRequestClient,
+    account: &AccountAddress,
     resource: ResourceAddress,
     network: Network,
 ) -> Result<FungibleVaultsResponse, RadixDltRequestError> {
@@ -75,7 +75,7 @@ pub async fn get_fungible_vaults_for_account(
     };
 
     let body = json!({
-        "address": component.as_str(),
+        "address": account.as_str(),
         "resource_address": resource.as_str(),
     });
 
@@ -88,7 +88,7 @@ pub async fn get_fungible_vaults_for_account(
 }
 
 pub async fn get_entity_details(
-    client: RadixDltRequestClient,
+    client: &RadixDltRequestClient,
     addresses: &[&str],
     network: Network,
 ) -> Result<EntityDetailsResponse, RadixDltRequestError> {
@@ -160,7 +160,7 @@ mod test {
         .expect("Could not create account address");
 
         let response =
-            get_all_fungibles_for_account(radixrequestor, component, Network::Mainnet).await;
+            get_all_fungibles_for_account(&radixrequestor, &component, Network::Mainnet).await;
 
         match response {
             Ok(_) => {}
@@ -177,7 +177,8 @@ mod test {
         )
         .expect("Unable to create account address");
 
-        let response = get_all_nfts_for_account(radixrequestor, component, Network::Mainnet).await;
+        let response =
+            get_all_nfts_for_account(&radixrequestor, &component, Network::Mainnet).await;
 
         match response {
             Ok(_) => {}
@@ -198,9 +199,13 @@ mod test {
         )
         .expect("Unable to create resource address");
 
-        let response =
-            get_fungible_vaults_for_account(radixrequestor, component, resource, Network::Mainnet)
-                .await;
+        let response = get_fungible_vaults_for_account(
+            &radixrequestor,
+            &component,
+            resource,
+            Network::Mainnet,
+        )
+        .await;
 
         match response {
             Ok(_) => {}
@@ -215,7 +220,7 @@ mod test {
         let component =
             "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax".to_owned();
 
-        let response = get_entity_details(radixrequestor, &[&component], Network::Mainnet).await;
+        let response = get_entity_details(&radixrequestor, &[&component], Network::Mainnet).await;
 
         match response {
             Ok(_) => {}

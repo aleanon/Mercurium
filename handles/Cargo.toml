@@ -24,6 +24,7 @@ reqwest = { workspace = true }
 flate2 = { workspace = true }
 radix-engine-toolkit = { workspace = true }
 bytes = { workspace = true }
+tokio = { workspace = true }
 
 #test
 iced = { workspace = true, features = ["image"] }
@@ -37,7 +38,3 @@ windows = { version = "0.52.0", features = [
     "Win32_Security_Cryptography",
     "Win32_Security_Credentials",
 ] }
-
-
-[dev-dependencies]
-tokio = { workspace = true }

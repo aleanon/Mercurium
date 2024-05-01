@@ -78,11 +78,12 @@ pub enum AppState {
 
 #[derive(Debug)]
 pub struct App {
+    version: [u8; 3],
     pub(crate) app_state: AppState,
     pub(crate) app_data: AppData,
     // pub(crate) db: Option<Db>,
     // pub(crate) action_tx: Option<MpscSender<Action>>,
-    // Holds the gui unlocked state, not held in the AppState enum to be able to return to last state on login
+    // Holds the gui unlocked state, not held in the AppState enum because we want to be able to return to last state on login
     pub(crate) appview: AppView,
     // pub(crate) theme: Theme,
 }
@@ -112,6 +113,7 @@ impl Application for App {
         let app_path = AppPath::new().expect("Unable to establish app directory");
 
         let appstate = App {
+            version: [0, 0, 1],
             app_state: state,
             app_data: AppData::new(None, app_path),
             // db: None,

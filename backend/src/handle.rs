@@ -178,13 +178,12 @@ impl Handle {
 
         let coms_clone = coms.clone();
 
-        let fungibles_response =
-            tokio::spawn(
-                async move { Self::fungibles_response(coms_clone, fungible_resources).await },
-            );
+        let fungibles_response = tokio::spawn(async move {
+            Self::get_fungibles(coms_clone, fungible_resources).await
+        });
 
         let non_fungibles_response = tokio::spawn(async move {
-            Self::non_fungibles_response(coms, non_fungible_resources).await
+            Self::get_non_fungibles_details(coms, non_fungible_resources).await
         });
 
         let (fungibles, non_fungibles) = join(fungibles_response, non_fungibles_response).await;
@@ -196,7 +195,7 @@ impl Handle {
         Ok::<_, HandleError>(account)
     }
 
-    async fn fungibles_response(
+    async fn get_fungibles(
         coms: Arc<Coms>,
         fungible_resources: Arc<HashMap<String, FungibleResource>>,
     ) -> Result<Fungibles, HandleError> {
@@ -204,6 +203,7 @@ impl Handle {
             .keys()
             .map(|key| key.as_str())
             .collect::<Vec<_>>();
+        
         let fungibles_details = coms
             .radixdlt_request_builder
             .get_entity_details(fungible_addresses.as_slice())
@@ -211,7 +211,9 @@ impl Handle {
 
         let fungible_tasks = fungibles_details.items.into_iter().map(|fungible| {
             let fungible_resources = fungible_resources.clone();
-            tokio::spawn(async move { Self::fungible_response(fungible_resources, fungible).await })
+            tokio::spawn(async move {
+                Self::parse_fungible_response(fungible_resources, fungible).await
+            })
         });
 
         let joined = join_all(fungible_tasks)
@@ -229,7 +231,7 @@ impl Handle {
         Ok::<_, HandleError>(fungibles)
     }
 
-    async fn fungible_response(
+    async fn parse_fungible_response(
         fungible_resources: Arc<HashMap<String, FungibleResource>>,
         fungible: Entity,
     ) -> Result<Fungible, HandleError> {
@@ -256,7 +258,7 @@ impl Handle {
         let mut description = None;
         let mut icon_url = None;
         let mut metadata = MetaData::new();
-        let current_supply = "fungible.details.total_supply".to_owned();
+        let total_supply = fungible.details.total_supply.unwrap_or(String::new());
 
         for item in fungible.metadata.items {
             match &*item.key {
@@ -273,10 +275,10 @@ impl Handle {
         let fungible = Fungible {
             address,
             amount,
-            current_supply,
+            total_supply,
             description,
-            name: name.unwrap_or(String::with_capacity(0)),
-            symbol: symbol.unwrap_or(String::with_capacity(0)),
+            name: name.unwrap_or(String::new()),
+            symbol: symbol.unwrap_or(String::new()),
             icon,
             last_updated_at_state_version: last_updated as i64,
             metadata,
@@ -284,7 +286,7 @@ impl Handle {
         Ok::<_, HandleError>(fungible)
     }
 
-    async fn non_fungibles_response(
+    async fn get_non_fungibles_details(
         coms: Arc<Coms>,
         non_fungible_resources: Arc<HashMap<String, NonFungibleResource>>,
     ) -> Result<NonFungibles, HandleError> {
@@ -309,7 +311,7 @@ impl Handle {
             .await
             .into_iter()
             .filter_map(|result| result.ok().and_then(|result| result.ok()))
-            .collect::<Vec<_>>()
+            .collect::<NonFungibles>()
             .into();
 
         Ok::<_, HandleError>(non_fungibles)
@@ -340,7 +342,7 @@ impl Handle {
         let mut description = None;
         let mut icon_url = None;
         let mut metadata = MetaData::new();
-        let _current_supply = "non_fungible.details.total_supply".to_owned();
+        let _total_supply = non_fungible.details.total_supply.unwrap_or(String::new());
 
         for item in non_fungible.metadata.items {
             match &*item.key {

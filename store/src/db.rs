@@ -1,4 +1,3 @@
-
 use anyhow::Result;
 use thiserror::Error;
 
@@ -23,8 +22,6 @@ pub enum DbError {
     #[error("Unable to establish path {0}")]
     PathError(#[from] AppPathError),
 }
-
-
 
 #[derive(Debug)]
 pub struct Db {
@@ -97,7 +94,6 @@ impl AsyncDb {
     pub async fn with_connection(connection: tokio_rusqlite::Connection) -> Self {
         Self { connection }
     }
-
 }
 
 #[cfg(test)]
@@ -113,11 +109,11 @@ mod tests {
     use types::Ed25519PublicKey;
 
     use super::*;
-    use types::{
-        AccountAddress, Fungible, Fungibles, MetaData, NFIDs, Network, NonFungible, NonFungibles,
-        RadixDecimal, Decimal, ResourceAddress, Account,
-    };
     use std::str::FromStr;
+    use types::{
+        Account, AccountAddress, Decimal, Fungible, Fungibles, MetaData, NFIDs, Network,
+        NonFungible, NonFungibles, RadixDecimal, ResourceAddress,
+    };
 
     #[test]
     fn test_accounts_table() {
@@ -146,7 +142,7 @@ mod tests {
             symbol: "TF".to_owned(),
             icon: None,
             amount: Decimal::from(RadixDecimal::ONE_HUNDRED),
-            current_supply: "1000".to_owned(),
+            total_supply: "1000".to_owned(),
             description: None,
             address: ResourceAddress::from_str(
                 "resource_rdx1thlnv2lydu7np9w8guguqslkydv000d7ydn7uq0sestql96hrfml0v",
@@ -155,7 +151,6 @@ mod tests {
             last_updated_at_state_version: 150,
             metadata: MetaData::new(),
         });
-
 
         db.update_account(&account)
             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
@@ -196,7 +191,7 @@ mod tests {
             symbol: "TF".to_owned(),
             icon: None,
             amount: Decimal::from(RadixDecimal::ONE_HUNDRED),
-            current_supply: "1000".to_owned(),
+            total_supply: "1000".to_owned(),
             description: None,
             address: ResourceAddress::from_str(
                 "resource_rdx1thlnv2lydu7np9w8guguqslkydv000d7ydn7uq0sestql96hrfml0v",
@@ -239,7 +234,6 @@ mod tests {
             Ed25519PublicKey([0u8; Ed25519PublicKey::LENGTH]),
         );
 
-
         let mut non_fungibles = NonFungibles::new();
         non_fungibles.insert(NonFungible {
             name: "test nft".to_owned(),
@@ -258,7 +252,7 @@ mod tests {
         db.update_account(&account)
             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
         db.update_non_fungibles_for_account(&non_fungibles, &account.address)
-            .unwrap_or_else(|err| panic!("Error updating table: {}",err));
+            .unwrap_or_else(|err| panic!("Error updating table: {}", err));
 
         let accounts = db
             .get_accounts_map()

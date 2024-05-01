@@ -31,6 +31,8 @@ const RES_ADDR_TRUNCATE_LEN: usize = 13;
 pub struct ResourceAddress([u8; RESOURCE_ADDRESS_LEN]);
 
 impl ResourceAddress {
+    pub const CHECKSUM_LEN: usize = 6;
+
     pub fn as_ref(&self) -> &[u8] {
         &self.0
     }
@@ -49,6 +51,12 @@ impl ResourceAddress {
             std::str::from_utf8_unchecked(&self.0[RESOURCE_ADDRESS_LEN - 6..RESOURCE_ADDRESS_LEN])
         });
         truncated
+    }
+
+    pub fn checksum(&self) -> [u8; 6] {
+        self.0[RESOURCE_ADDRESS_LEN - 6..]
+            .try_into()
+            .unwrap_or_else(|_| unreachable!())
     }
 }
 
