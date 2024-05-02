@@ -111,3 +111,72 @@ impl NonFungibleAsset {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
+
+    use rusqlite::params;
+
+    use super::*;
+    #[test]
+    fn test_assetid_serialization() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+
+        connection
+            .execute(
+                "CREATE TABLE IF NOT EXISTS fungible_assets (
+                id BLOB NOT NULL PRIMARY KEY,
+                resource_address BLOB NOT NULL,
+                amount TEXT NOT NULL,
+                last_updated INTEGER NOT NULL)",
+                [],
+            )
+            .unwrap();
+
+        let account_address = AccountAddress::from_str(
+            "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
+        )
+        .unwrap();
+        let resource_address = ResourceAddress::from_str(
+            "resource_rdx1t5ywq4c6nd2lxkemkv4uzt8v7x7smjcguzq5sgafwtasa6luq7fclq",
+        )
+        .unwrap();
+        let assetid = AssetId::new("GUM".to_string(), &account_address, &resource_address);
+
+        connection
+            .execute(
+                "INSERT INTO
+            fungible_assets (
+                id,
+                resource_address,
+                amount,
+                last_updated
+            )
+            VALUES (?, ?, ?, ?)
+        ",
+                params![assetid, resource_address, "10", 1 as i64,],
+            )
+            .unwrap();
+
+        let mut prepared = connection
+            .prepare("SELECT * FROM fungible_assets WHERE id = ?")
+            .unwrap();
+        let fungible_asset = prepared
+            .query_row(params![assetid], |row| {
+                Ok(FungibleAsset {
+                    id: row.get(0)?,
+                    resource_address: row.get(1)?,
+                    amount: row.get(2)?,
+                    last_updated: row.get(3)?,
+                })
+            })
+            .unwrap();
+
+        assert_eq!(fungible_asset.id.0, "GUM".to_string());
+        assert_eq!(
+            std::str::from_utf8(fungible_asset.id.1.as_slice()).unwrap(),
+            "t2a5axq7fclq"
+        );
+    }
+}
