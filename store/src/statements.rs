@@ -93,7 +93,7 @@ pub mod upsert {
             last_updated,
             metadata
         )
-        VALUES (1?, 2?, 3?, 4?, 5?, 6?, 7?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (address)
         DO UPDATE SET 
             name = excluded.name,
@@ -113,7 +113,7 @@ pub mod upsert {
             last_updated,
             account_address
         )
-        VALUES (1?, 2?, 3?, 4?)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT (id)
         DO UPDATE SET
             amount = excluded.amount
@@ -127,7 +127,7 @@ pub mod upsert {
             last_updated,
             account_address
         )
-        VALUES (1?, 2?, 3?, 4?)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT (id)
         DO UPDATE SET
             nfids = excluded.nfids
@@ -141,7 +141,7 @@ pub mod upsert {
             balance_changes,
             status
         )
-        VALUES (1?, 2?, 3?, 4?, 5?)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT (id)
         DO UPDATE SET 
             status = excluded.status
