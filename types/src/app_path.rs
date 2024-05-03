@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-
 #[derive(Error, Debug)]
 pub enum AppPathError {
     #[error("Unable to find app directory, source: {0}")]
@@ -27,10 +26,8 @@ impl AppPath {
 
     #[cfg(windows)]
     pub fn new() -> Result<Self, AppPathError> {
-
         match std::env::var_os("LOCALAPPDATA") {
             Some(path) => {
-
                 let mut app_directory = std::path::PathBuf::from(path);
                 app_directory.push("RaVault");
                 let mut db_directory = app_directory.clone();
@@ -41,7 +38,7 @@ impl AppPath {
                 let mut icons_directory = app_directory.clone();
                 icons_directory.push(Self::ICON_DIRECTORY);
 
-                Ok(AppPath {
+                Ok(Self {
                     app_directory,
                     db_directory,
                     db_path,
@@ -60,7 +57,7 @@ impl AppPath {
                 let mut icons_directory = app_directory.clone();
                 icons_directory.push(Self::ICON_DIRECTORY);
 
-                Ok(AppPath {
+                Ok(Self {
                     app_directory,
                     db_directory,
                     db_path,
@@ -72,22 +69,16 @@ impl AppPath {
 
     pub fn create_directories_if_not_exists(self) -> Result<Self, AppPathError> {
         if !self.db_directory.exists() {
-
             std::fs::DirBuilder::new()
                 .recursive(true)
                 .create(&self.db_directory)
-                .map_err(|err| {
-                    AppPathError::UnableToCreateDirectory(err)
-                })?;
-
+                .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
         }
 
         if !self.icons_directory().exists() {
             std::fs::DirBuilder::new()
                 .create(&self.icons_directory)
-                .map_err(|err| {
-                    AppPathError::UnableToCreateDirectory(err)
-                })?;
+                .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
         }
 
         Ok(self)

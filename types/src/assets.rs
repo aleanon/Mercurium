@@ -14,19 +14,17 @@ impl AssetId {
         account_address: &AccountAddress,
         resource_address: &ResourceAddress,
     ) -> Self {
-        let account_checksum = account_address.checksum();
-        let resource_checksum = resource_address.checksum();
         let mut checksum = [0u8; Self::COMBINED_CHECKSUM_LEN];
-        checksum[..Self::HALF_CHECKSUM_LEN].copy_from_slice(&account_checksum);
-        checksum[Self::HALF_CHECKSUM_LEN..].copy_from_slice(&resource_checksum);
+        checksum[..Self::HALF_CHECKSUM_LEN].copy_from_slice(&account_address.checksum());
+        checksum[Self::HALF_CHECKSUM_LEN..].copy_from_slice(&resource_address.checksum());
         Self(symbol, checksum)
     }
 }
 
 impl rusqlite::types::ToSql for AssetId {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(rusqlite::types::ToSqlOutput::from(
-            [self.0.as_bytes(), self.1.as_slice()].concat(),
+        Ok(rusqlite::types::ToSqlOutput::Owned(
+            rusqlite::types::Value::Blob([self.0.as_bytes(), self.1.as_slice()].concat()),
         ))
     }
 }
@@ -35,8 +33,7 @@ impl rusqlite::types::FromSql for AssetId {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
             rusqlite::types::ValueRef::Blob(slice) => {
-                let end = slice.len();
-                let (symbol, checksum) = slice.split_at(end - Self::COMBINED_CHECKSUM_LEN);
+                let (symbol, checksum) = slice.split_at(slice.len() - Self::COMBINED_CHECKSUM_LEN);
                 let symbol = String::from_utf8(symbol.to_owned())
                     .map_err(|_| rusqlite::types::FromSqlError::InvalidType)?;
 

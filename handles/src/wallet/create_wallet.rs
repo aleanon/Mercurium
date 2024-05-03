@@ -27,7 +27,7 @@ pub fn create_new_wallet(
     let account =
         super::create_account::create_account_from_mnemonic(mnemonic, 0, 0, account_name, network);
 
-    db.update_account(&account).ok();
+    db.upsert_account(&account).ok();
 
     Ok(())
 }

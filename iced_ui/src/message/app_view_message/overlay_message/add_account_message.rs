@@ -105,7 +105,7 @@ impl AddAccountMessage {
                     })
             });
         match account {
-            Ok(account) => match app_data.db.update_account(&account) {
+            Ok(account) => match app_data.db.upsert_account(&account) {
                 Ok(()) => {
                     let mut sender = app_data.backend_sender.clone();
                     command = Command::perform(

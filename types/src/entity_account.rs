@@ -1,13 +1,13 @@
 pub mod account_name;
 pub mod settings;
-pub mod transaction;
 
+use crate::transaction::Transaction;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+
 pub use {
     account_name::AccountName,
     settings::{DepositRules, Settings},
-    transaction::Transaction,
 };
 
 use super::{Fungibles, NonFungibles};

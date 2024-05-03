@@ -152,7 +152,7 @@ mod tests {
             metadata: MetaData::new(),
         });
 
-        db.update_account(&account)
+        db.upsert_account(&account)
             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
         db.update_fungibles_for_account(&fungibles, &account.address)
             .unwrap_or_else(|err| panic!("Error creating fungibles, error: {err}"));
@@ -201,7 +201,7 @@ mod tests {
             metadata: MetaData::new(),
         });
 
-        db.update_account(&account)
+        db.upsert_account(&account)
             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
         db.update_fungibles_for_account(&fungibles, &account.address)
             .unwrap_or_else(|err| panic!("Error creating fungibles, error: {err}"));
@@ -249,7 +249,7 @@ mod tests {
             metadata: MetaData::new(),
         });
 
-        db.update_account(&account)
+        db.upsert_account(&account)
             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
         db.update_non_fungibles_for_account(&non_fungibles, &account.address)
             .unwrap_or_else(|err| panic!("Error updating table: {}", err));

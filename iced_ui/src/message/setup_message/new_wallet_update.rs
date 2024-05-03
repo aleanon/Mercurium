@@ -255,7 +255,7 @@ impl<'a> WalletMessage {
 
         debug_println!("Account created");
 
-        if let Err(err) = db.update_account(&account) {
+        if let Err(err) = db.upsert_account(&account) {
             debug_println!(
                 "{}:{}: Unable to write account to database, error: {}",
                 module_path!(),

@@ -14,6 +14,8 @@ pub mod network;
 pub mod non_fungibles;
 pub mod radix_request_client;
 pub mod response_models;
+pub mod transaction;
+pub mod unwrap_unreachable;
 pub mod update;
 
 pub use account::Account;
@@ -28,6 +30,7 @@ pub use icon::Icon;
 pub use metadata::{MetaData, MetaDataItem};
 pub use network::Network;
 pub use non_fungibles::{NFIDs, NonFungible, NonFungibles, NFID};
+pub use transaction::Transaction;
 pub use update::Update;
 
 // Re exporting

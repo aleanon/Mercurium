@@ -43,6 +43,8 @@ pub struct AppData {
     pub icons: Icons,
     pub radix_dlt_request_client: RadixDltRequestClient,
     pub settings: AppSettings,
+    // Holds the sender for cloning into async tasks, there is a subscription
+    // that listens on the receiver and produces Messages
     pub backend_sender: MpscSender<Action>,
     pub db: Db,
 }
