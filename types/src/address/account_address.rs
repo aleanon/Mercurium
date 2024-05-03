@@ -1,10 +1,9 @@
+use crate::unwrap_unreachable::UnwrapUnreachable;
+
 use super::ParseAddrError;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use std::str::FromStr;
-
-const ACC_ADDR_LENGTH: usize = 66;
-const ACC_TRUNCATE_LEN: usize = 13;
 
 // #[derive(Clone, Debug, Error)]
 // pub enum AddrParseError {
@@ -32,36 +31,47 @@ pub struct AccountAddress([u8; Self::LENGTH]);
 impl AccountAddress {
     pub const LENGTH: usize = 66;
     pub const CHECKSUM_LEN: usize = 6;
+    const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LEN;
     const TRUNCATED_LEN: usize = 13;
     const TRUNCATED_LONG_LEN: usize = 21;
+    const TRUNCATE_DOT_COUNT: usize = 3;
+    const TRUNCATE_PREFIX_LEN: usize = 4;
+    const TRUNCATE_LONG_PREFIX_LEN: usize = 12;
     const PREFIX: &'static str = "account_";
 
     pub fn empty() -> Self {
-        Self([b'0'; ACC_ADDR_LENGTH])
+        Self([b'0'; Self::LENGTH])
     }
 
     pub fn as_ref(&self) -> &[u8] {
         &self.0
     }
 
-    // Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters
     pub fn as_str(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.0) }
+        std::str::from_utf8(&self.0).unwrap_unreachable("Invalid UTF-8 in AccountAddress")
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0 == [b'0'; ACC_ADDR_LENGTH]
+        self.0 == [b'0'; Self::LENGTH]
     }
 
     pub fn truncate(&self) -> String {
-        let truncated = [&self.0[..4], &[b'.'; 3], &self.0[ACC_ADDR_LENGTH - 6..]].concat();
+        let truncated = [
+            &self.0[..Self::TRUNCATE_PREFIX_LEN],
+            &[b'.'; Self::TRUNCATE_DOT_COUNT],
+            &self.0[Self::CHECKSUM_START_INDEX..],
+        ]
+        .concat();
 
-        //Uses unchecked because ``AccountAddress`` can not be created with invalid UTF-8 characters
-        unsafe { String::from_utf8_unchecked(truncated) }
+        String::from_utf8(truncated).unwrap_unreachable("Invalid UTF-8 in AccountAddress")
     }
 
     pub fn truncate_str(&self) -> &str {
-        let truncated = [&self.0[..4], &[b'.'; 3], &self.0[ACC_ADDR_LENGTH - 6..]];
+        let truncated = [
+            &self.0[..Self::TRUNCATE_PREFIX_LEN],
+            &[b'.'; Self::TRUNCATE_DOT_COUNT],
+            &self.0[Self::CHECKSUM_START_INDEX..],
+        ];
 
         //Uses unchecked because ``AccountAddress`` can not be created with invalid UTF-8 characters
         unsafe {
@@ -72,14 +82,23 @@ impl AccountAddress {
     }
 
     pub fn truncate_long(&self) -> String {
-        let truncated = [&self.0[..12], &[b'.'; 3], &self.0[ACC_ADDR_LENGTH - 6..]].concat();
+        let truncated = [
+            &self.0[..Self::TRUNCATE_LONG_PREFIX_LEN],
+            &[b'.'; Self::TRUNCATE_DOT_COUNT],
+            &self.0[Self::CHECKSUM_START_INDEX..],
+        ]
+        .concat();
 
-        //Uses unchecked because ``AccountAddress`` can not be created with invalid UTF-8 characters
-        unsafe { String::from_utf8_unchecked(truncated) }
+        String::from_utf8(truncated)
+            .unwrap_or_else(|_| unreachable!("Invalid UTF-8 in AccountAddress"))
     }
 
     pub fn truncate_long_str(&self) -> &str {
-        let truncated = [&self.0[..12], &[b'.'; 3], &self.0[ACC_ADDR_LENGTH - 6..]];
+        let truncated = [
+            &self.0[..Self::TRUNCATE_LONG_PREFIX_LEN],
+            &[b'.'; Self::TRUNCATE_DOT_COUNT],
+            &self.0[Self::CHECKSUM_START_INDEX..],
+        ];
 
         //Uses unchecked because ``AccountAddress`` can not be created with invalid UTF-8 characters
         unsafe {
@@ -91,14 +110,15 @@ impl AccountAddress {
         }
     }
 
-    pub fn checksum(&self) -> [u8; 6] {
-        self.0[ACC_ADDR_LENGTH - 6..]
+    pub fn checksum(&self) -> [u8; Self::CHECKSUM_LEN] {
+        self.0[Self::CHECKSUM_START_INDEX..]
             .try_into()
-            .unwrap_or_else(|_| unreachable!())
+            .unwrap_or_else(|_| unreachable!("Invalid Checksum Length"))
     }
 
     pub fn checksum_str(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.0[ACC_ADDR_LENGTH - 6..]) }
+        std::str::from_utf8(&self.0[Self::CHECKSUM_START_INDEX..])
+            .unwrap_or_else(|_| unreachable!("Invalid UTF-8 in AccountAddress"))
     }
 
     // Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters
@@ -137,7 +157,8 @@ impl TryFrom<&[u8]> for AccountAddress {
 
 impl ToString for AccountAddress {
     fn to_string(&self) -> String {
-        unsafe { String::from_utf8_unchecked(self.0.to_vec()) }
+        String::from_utf8(self.0.to_vec())
+            .unwrap_or_else(|_| unreachable!("Invalid Utf8 in AccountAddress"))
     }
 }
 
@@ -167,7 +188,7 @@ impl rusqlite::types::FromSql for AccountAddress {
         match value {
             rusqlite::types::ValueRef::Blob(slice) => Ok(Self(slice.try_into().map_err(|_| {
                 rusqlite::types::FromSqlError::InvalidBlobSize {
-                    expected_size: ACC_ADDR_LENGTH,
+                    expected_size: Self::LENGTH,
                     blob_size: slice.len(),
                 }
             })?)),

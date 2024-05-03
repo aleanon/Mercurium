@@ -388,7 +388,7 @@ mod tests {
             pub_key,
         );
 
-        db.update_account(&account)
+        db.upsert_account(&account)
             .expect("Unable to create account");
 
         let mut accounts = db.get_accounts_map().expect("Unable to get accounts map");

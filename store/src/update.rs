@@ -1,16 +1,13 @@
-use crate::statements;
-
-use super::{statements::upsert, Db};
+use super::{statements::upsert, AsyncDb, Db};
 use anyhow::Result;
 use rusqlite::params;
 use types::{
     assets::FungibleAsset, Account, AccountAddress, EntityAccount, Fungibles, NonFungibles,
+    Transaction,
 };
 
-use super::AsyncDb;
-
 impl Db {
-    pub fn update_account(&mut self, account: &Account) -> Result<(), rusqlite::Error> {
+    pub fn upsert_account(&mut self, account: &Account) -> Result<(), rusqlite::Error> {
         self.connection
             .prepare_cached(upsert::UPSERT_ACCOUNT)?
             .execute(params![
@@ -160,7 +157,7 @@ impl Db {
         Ok(())
     }
 
-    fn upsert_fungible_assets(
+    fn upsert_fungible_assets_for_account(
         &mut self,
         account_address: &AccountAddress,
         fungibles: &[FungibleAsset],
@@ -184,6 +181,55 @@ impl Db {
         tx.commit()?;
         Ok(())
     }
+
+    fn upsert_non_fungible_assets_for_account(
+        &mut self,
+        account_address: &AccountAddress,
+        non_fungibles: &[FungibleAsset],
+    ) -> Result<(), rusqlite::Error> {
+        let tx = self.connection.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(upsert::UPSERT_NON_FUNGIBLE_ASSET)?;
+
+            for non_fungible_asset in non_fungibles {
+                stmt.execute(params![
+                    non_fungible_asset.id,
+                    non_fungible_asset.resource_address,
+                    non_fungible_asset.amount,
+                    non_fungible_asset.last_updated,
+                    account_address,
+                ])?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
+    // fn upsert_transactions_for_account(
+    //     &mut self,
+    //     account: &AccountAddress,
+    //     transactions: &[Transaction],
+    // ) -> Result<(), rusqlite::Error> {
+    //     let tx = self.connection.transaction()?;
+
+    //     {
+    //         let mut stmt = tx.prepare_cached(upsert::UPSERT_TRANSACTION)?;
+
+    //         for transaction in transactions {
+    //             stmt.execute(params![
+    //                 transaction.id,
+    //                 transaction.timestamp,
+    //                 transaction.state_version as i64,
+    //                 transaction.balance_changes
+    //             ])?;
+    //         }
+    //     }
+
+    //     tx.commit()?;
+    //     Ok(())
+    // }
 }
 
 impl AsyncDb {

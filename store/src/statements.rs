@@ -53,8 +53,18 @@ pub mod create {
             id BLOB NOT NULL PRIMARY KEY,
             timestamp BLOB NOT NULL,
             state_version INTEGER NOT NULL,
-            balance_changes BLOB NOT NULL,
             status INTEGER NOT NULL
+        )
+    ";
+
+    pub const CREATE_TABLE_BALANCE_CHANGES: &'static str = "CREATE TABLE IF NOT EXISTS
+        balance_changes (
+            id BLOB NOT NULL PRIMARY KEY,
+            account BLOB NOT NULL,
+            resource BLOB NOT NULL,
+            amount TEXT NOT NULL,
+            tx_id BLOB NOT NULL,
+            FOREIGN KEY(tx_id) REFERENCES transactions(id)
         )
     ";
 }
