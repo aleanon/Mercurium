@@ -1,40 +1,82 @@
 use crate::unwrap_unreachable::UnwrapUnreachable;
+use crate::{debug_info, Address, Network};
 
-use super::ParseAddrError;
+use super::{AddressError, AddressTrait, AddressType, ParseAddrError};
+use once_cell::sync::Lazy;
+use regex::Regex;
+use rusqlite::types::FromSql;
+use rusqlite::ToSql;
+use scrypto::network::NetworkDefinition;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use std::str::FromStr;
 
-// #[derive(Clone, Debug, Error)]
-// pub enum AddrParseError {
-//     #[error("Non ASCII character")]
-//     NonAsciiCharacter,
-//     #[error("Invalid length, expected: {expected}, found: {found}")]
-//     InvalidLength {
-//         expected: usize,
-//         found: usize,
-//     }
-// }
+trait AccountAddressTrait: AddressTrait {}
 
-// impl std::fmt::Display for AccAddrError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             AccAddrError::InvalidLength { expected, found } => write!(f, "Invalid length, expected: {}, found: {}", expected, found),
-//             AccAddrError::NonAsciiCharacter => write!(f, "Non ASCII character"),
-//         }
-//     }
-// }
+pub struct MainnetAccountAddress([u8; Self::LENGTH]);
+
+impl AccountAddressTrait for MainnetAccountAddress {}
+
+impl AddressTrait for MainnetAccountAddress {
+    const ADDRESS_TYPE: AddressType = AddressType::Account;
+    const NETWORK: Network = Network::Mainnet;
+    const REGEX_PATTERN: &'static str = const_format::formatcp!(
+        "^{}{}[a-z0-9]{{{}}}$",
+        MainnetAccountAddress::ADDRESS_TYPE_PREFIX,
+        MainnetAccountAddress::NETWORK_PREFIX,
+        MainnetAccountAddress::ADDRESS_LENGTH
+    );
+
+    fn from_str(s: &str) -> Result<Self, AddressError> {
+        if Self::is_valid_address(s) {
+            let mut array = [0u8; Self::LENGTH];
+            array.copy_from_slice(s.as_bytes());
+
+            Ok(Self(array))
+        } else {
+            Err(AddressError::InvalidAddress)
+        }
+    }
+
+    fn from_bytes_without_prefixes(address: &[u8]) -> Result<Self, AddressError> {
+        if address.len() != Self::ADDRESS_LENGTH {
+            return Err(AddressError::InvalidLength);
+        }
+
+        if !address.is_ascii() {
+            return Err(AddressError::InvalidUTF8);
+        }
+
+        let mut array = [0u8; Self::LENGTH];
+        array[..Self::ADDRESS_TYPE_PREFIX_LENGTH]
+            .copy_from_slice(Self::ADDRESS_TYPE_PREFIX.as_bytes());
+        array[Self::ADDRESS_TYPE_PREFIX_LENGTH..Self::ADDRESS_START_INDEX]
+            .copy_from_slice(Self::NETWORK_PREFIX.as_bytes());
+        array[Self::ADDRESS_START_INDEX..].copy_from_slice(address);
+
+        Ok(Self(array))
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    fn is_valid_address(address: &str) -> bool {
+        static REGEX: Lazy<Regex> =
+            Lazy::new(|| Regex::new(MainnetAccountAddress::REGEX_PATTERN).unwrap());
+        REGEX.is_match(address)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AccountAddress([u8; Self::LENGTH]);
 
 impl AccountAddress {
+    const PREFIX_LENGTH: usize = 8;
     pub const LENGTH: usize = 66;
-    pub const CHECKSUM_LEN: usize = 6;
-    const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LEN;
-    const TRUNCATED_LEN: usize = 13;
-    const TRUNCATED_LONG_LEN: usize = 21;
-    const TRUNCATE_DOT_COUNT: usize = 3;
+    pub const CHECKSUM_LENGTH: usize = 6;
+    const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LENGTH;
+    const CHECKSUM_DOUBLE_START_INDEX: usize = Self::CHECKSUM_START_INDEX - Self::CHECKSUM_LENGTH;
     const TRUNCATE_PREFIX_LEN: usize = 4;
     const TRUNCATE_LONG_PREFIX_LEN: usize = 12;
     const PREFIX: &'static str = "account_";
@@ -48,7 +90,8 @@ impl AccountAddress {
     }
 
     pub fn as_str(&self) -> &str {
-        std::str::from_utf8(&self.0).unwrap_unreachable("Invalid UTF-8 in AccountAddress")
+        std::str::from_utf8(&self.0)
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -58,79 +101,45 @@ impl AccountAddress {
     pub fn truncate(&self) -> String {
         let truncated = [
             &self.0[..Self::TRUNCATE_PREFIX_LEN],
-            &[b'.'; Self::TRUNCATE_DOT_COUNT],
-            &self.0[Self::CHECKSUM_START_INDEX..],
-        ]
-        .concat();
-
-        String::from_utf8(truncated).unwrap_unreachable("Invalid UTF-8 in AccountAddress")
-    }
-
-    pub fn truncate_str(&self) -> &str {
-        let truncated = [
-            &self.0[..Self::TRUNCATE_PREFIX_LEN],
-            &[b'.'; Self::TRUNCATE_DOT_COUNT],
-            &self.0[Self::CHECKSUM_START_INDEX..],
-        ];
-
-        //Uses unchecked because ``AccountAddress`` can not be created with invalid UTF-8 characters
-        unsafe {
-            let slice =
-                std::slice::from_raw_parts(truncated.as_ptr() as *const u8, Self::TRUNCATED_LEN);
-            std::str::from_utf8_unchecked(slice)
-        }
-    }
-
-    pub fn truncate_long(&self) -> String {
-        let truncated = [
-            &self.0[..Self::TRUNCATE_LONG_PREFIX_LEN],
-            &[b'.'; Self::TRUNCATE_DOT_COUNT],
+            Address::TRUNCATE_DOTS.as_bytes(),
             &self.0[Self::CHECKSUM_START_INDEX..],
         ]
         .concat();
 
         String::from_utf8(truncated)
-            .unwrap_or_else(|_| unreachable!("Invalid UTF-8 in AccountAddress"))
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
     }
 
-    pub fn truncate_long_str(&self) -> &str {
+    pub fn truncate_long(&self) -> String {
         let truncated = [
             &self.0[..Self::TRUNCATE_LONG_PREFIX_LEN],
-            &[b'.'; Self::TRUNCATE_DOT_COUNT],
+            Address::TRUNCATE_DOTS.as_bytes(),
             &self.0[Self::CHECKSUM_START_INDEX..],
-        ];
+        ]
+        .concat();
 
-        //Uses unchecked because ``AccountAddress`` can not be created with invalid UTF-8 characters
-        unsafe {
-            let slice = std::slice::from_raw_parts(
-                truncated.as_ptr() as *const u8,
-                Self::TRUNCATED_LONG_LEN,
-            );
-            std::str::from_utf8_unchecked(slice)
-        }
+        String::from_utf8(truncated)
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
     }
 
-    pub fn checksum(&self) -> [u8; Self::CHECKSUM_LEN] {
+    pub fn checksum(&self) -> [u8; Self::CHECKSUM_LENGTH] {
         self.0[Self::CHECKSUM_START_INDEX..]
             .try_into()
-            .unwrap_or_else(|_| unreachable!("Invalid Checksum Length"))
+            .unwrap_unreachable(debug_info!("Invalid Checksum Length"))
+    }
+
+    pub fn checksum_slice(&self) -> &[u8] {
+        &self.0[Self::CHECKSUM_START_INDEX..]
     }
 
     pub fn checksum_str(&self) -> &str {
         std::str::from_utf8(&self.0[Self::CHECKSUM_START_INDEX..])
-            .unwrap_or_else(|_| unreachable!("Invalid UTF-8 in AccountAddress"))
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
     }
 
-    // Uses unsafe because ``AccountAddress`` can not be created with invalid UTF-8 characters
-    // pub fn truncate(&self) -> String {
-    //     let mut truncated = String::with_capacity(ACC_TRUNCATE_LEN);
-    //     truncated.push_str(unsafe { std::str::from_utf8_unchecked(&self.0[0..4]) });
-    //     truncated.push_str("...");
-    //     truncated.push_str(unsafe {
-    //         std::str::from_utf8_unchecked(&self.0[ACC_ADDR_LENGTH - 6..])
-    //     });
-    //     truncated
-    // }
+    pub fn checksum_double(&self) -> &[u8] {
+        &self.0[Self::CHECKSUM_DOUBLE_START_INDEX..]
+    }
 }
 
 impl FromStr for AccountAddress {
@@ -158,7 +167,7 @@ impl TryFrom<&[u8]> for AccountAddress {
 impl ToString for AccountAddress {
     fn to_string(&self) -> String {
         String::from_utf8(self.0.to_vec())
-            .unwrap_or_else(|_| unreachable!("Invalid Utf8 in AccountAddress"))
+            .unwrap_unreachable(debug_info!("Invalid Utf8 in AccountAddress"))
     }
 }
 
@@ -203,26 +212,4 @@ impl rusqlite::types::ToSql for AccountAddress {
             rusqlite::types::ValueRef::Blob(&self.0),
         ))
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_truncate_str() {
-        let addr = AccountAddress::from_str(
-            "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
-        )
-        .unwrap();
-
-        let truncated = addr.truncate_str();
-        assert!(truncated == "acco...t2a5ax");
-
-        let truncated_long = addr.truncate_long_str();
-        assert!(truncated_long == "account_rdx1...t2a5ax");
-    }
-
-    #[test]
-    fn test_truncate_long_str() {}
 }

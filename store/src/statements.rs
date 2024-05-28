@@ -17,7 +17,7 @@ pub mod create {
             address BLOB NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
             symbol TEXT NOT NULL,
-            current_supply TEXT NOT NULL,
+            total_supply TEXT NOT NULL,
             description TEXT NOT NULL,
             last_updated INTEGER NOT NULL,
             metadata BLOB NOT NULL
@@ -26,7 +26,7 @@ pub mod create {
 
     pub const CREATE_TABLE_FUNGIBLE_ASSETS: &'static str = "CREATE TABLE IF NOT EXISTS 
         fungible_assets (
-            id BLOB NOT NULL PRIMARY KEY,
+            id TEXT NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             amount TEXT NOT NULL,
             last_updated INTEGER NOT NULL,
@@ -38,7 +38,7 @@ pub mod create {
 
     pub const CREATE_TABLE_NON_FUNGIBLE_ASSETS: &'static str = "CREATE TABLE IF NOT EXISTS 
         non_fungible_assets (
-            asset_id BLOB NOT NULL PRIMARY KEY,
+            id TEXT NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             nfids BLOB NOT NULL,
             last_updated INTEGER NOT NULL,

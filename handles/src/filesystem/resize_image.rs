@@ -2,7 +2,7 @@ use std::{io::BufWriter, num::NonZeroU32};
 
 use debug_print::debug_println;
 use fast_image_resize as fr;
-use image::{codecs::png::PngEncoder, ColorType, DynamicImage, ImageEncoder};
+use image::{codecs::png::PngEncoder, DynamicImage, ExtendedColorType, ImageEncoder};
 
 const RESIZE_ALGORITHM: fr::ResizeAlg = fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3);
 
@@ -109,7 +109,7 @@ pub fn resize_image(
             dst_image.buffer(),
             new_width.get(),
             new_height.get(),
-            ColorType::Rgba8,
+            ExtendedColorType::Rgba8,
         )
         .inspect_err(|err| {
             debug_println!(
@@ -123,8 +123,6 @@ pub fn resize_image(
     Some(result_buf)
 }
 
-
-
 fn iced_resize_image(image: &DynamicImage, new_height: u32, new_width: u32) -> DynamicImage {
     image.resize(new_width, new_height, image::imageops::FilterType::Lanczos3)
 }
@@ -132,8 +130,6 @@ fn iced_resize_image(image: &DynamicImage, new_height: u32, new_width: u32) -> D
 #[cfg(test)]
 mod test {
     use std::{io::Write, path::PathBuf};
-
-    
 
     use super::*;
 

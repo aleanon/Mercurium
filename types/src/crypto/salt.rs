@@ -1,16 +1,19 @@
+use super::encryption_error::EncryptionError;
 use ring::rand::{SecureRandom, SystemRandom};
+use serde::{Deserialize, Serialize};
 use zeroize::ZeroizeOnDrop;
-use super::{key::KEY_LENGTH, encryption_error::EncryptionError};
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, ZeroizeOnDrop, Serialize, Deserialize)]
-pub struct Salt([u8; KEY_LENGTH]);
+pub struct Salt([u8; Self::LENGTH]);
 
+impl Salt {
+    pub const LENGTH: usize = 32;
 
-impl Salt{
     pub fn new() -> Result<Self, EncryptionError> {
-        let mut salt = [0u8; KEY_LENGTH];
-        SystemRandom::new().fill(&mut salt).map_err(|_| EncryptionError::FailedToCreateRandomValue)?;
+        let mut salt = [0u8; Self::LENGTH];
+        SystemRandom::new()
+            .fill(&mut salt)
+            .map_err(|_| EncryptionError::FailedToCreateRandomValue)?;
         Ok(Self(salt))
     }
 
@@ -18,7 +21,7 @@ impl Salt{
         &self.0
     }
 
-    pub fn to_inner(self) -> [u8; KEY_LENGTH] {
+    pub fn to_inner(self) -> [u8; Self::LENGTH] {
         self.0
     }
 }

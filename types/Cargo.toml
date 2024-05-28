@@ -10,7 +10,6 @@ edition = "2021"
 scrypto.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-rusqlite.workspace = true
 ring.workspace = true
 thiserror.workspace = true
 bytes.workspace = true
@@ -20,8 +19,12 @@ tiny-bip39 = { workspace = true }
 ed25519-dalek-fiat = { workspace = true }
 slip10_ed25519 = { workspace = true }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
-reqwest = { workspace = true }
 debug_print = { workspace = true }
+rusqlite.workspace = true
+reqwest = { workspace = true }
+regex = { workspace = true }
+once_cell = "1.19.0"
+const_format = "0.2.32"
 
 [dev-dependencies]
 rand = "0.8.5"

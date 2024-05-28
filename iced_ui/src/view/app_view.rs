@@ -117,19 +117,18 @@ impl<'a> AppView {
             .center_y();
 
         let theme_button_text = format!("{}", app.app_data.settings.theme);
-        let theme_icon = text(iced_aw::BootstrapIcon::Palette).font(iced_aw::BOOTSTRAP_FONT);
+        let theme_icon = text(iced_aw::Bootstrap::Palette).font(iced_aw::BOOTSTRAP_FONT);
         let toggle_theme_button =
             Self::menu_button(theme_icon, &theme_button_text, Message::ToggleTheme.into());
 
-        let accounts_icon = text(iced_aw::BootstrapIcon::PersonVcard).font(iced_aw::BOOTSTRAP_FONT);
+        let accounts_icon = text(iced_aw::Bootstrap::PersonVcard).font(iced_aw::BOOTSTRAP_FONT);
         let mut accounts_button = Self::menu_button(
             accounts_icon,
             "Accounts",
             AppViewMessage::SelectTab(TabId::Accounts).into(),
         );
 
-        let transaction_icon =
-            text(iced_aw::BootstrapIcon::ArrowBarUp).font(iced_aw::BOOTSTRAP_FONT);
+        let transaction_icon = text(iced_aw::Bootstrap::ArrowBarUp).font(iced_aw::BOOTSTRAP_FONT);
         let message = match &self.active_tab {
             ActiveTab::Transfer(_) => {
                 AppViewMessage::TransferMessage(TransactionMessage::OverView).into()

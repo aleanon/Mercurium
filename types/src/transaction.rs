@@ -5,7 +5,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{unwrap_unreachable::UnwrapUnreachable, AccountAddress, Decimal, ResourceAddress};
+use crate::{
+    address::transaction_address::TransactionAddress, debug_info,
+    unwrap_unreachable::UnwrapUnreachable, AccountAddress, Address, Decimal, ResourceAddress,
+};
 
 // use anyhow::Result;
 
@@ -16,11 +19,31 @@ pub enum TransactionError {
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
-    pub id: TransactionId,    //primary key
-    pub timestamp: TimeStamp, //placeholder type
+    pub id: TransactionId, //primary key
+    pub address: TransactionAddress,
+    pub timestamp: TimeStamp,
     pub state_version: u64,
-    pub balance_changes: HashMap<AccountAddress, BTreeMap<ResourceAddress, Decimal>>,
-    pub status: TransactionStatus,
+    pub withdraws: Vec<(ResourceAddress, String)>,
+    pub deposits: Vec<(ResourceAddress, String)>,
+}
+
+impl Transaction {
+    pub fn new(
+        timestamp: TimeStamp,
+        state_version: u64,
+        withdraws: Vec<(ResourceAddress, String)>,
+        account_address: &AccountAddress,
+        transaction_address: TransactionAddress,
+    ) -> Self {
+        Self {
+            id: TransactionId::new(&account_address, &transaction_address),
+            address: transaction_address,
+            timestamp,
+            state_version,
+            withdraws,
+            deposits: Vec::new(),
+        }
+    }
 }
 
 impl PartialOrd for Transaction {
@@ -46,7 +69,7 @@ impl PartialOrd for Transaction {
 }
 
 impl Ord for Transaction {
-    fn cmp(&self, other: &Self) -> scrypto::prelude::rust::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         if self.timestamp == other.timestamp {
             self.id.cmp(&self.id)
         } else if self.timestamp < other.timestamp {
@@ -75,24 +98,28 @@ pub struct TransactionId([u8; Self::LENGTH]);
 impl TransactionId {
     pub const CHECKSUM_LEN: usize = 6;
     const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LEN;
-    const LENGTH: usize = 30;
+    const FROM_ACCOUNT_ADDRESS_LENGTH: usize = AccountAddress::CHECKSUM_LENGTH * 2;
+    const LENGTH: usize =
+        AccountAddress::CHECKSUM_LENGTH * 2 + TransactionAddress::CHECKSUM_LENGTH * 2;
+    const LENGTH_HALF: usize = Self::LENGTH / 2;
 
-    pub fn from_str(s: &str) -> Result<Self, TransactionError> {
-        if !s.is_ascii() {
-            return Err(TransactionError::TxIdNonAsciiChar);
-        }
-        Ok(Self(s.as_bytes().try_into().map_err(|_| {
-            TransactionError::InvalidIdLength {
-                expected: Self::LENGTH,
-                found: s.len(),
-            }
-        })?))
+    pub fn new(account_address: &AccountAddress, tx_address: &TransactionAddress) -> Self {
+        let mut transaction_id = [0u8; Self::LENGTH];
+        transaction_id[..Self::FROM_ACCOUNT_ADDRESS_LENGTH]
+            .copy_from_slice(&account_address.checksum_double());
+        transaction_id[Self::FROM_ACCOUNT_ADDRESS_LENGTH..]
+            .copy_from_slice(&tx_address.checksum_double());
+        Self(transaction_id)
     }
 
     pub fn checksum(&self) -> [u8; Self::CHECKSUM_LEN] {
         self.0[Self::CHECKSUM_START_INDEX..]
             .try_into()
-            .unwrap_unreachable("Invalid checksum length")
+            .unwrap_unreachable(debug_info!("Invalid checksum length"))
+    }
+
+    pub fn checksum_slice(&self) -> &[u8] {
+        &self.0[Self::CHECKSUM_START_INDEX..]
     }
 }
 
@@ -211,7 +238,7 @@ pub struct BalanceChange {
     id: BalanceChangeId,
     account: AccountAddress,
     resource: ResourceAddress,
-    amount: Decimal,
+    amount: String,
 }
 
 impl BalanceChange {
@@ -219,13 +246,13 @@ impl BalanceChange {
         transaction: TransactionId,
         account: AccountAddress,
         resource: ResourceAddress,
-        amount: Decimal,
+        amount: String,
     ) -> Self {
         Self {
             id: BalanceChangeId::new(
-                transaction.checksum(),
-                account.checksum(),
-                resource.checksum(),
+                transaction.checksum_slice(),
+                account.checksum_slice(),
+                resource.checksum_slice(),
             ),
             account,
             resource,
@@ -237,20 +264,21 @@ impl BalanceChange {
 pub struct BalanceChangeId([u8; Self::LENGTH]);
 
 impl BalanceChangeId {
-    const LENGTH: usize =
-        TransactionId::CHECKSUM_LEN + AccountAddress::CHECKSUM_LEN + ResourceAddress::CHECKSUM_LEN;
-    const LAST_CHECKSUM_START: usize = TransactionId::CHECKSUM_LEN + AccountAddress::CHECKSUM_LEN;
+    const LENGTH: usize = TransactionId::CHECKSUM_LEN
+        + AccountAddress::CHECKSUM_LENGTH
+        + ResourceAddress::CHECKSUM_LEN;
 
-    pub fn new(
-        tx_checksum: [u8; TransactionId::CHECKSUM_LEN],
-        account_checksum: [u8; AccountAddress::CHECKSUM_LEN],
-        resource_checksum: [u8; ResourceAddress::CHECKSUM_LEN],
-    ) -> Self {
+    const LAST_CHECKSUM_START: usize =
+        TransactionId::CHECKSUM_LEN + AccountAddress::CHECKSUM_LENGTH;
+
+    pub fn new(tx_checksum: &[u8], account_checksum: &[u8], resource_checksum: &[u8]) -> Self {
         let mut id = [0u8; Self::LENGTH];
-        id[..TransactionId::CHECKSUM_LEN].copy_from_slice(&tx_checksum);
-        id[TransactionId::CHECKSUM_LEN..AccountAddress::CHECKSUM_LEN]
-            .copy_from_slice(&account_checksum);
-        id[Self::LAST_CHECKSUM_START..].copy_from_slice(&resource_checksum);
+
+        id[..TransactionId::CHECKSUM_LEN].copy_from_slice(tx_checksum);
+        id[TransactionId::CHECKSUM_LEN..AccountAddress::CHECKSUM_LENGTH]
+            .copy_from_slice(account_checksum);
+        id[Self::LAST_CHECKSUM_START..].copy_from_slice(resource_checksum);
+
         Self(id)
     }
 }

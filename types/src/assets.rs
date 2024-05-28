@@ -1,30 +1,47 @@
-use crate::{AccountAddress, NFIDs, ResourceAddress};
+use std::{
+    collections::{BTreeSet, HashMap},
+    ops::Deref,
+};
+
+use crate::{
+    debug_info, unwrap_unreachable::UnwrapUnreachable, AccountAddress, NFIDs, ResourceAddress,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct AssetId(String, [u8; Self::COMBINED_CHECKSUM_LEN]);
+pub struct AssetId(Vec<u8>);
 
 impl AssetId {
-    const COMBINED_CHECKSUM_LEN: usize =
-        AccountAddress::CHECKSUM_LEN + ResourceAddress::CHECKSUM_LEN;
-    const HALF_CHECKSUM_LEN: usize = Self::COMBINED_CHECKSUM_LEN / 2;
+    const CHECKSUM_LEN: usize = AccountAddress::CHECKSUM_LENGTH + ResourceAddress::CHECKSUM_LEN;
 
     pub fn new(
         symbol: String,
         account_address: &AccountAddress,
         resource_address: &ResourceAddress,
     ) -> Self {
-        let mut checksum = [0u8; Self::COMBINED_CHECKSUM_LEN];
-        checksum[..Self::HALF_CHECKSUM_LEN].copy_from_slice(&account_address.checksum());
-        checksum[Self::HALF_CHECKSUM_LEN..].copy_from_slice(&resource_address.checksum());
-        Self(symbol, checksum)
+        let assetid = [
+            symbol.as_bytes(),
+            account_address.checksum_slice(),
+            resource_address.checksum_slice(),
+        ]
+        .concat();
+
+        Self(assetid)
+    }
+
+    pub fn as_str(&self) -> &str {
+        std::str::from_utf8(&self.0).unwrap_unreachable(debug_info!("Invalid utf8 in AssetId"))
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
     }
 }
 
 impl rusqlite::types::ToSql for AssetId {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(rusqlite::types::ToSqlOutput::Owned(
-            rusqlite::types::Value::Blob([self.0.as_bytes(), self.1.as_slice()].concat()),
+        Ok(rusqlite::types::ToSqlOutput::Borrowed(
+            rusqlite::types::ValueRef::Text(&self.0),
         ))
     }
 }
@@ -32,21 +49,7 @@ impl rusqlite::types::ToSql for AssetId {
 impl rusqlite::types::FromSql for AssetId {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
-            rusqlite::types::ValueRef::Blob(slice) => {
-                let (symbol, checksum) = slice.split_at(slice.len() - Self::COMBINED_CHECKSUM_LEN);
-                let symbol = String::from_utf8(symbol.to_owned())
-                    .map_err(|_| rusqlite::types::FromSqlError::InvalidType)?;
-
-                let checksum: [u8; Self::COMBINED_CHECKSUM_LEN] =
-                    checksum.try_into().map_err(|_| {
-                        rusqlite::types::FromSqlError::InvalidBlobSize {
-                            expected_size: Self::COMBINED_CHECKSUM_LEN,
-                            blob_size: checksum.len(),
-                        }
-                    })?;
-
-                Ok(Self(symbol, checksum))
-            }
+            rusqlite::types::ValueRef::Text(slice) => Ok(Self(slice.to_vec())),
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }
@@ -58,7 +61,7 @@ pub struct FungibleAsset {
     pub id: AssetId,
     pub resource_address: ResourceAddress,
     pub amount: String,
-    pub last_updated: usize,
+    pub last_updated: u64,
 }
 
 impl FungibleAsset {
@@ -67,7 +70,7 @@ impl FungibleAsset {
         account_address: &AccountAddress,
         amount: String,
         resource_address: ResourceAddress,
-        last_updated: usize,
+        last_updated: u64,
     ) -> Self {
         let id = AssetId::new(symbol, account_address, &resource_address);
         Self {
@@ -78,7 +81,7 @@ impl FungibleAsset {
         }
     }
 
-    pub fn update_with_new_amount(&mut self, amount: String, state_version: usize) {
+    pub fn update_with_new_amount(&mut self, amount: String, state_version: u64) {
         self.amount = amount;
         self.last_updated = state_version;
     }
@@ -88,7 +91,7 @@ pub struct NonFungibleAsset {
     pub id: AssetId,
     pub resource_address: ResourceAddress,
     pub nfids: NFIDs,
-    pub last_updated: usize,
+    pub last_updated: u64,
 }
 
 impl NonFungibleAsset {
@@ -97,7 +100,7 @@ impl NonFungibleAsset {
         account_address: &AccountAddress,
         nfids: NFIDs,
         resource_address: ResourceAddress,
-        last_updated: usize,
+        last_updated: u64,
     ) -> Self {
         let id = AssetId::new(symbol, account_address, &resource_address);
         Self {
@@ -106,6 +109,40 @@ impl NonFungibleAsset {
             nfids,
             last_updated,
         }
+    }
+}
+
+pub struct NewAssets {
+    pub new_fungibles: BTreeSet<ResourceAddress>,
+    pub new_non_fungibles: NewNonFungibles,
+}
+
+impl NewAssets {
+    pub fn new() -> Self {
+        Self {
+            new_fungibles: BTreeSet::new(),
+            new_non_fungibles: NewNonFungibles::new(),
+        }
+    }
+}
+
+pub struct NewNonFungibles(HashMap<ResourceAddress, Vec<String>>);
+
+impl NewNonFungibles {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn insert(&mut self, resource_address: &ResourceAddress, nfid: String) {
+        if let Some(nfids) = self.0.get_mut(resource_address) {
+            nfids.push(nfid)
+        } else {
+            self.0.insert(resource_address.clone(), vec![nfid]);
+        }
+    }
+
+    pub fn inner(self) -> HashMap<ResourceAddress, Vec<String>> {
+        self.0
     }
 }
 
@@ -123,7 +160,7 @@ mod test {
         connection
             .execute(
                 "CREATE TABLE IF NOT EXISTS fungible_assets (
-                id BLOB NOT NULL PRIMARY KEY,
+                id TEXT NOT NULL PRIMARY KEY,
                 resource_address BLOB NOT NULL,
                 amount TEXT NOT NULL,
                 last_updated INTEGER NOT NULL)",
@@ -170,10 +207,9 @@ mod test {
             })
             .unwrap();
 
-        assert_eq!(fungible_asset.id.0, "GUM".to_string());
         assert_eq!(
-            std::str::from_utf8(fungible_asset.id.1.as_slice()).unwrap(),
-            "t2a5axq7fclq"
+            String::from_utf8(fungible_asset.id.0).unwrap(),
+            "GUMt2a5axq7fclq".to_string()
         );
     }
 }

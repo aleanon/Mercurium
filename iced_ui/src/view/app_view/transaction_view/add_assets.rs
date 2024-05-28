@@ -2,9 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use iced::{
     theme,
-    widget::{
-        self, button, checkbox, column, container, row, text, Container, TextInput,
-    },
+    widget::{self, button, checkbox, column, container, row, text, Container, TextInput},
     Element, Length, Padding,
 };
 
@@ -214,7 +212,7 @@ impl<'a> AddAssets {
                     })
                     .unwrap_or(
                         container(
-                            text(iced_aw::BootstrapIcon::Image)
+                            text(iced_aw::Bootstrap::Image)
                                 .font(iced_aw::BOOTSTRAP_FONT)
                                 .size(30),
                         )

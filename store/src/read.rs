@@ -4,11 +4,102 @@ use rusqlite::OptionalExtension;
 
 use super::{AsyncDb, Db};
 use types::{
-    account::Account, fungibles, non_fungibles, AccountAddress, Ed25519PublicKey, EntityAccount,
-    Fungible, Fungibles, NonFungible, NonFungibles, ResourceAddress,
+    account::Account,
+    assets::{FungibleAsset, NonFungibleAsset},
+    fungibles, non_fungibles,
+    resource::Resource,
+    AccountAddress, Ed25519PublicKey, EntityAccount, Fungible, Fungibles, NonFungible,
+    NonFungibles, ResourceAddress,
 };
 
 impl Db {
+    pub fn get_fungible_assets_for_accounts(
+        &self,
+        account_addresses: &[AccountAddress],
+    ) -> Result<HashMap<AccountAddress, HashMap<ResourceAddress, FungibleAsset>>, rusqlite::Error>
+    {
+        let mut fungibles_by_account = HashMap::new();
+
+        let mut stmt = self
+            .connection
+            .prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?;
+
+        for account_address in account_addresses {
+            let fungible_assets = stmt
+                .query_map([account_address.as_str()], |row| {
+                    let fungible_asset = FungibleAsset {
+                        id: row.get(0)?,
+                        resource_address: row.get(1)?,
+                        amount: row.get(2)?,
+                        last_updated: row.get(3)?,
+                    };
+
+                    Ok((fungible_asset.resource_address.clone(), fungible_asset))
+                })?
+                .filter_map(|result| result.ok())
+                .collect();
+
+            fungibles_by_account.insert(account_address.clone(), fungible_assets);
+        }
+
+        Ok(fungibles_by_account)
+    }
+
+    pub fn get_non_fungible_assets_for_accounts(
+        &self,
+        account_addresses: &[AccountAddress],
+    ) -> Result<HashMap<AccountAddress, HashMap<ResourceAddress, NonFungibleAsset>>, rusqlite::Error>
+    {
+        let mut fungibles_by_account = HashMap::new();
+
+        let mut stmt = self
+            .connection
+            .prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?;
+
+        for account_address in account_addresses {
+            let fungible_assets = stmt
+                .query_map([account_address.as_str()], |row| {
+                    let non_fungible_asset = NonFungibleAsset {
+                        id: row.get(0)?,
+                        resource_address: row.get(1)?,
+                        nfids: row.get(2)?,
+                        last_updated: row.get(3)?,
+                    };
+
+                    Ok((
+                        non_fungible_asset.resource_address.clone(),
+                        non_fungible_asset,
+                    ))
+                })?
+                .filter_map(|result| result.ok())
+                .collect();
+
+            fungibles_by_account.insert(account_address.clone(), fungible_assets);
+        }
+
+        Ok(fungibles_by_account)
+    }
+
+    pub fn get_all_resources(&self) -> Result<HashMap<ResourceAddress, Resource>, rusqlite::Error> {
+        Ok(self
+            .connection
+            .prepare_cached("SELECT * FROM resources")?
+            .query_map([], |row| {
+                let resource = Resource {
+                    address: row.get(0)?,
+                    name: row.get(1)?,
+                    symbol: row.get(2)?,
+                    total_supply: row.get(3)?,
+                    description: row.get(4)?,
+                    last_updated: row.get(5)?,
+                    metadata: row.get(6)?,
+                };
+                Ok((resource.address.clone(), resource))
+            })?
+            .filter_map(|result| result.ok())
+            .collect())
+    }
+
     pub fn get_fungible(
         &self,
         resource_address: &ResourceAddress,
@@ -197,27 +288,6 @@ impl AsyncDb {
             .await?;
         Ok(result)
     }
-
-    // pub async fn get_all_non_fungibles(&self) -> Result<HashMap<AccountAddress, NonFungible>, rusqlite::Error> {
-    //     self.connection.call_unwrap(|conn| {
-    //         conn.prepare_cached("SELECT * FROM non_fungibles")?
-    //         .query_map([], |row| {
-    //             let account:AccountAddress = row.get(8)?;
-    //             let non_fungible = NonFungible {
-    //                 address: row.get(0)?,
-    //                 name: row.get(1)?,
-    //                 symbol: row.get(2)?,
-    //                 icon: row.get(3)?,
-    //                 description: row.get(4)?,
-    //                 nfids: row.get(5)?,
-    //                 last_updated_at_state_version: row.get(6)?,
-    //                 metadata: row.get(7)?,
-    //             };
-    //             Ok((account, non_fungible))
-    //         })?
-    //         .collect()
-    //     }).await
-    // }
 
     pub async fn get_non_fungibles_by_account(
         &self,

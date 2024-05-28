@@ -43,7 +43,7 @@ impl<'a> FungibleView {
                     .into()
             } else {
                 container(
-                    text(iced_aw::BootstrapIcon::Image)
+                    text(iced_aw::Bootstrap::Image)
                         .font(iced_aw::BOOTSTRAP_FONT)
                         .size(100),
                 )

@@ -1,6 +1,6 @@
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use ed25519_dalek_fiat::{PublicKey, SecretKey};
-use scrypto::prelude::radix_engine_common::prelude::*;
+use scrypto::prelude::{AddressBech32Encoder, ComponentAddress, NetworkDefinition};
 use types::{
     crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair},
     Account, AccountAddress, Network,

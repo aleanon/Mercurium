@@ -1,4 +1,6 @@
-use scrypto::prelude::radix_engine_common::crypto::Ed25519PublicKey;
+use scrypto::crypto::Ed25519PublicKey;
+
+use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 use super::{entity_account::Settings, AccountAddress, Network};
 
@@ -67,7 +69,7 @@ impl Account {
         for i in 0..path.len() {
             let bytes = self.derivation_path[i * 4..i * 4 + 4]
                 .try_into()
-                .unwrap_or_else(|_| unreachable!("Failed to convert derivation path from bytes"));
+                .unwrap_unreachable(debug_info!("Failed to convert derivation path from bytes"));
             path[i] = u32::from_be_bytes(bytes);
         }
 

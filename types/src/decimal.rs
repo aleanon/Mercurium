@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use scrypto::prelude::radix_engine_common::math::Decimal as RadixDecimal;
+use scrypto::math::Decimal as RadixDecimal;
 
 ///Newtype wrapper around the radix engine Decimal type
 #[derive(Debug, Clone)]
