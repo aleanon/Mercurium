@@ -1,8 +1,8 @@
 use std::{io::BufWriter, num::NonZeroU32};
 
 use debug_print::debug_println;
-use image::{codecs::png::PngEncoder, ColorType, DynamicImage, ImageEncoder};
 use fast_image_resize as fr;
+use image::{codecs::png::PngEncoder, DynamicImage, ExtendedColorType, ImageEncoder};
 
 const IMAGE_STANDARD_WIDTH: u32 = 150;
 const IMAGE_STANDARD_HEIGHT: u32 = 150;
@@ -114,7 +114,7 @@ pub fn fast_resize(
             dst_image.buffer(),
             new_width.get(),
             new_height.get(),
-            ColorType::Rgba8,
+            ExtendedColorType::Rgba8,
         )
         .inspect_err(|err| {
             debug_println!(
@@ -128,12 +128,6 @@ pub fn fast_resize(
     Some(result_buf)
 }
 
-
 fn resize_standard_dimensions(image: &DynamicImage) -> DynamicImage {
-    image.resize(
-      IMAGE_STANDARD_WIDTH,
-      IMAGE_STANDARD_HEIGHT, 
-      FILTER_TYPE,
-    )
+    image.resize(IMAGE_STANDARD_WIDTH, IMAGE_STANDARD_HEIGHT, FILTER_TYPE)
 }
-

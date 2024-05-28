@@ -12,3 +12,8 @@ pub const GET_FUNGIBLE_VAULTS_MAINNET: &str =
     "https://mainnet.radixdlt.com/state/entity/page/fungible-vaults/";
 pub const GET_FUNGIBLE_VAULTS_STOKENET: &str =
     "https://stokenet.radixdlt.com/state/entity/page/fungible-vaults/";
+
+pub const GET_TRANSACTIONS_STREAM_MAINNET: &str =
+    "https://mainnet.radixdlt.com/stream/transactions";
+pub const GET_TRANSACTIONS_STREAM_STOKENET: &str =
+    "https://stokenet.radixdlt.com/stream/transactions";

@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use thiserror::Error;
 use types::crypto::{Password, Salt};
+use types::debug_info;
+use types::unwrap_unreachable::UnwrapUnreachable;
 use windows::core::HSTRING;
 use windows::Win32::Foundation::E_POINTER;
 use zeroize::Zeroize;
@@ -242,7 +244,7 @@ impl EncryptedMnemonic {
                         result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
                             Box::new(windows::core::Error::new(
                                 E_POINTER,
-                                HSTRING::from("Null pointer received for credentials."),
+                                "Null pointer received for credentials.",
                             )),
                         ))
                     }

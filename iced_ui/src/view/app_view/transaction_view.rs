@@ -231,7 +231,7 @@ impl<'a> TransactionView {
                 let address = text(address).size(15).line_height(1.5).width(Length::Fill);
 
                 let mut remove_recipient_button = button(
-                    text(iced_aw::BootstrapIcon::XLg)
+                    text(iced_aw::Bootstrap::XLg)
                         .font(iced_aw::BOOTSTRAP_FONT)
                         .line_height(1.),
                 )
@@ -271,7 +271,7 @@ impl<'a> TransactionView {
                         })
                         .unwrap_or(
                             container(
-                                text(iced_aw::BootstrapIcon::Image)
+                                text(iced_aw::Bootstrap::Image)
                                     .font(iced_aw::BOOTSTRAP_FONT)
                                     .size(18),
                             )
@@ -309,7 +309,7 @@ impl<'a> TransactionView {
                         });
 
                     let remove_resource = widget::button(
-                        text(iced_aw::BootstrapIcon::XLg)
+                        text(iced_aw::Bootstrap::XLg)
                             .font(iced_aw::BOOTSTRAP_FONT)
                             .size(15)
                             .line_height(1.),

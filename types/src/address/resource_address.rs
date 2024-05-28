@@ -5,6 +5,9 @@ use std::str::FromStr;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 
+use crate::unwrap_unreachable::UnwrapUnreachable;
+use crate::{debug_info, Address};
+
 use super::ParseAddrError;
 
 const RESOURCE_ADDRESS_LEN: usize = 67;
@@ -31,32 +34,44 @@ const RES_ADDR_TRUNCATE_LEN: usize = 13;
 pub struct ResourceAddress([u8; RESOURCE_ADDRESS_LEN]);
 
 impl ResourceAddress {
+    pub const LENGTH: usize = 67;
     pub const CHECKSUM_LEN: usize = 6;
+    pub const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LEN;
 
     pub fn as_ref(&self) -> &[u8] {
         &self.0
     }
 
-    // Uses unsafe because ``ResourceAddress`` can not be created with invalid UTF-8 characters
     pub fn as_str(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.0) }
+        std::str::from_utf8(&self.0)
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in resource address"))
     }
 
-    // Uses unsafe because ``ResourceAddress`` can not be created with invalid UTF-8 characters
     pub fn truncate(&self) -> String {
-        let mut truncated = String::with_capacity(RES_ADDR_TRUNCATE_LEN);
-        truncated.push_str(unsafe { std::str::from_utf8_unchecked(&self.0[0..4]) });
-        truncated.push_str("...");
-        truncated.push_str(unsafe {
-            std::str::from_utf8_unchecked(&self.0[RESOURCE_ADDRESS_LEN - 6..RESOURCE_ADDRESS_LEN])
-        });
-        truncated
+        let truncated = [
+            &self.0[..Address::TRUNCATE_PREFIX_LEN],
+            Address::TRUNCATE_DOTS.as_bytes(),
+            &self.0[Self::CHECKSUM_START_INDEX..],
+        ]
+        .concat();
+
+        String::from_utf8(truncated)
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in resource address"))
     }
 
     pub fn checksum(&self) -> [u8; 6] {
-        self.0[RESOURCE_ADDRESS_LEN - 6..]
+        self.0[Self::CHECKSUM_START_INDEX..]
             .try_into()
             .unwrap_or_else(|_| unreachable!())
+    }
+
+    pub fn checksum_str(&self) -> &str {
+        std::str::from_utf8(&self.0[Self::CHECKSUM_START_INDEX..])
+            .unwrap_unreachable(debug_info!("Invalid UTF-8 in ResourceAddress"))
+    }
+
+    pub fn checksum_slice(&self) -> &[u8] {
+        &self.0[Self::CHECKSUM_START_INDEX..]
     }
 }
 

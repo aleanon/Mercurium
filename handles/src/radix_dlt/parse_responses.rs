@@ -7,9 +7,23 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use image::imageops::FilterType;
-use types::non_fungibles::NonFungible;
-use types::response_models::{Entity, FungibleResource, NonFungibleResource};
-use types::{AppPath, Fungible, Icon, MetaData, NFIDs, RadixDecimal, ResourceAddress};
+use radix_gateway_sdk::generated::model::{
+    FungibleResourcesCollection, FungibleResourcesCollectionItem, NonFungibleResourcesCollection,
+    StateEntityDetailsResponse,
+};
+use types::assets::{AssetId, FungibleAsset, NewAssets, NewNonFungibles, NonFungibleAsset};
+use types::response_models::accounts_details::{
+    AccountsDetails, NonFungibleResourceVaultAggregated,
+};
+use types::response_models::{
+    Entity, FungibleResource, FungibleResourceVaultAggregated, NonFungibleResource,
+    TransactionsResponse,
+};
+use types::{non_fungibles::NonFungible, Account};
+use types::{
+    AccountAddress, AppPath, Decimal, Fungible, Icon, MetaData, NFIDs, RadixDecimal,
+    ResourceAddress, NFID,
+};
 
 use crate::filesystem::resize_image::resize_image;
 
@@ -179,4 +193,219 @@ async fn download_icon(url: &String, icon_path: Option<&mut PathBuf>) -> Option<
     let icon = Icon::new(Bytes::from(inner));
 
     Some(icon)
+}
+
+// pub fn parse_transactions_response(response: TransactionsResponse) -> Result<Transaction> {}
+
+pub fn update_assets_from_accounts_details_response(
+    fungible_assets: &mut HashMap<AccountAddress, HashMap<ResourceAddress, FungibleAsset>>,
+    non_fungible_assets: &mut HashMap<AccountAddress, HashMap<ResourceAddress, NonFungibleAsset>>,
+    entity_response: StateEntityDetailsResponse,
+) -> NewAssets {
+    let mut new_assets = NewAssets::new();
+
+    for account in entity_response.items {
+        let account_address = match AccountAddress::from_str(&account.address) {
+            Ok(address) => address,
+            Err(_) => continue,
+        };
+
+        if let Some(fungible_resources_response) = account.fungible_resources {
+            if let Some(fungible_assets_for_account) = fungible_assets.get_mut(&account_address) {
+                update_fungible_assets_from_account_details_response(
+                    &mut new_assets,
+                    &account_address,
+                    fungible_assets_for_account,
+                    fungible_resources_response,
+                )
+            } else {
+                let mut fungible_assets_for_account = HashMap::new();
+                update_fungible_assets_from_account_details_response(
+                    &mut new_assets,
+                    &account_address,
+                    &mut fungible_assets_for_account,
+                    fungible_resources_response,
+                );
+                fungible_assets.insert(account_address.clone(), fungible_assets_for_account);
+            }
+        };
+
+        if let Some(non_fungible_resources_response) = account.non_fungible_resources {
+            if let Some(non_fungible_assets_for_account) =
+                non_fungible_assets.get_mut(&account_address)
+            {
+                update_non_fungible_assets_from_account_details_response(
+                    &mut new_assets,
+                    &account_address,
+                    non_fungible_assets_for_account,
+                    non_fungible_resources_response,
+                )
+            } else {
+                let mut non_fungible_assets_for_account = HashMap::new();
+                update_non_fungible_assets_from_account_details_response(
+                    &mut new_assets,
+                    &account_address,
+                    &mut non_fungible_assets_for_account,
+                    non_fungible_resources_response,
+                );
+                non_fungible_assets.insert(account_address, non_fungible_assets_for_account);
+            }
+        }
+    }
+    new_assets
+}
+
+fn update_fungible_assets_from_account_details_response(
+    new_assets: &mut NewAssets,
+    account_address: &AccountAddress,
+    assets: &mut HashMap<ResourceAddress, FungibleAsset>,
+    fungible_resources_response: FungibleResourcesCollection,
+) {
+    for non_fungible_resource in fungible_resources_response.items {
+        if let Ok(fungible_resource) =
+            serde_json::from_value::<FungibleResourceVaultAggregated>(non_fungible_resource.0)
+        {
+            let resource_address =
+                match ResourceAddress::from_str(&fungible_resource.resource_address) {
+                    Ok(address) => address,
+                    Err(_) => continue,
+                };
+
+            if let Some(asset) = assets.get_mut(&resource_address) {
+                let (last_updated, amount) = fungible_resource.vaults.items.iter().fold(
+                    (0, RadixDecimal::ZERO),
+                    |(mut last_updated, amount), vault| {
+                        let amount_parsed =
+                            RadixDecimal::from_str(&vault.amount).unwrap_or(RadixDecimal::ZERO);
+                        if last_updated < vault.last_updated_at_state_version {
+                            last_updated = vault.last_updated_at_state_version;
+                        }
+
+                        (last_updated, amount + amount_parsed)
+                    },
+                );
+
+                asset.last_updated = last_updated;
+                asset.amount = amount.to_string();
+            } else {
+                new_assets.new_fungibles.insert(resource_address.clone());
+
+                let symbol = fungible_resource
+                    .explicit_metadata
+                    .items
+                    .into_iter()
+                    .find_map(|metadataitem| {
+                        if metadataitem.key == "symbol" {
+                            Some(metadataitem.value.typed.value)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(String::new());
+
+                let (last_updated, amount) = fungible_resource.vaults.items.iter().fold(
+                    (0, RadixDecimal::ZERO),
+                    |(mut last_updated, amount), vault| {
+                        let amount_parsed =
+                            RadixDecimal::from_str(&vault.amount).unwrap_or(RadixDecimal::ZERO);
+                        if last_updated < vault.last_updated_at_state_version {
+                            last_updated = vault.last_updated_at_state_version;
+                        }
+
+                        (last_updated, amount + amount_parsed)
+                    },
+                );
+
+                let fungible_asset = FungibleAsset::new(
+                    symbol,
+                    &account_address,
+                    amount.to_string(),
+                    resource_address.clone(),
+                    last_updated,
+                );
+
+                assets.insert(resource_address, fungible_asset);
+            };
+        }
+    }
+}
+
+fn update_non_fungible_assets_from_account_details_response(
+    new_assets: &mut NewAssets,
+    account_address: &AccountAddress,
+    assets: &mut HashMap<ResourceAddress, NonFungibleAsset>,
+    non_fungible_resources_response: NonFungibleResourcesCollection,
+) {
+    for fungible_resource in non_fungible_resources_response.items {
+        if let Ok(non_fungible_resource) =
+            serde_json::from_value::<NonFungibleResourceVaultAggregated>(fungible_resource.0)
+        {
+            let resource_address =
+                match ResourceAddress::from_str(&non_fungible_resource.resource_address) {
+                    Ok(address) => address,
+                    Err(_) => continue,
+                };
+
+            if let Some(asset) = assets.get_mut(&resource_address) {
+                let mut newest_update = asset.last_updated;
+                for vault in non_fungible_resource.vaults.items {
+                    if vault.last_updated_at_state_version < asset.last_updated {
+                        continue;
+                    }
+
+                    for nfid_string in vault.items {
+                        let nfid = NFID::new(nfid_string);
+                        if !asset.nfids.contains(&nfid) {
+                            asset.nfids.insert(nfid.clone());
+                            new_assets
+                                .new_non_fungibles
+                                .insert(&resource_address, nfid.get_id());
+                        }
+                    }
+
+                    if vault.last_updated_at_state_version > newest_update {
+                        newest_update = vault.last_updated_at_state_version;
+                    }
+                }
+            } else {
+                let symbol = non_fungible_resource
+                    .explicit_metadata
+                    .items
+                    .into_iter()
+                    .find_map(|metadataitem| {
+                        if metadataitem.key == "symbol" {
+                            Some(metadataitem.value.typed.value)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(String::new());
+
+                let mut nfids = NFIDs::new();
+                let mut last_updated = 0;
+                for vault in non_fungible_resource.vaults.items {
+                    if last_updated < vault.last_updated_at_state_version {
+                        last_updated = vault.last_updated_at_state_version;
+                    }
+                    for nfid in vault.items {
+                        let nfid = NFID::new(nfid);
+                        nfids.insert(nfid.clone());
+                        new_assets
+                            .new_non_fungibles
+                            .insert(&resource_address, nfid.get_id());
+                    }
+                }
+
+                let non_fungible_asset = NonFungibleAsset::new(
+                    symbol,
+                    &account_address,
+                    nfids,
+                    resource_address.clone(),
+                    last_updated,
+                );
+
+                assets.insert(resource_address, non_fungible_asset);
+            }
+        }
+    }
 }

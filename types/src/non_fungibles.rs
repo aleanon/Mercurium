@@ -96,17 +96,28 @@ impl Ord for NonFungible {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NFIDs(Vec<NFID>);
+pub struct NFIDs(BTreeSet<NFID>);
 
 impl NFIDs {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self(BTreeSet::new())
     }
-    pub fn push(&mut self, nfid: NFID) {
-        self.0.push(nfid)
-    }
+
     pub fn nr_of_nfts(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl Deref for NFIDs {
+    type Target = BTreeSet<NFID>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for NFIDs {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -119,8 +130,6 @@ impl From<NFTVaults> for NFIDs {
                 .flat_map(|vault| {
                     vault.items.into_iter().map(|id| NFID {
                         id,
-                        description: None,
-                        icon: None,
                         nfdata: Vec::new(),
                     })
                 })
@@ -138,8 +147,6 @@ impl From<&NFTVaults> for NFIDs {
                 .flat_map(|vault| {
                     vault.items.iter().map(|id| NFID {
                         id: id.clone(),
-                        description: None,
-                        icon: None,
                         nfdata: Vec::new(),
                     })
                 })
@@ -148,59 +155,36 @@ impl From<&NFTVaults> for NFIDs {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq)]
 pub struct NFID {
     id: String,
-    icon: Option<Icon>,
-    description: Option<String>,
     nfdata: Vec<NFData>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl NFID {
+    pub fn new(id: String) -> Self {
+        Self {
+            id,
+            nfdata: Vec::new(),
+        }
+    }
+
+    pub fn get_id(self) -> String {
+        self.id
+    }
+}
+
+impl PartialEq<String> for NFID {
+    fn eq(&self, other: &String) -> bool {
+        &self.id == other
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NFData {
     key: String,
     value: String,
 }
-
-// impl From<NonFungibleResource> for NonFungible {
-//     fn from(value: NonFungibleResource) -> Self {
-//         let mut name = None;
-//         let mut symbol = String::with_capacity(0);
-//         let icon = None;
-//         let mut description = None;
-//         let mut metadata = MetaData::new();
-//         let last_updated_at_state_version = match value.vaults.items.get(0) {
-//             Some(vault) => vault.last_updated_at_state_version as i64,
-//             None => 0,
-//         };
-
-//         for item in value.explicit_metadata.items {
-//             match &*item.key {
-//                 "name" => name = item.value.typed.value,
-//                 "symbol" => symbol = item.value.typed.value.unwrap_or(String::with_capacity(0)),
-//                 "description" => description = item.value.typed.value,
-//                 _ => metadata.push(item.into()),
-//             }
-//         }
-
-//         Self {
-//             nfids: NFIDs::from(value.vaults),
-//             address: ResourceAddress::from_str(&value.resource_address).unwrap(),
-//             metadata,
-//             name,
-//             symbol,
-//             icon,
-//             last_updated_at_state_version,
-//             description,
-//         }
-//     }
-// }
-
-// impl From<NonFungibleResources> for NonFungibles {
-//     fn from(value: NonFungibleResources) -> Self {
-//         Self(value.items.into_iter().map(|nfts| nfts.into()).collect())
-//     }
-// }
 
 impl rusqlite::types::FromSql for NFIDs {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {

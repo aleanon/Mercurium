@@ -1,10 +1,6 @@
 use iced::{
     theme,
-    widget::{
-        self, column, container,
-        row,
-        text, Button,
-    },
+    widget::{self, column, container, row, text, Button},
     Element, Length, Padding,
 };
 
@@ -15,7 +11,7 @@ use crate::{
 use ravault_iced_theme::styles::{self, button::AssetListButton, container::AssetListItem};
 use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
 
-use super::fungible_view::{FungibleView};
+use super::fungible_view::FungibleView;
 
 #[derive(Debug, Clone)]
 pub struct FungiblesView {
@@ -85,7 +81,7 @@ impl<'a> FungiblesView {
             match app.appview.resource_icons.get(&fungible.address) {
                 Some(handle) => widget::image(handle.clone()).width(40).height(40).into(),
                 None => container(
-                    text(iced_aw::BootstrapIcon::Image)
+                    text(iced_aw::Bootstrap::Image)
                         .font(iced_aw::BOOTSTRAP_FONT)
                         .size(30),
                 )

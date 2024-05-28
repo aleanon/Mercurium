@@ -55,7 +55,7 @@ impl<'a> Receive {
 
     pub fn view(&'a self, app: &'a App) -> Element<'a, Message> {
         let close = button(
-            text(iced_aw::BootstrapIcon::XLg)
+            text(iced_aw::Bootstrap::XLg)
                 .font(iced_aw::BOOTSTRAP_FONT)
                 .size(18),
         )
@@ -75,7 +75,7 @@ impl<'a> Receive {
                     column!(
                         text(string),
                         widget::Space::new(Length::Fill, 1),
-                        text(iced_aw::BootstrapIcon::XLg).font(iced_aw::BOOTSTRAP_FONT)
+                        text(iced_aw::Bootstrap::XLg).font(iced_aw::BOOTSTRAP_FONT)
                     )
                     .padding(5),
                 )
@@ -89,7 +89,7 @@ impl<'a> Receive {
                     column!(
                         text(string),
                         widget::Space::new(Length::Fill, 1),
-                        text(iced_aw::BootstrapIcon::XLg).font(iced_aw::BOOTSTRAP_FONT)
+                        text(iced_aw::Bootstrap::XLg).font(iced_aw::BOOTSTRAP_FONT)
                     )
                     .padding(5),
                 )
@@ -103,7 +103,7 @@ impl<'a> Receive {
         };
 
         let address = text(&self.address.truncate_long()).size(14);
-        let copy_icon = text(iced_aw::BootstrapIcon::Copy)
+        let copy_icon = text(iced_aw::Bootstrap::Copy)
             .font(iced_aw::BOOTSTRAP_FONT)
             .size(14);
         let address_button = button(

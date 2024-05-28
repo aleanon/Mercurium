@@ -87,7 +87,7 @@ impl<'a> AccountView {
             .size(15)
             .vertical_alignment(iced::alignment::Vertical::Bottom);
 
-        let icon = text(iced_aw::BootstrapIcon::Copy)
+        let icon = text(iced_aw::Bootstrap::Copy)
             .font(iced_aw::BOOTSTRAP_FONT)
             .size(15);
 

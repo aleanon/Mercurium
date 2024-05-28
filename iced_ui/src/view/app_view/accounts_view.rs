@@ -54,7 +54,7 @@ impl<'a> AccountsView {
 
         let new_account = button(
             row![
-                text(iced_aw::BootstrapIcon::Plus)
+                text(iced_aw::Bootstrap::Plus)
                     .font(iced_aw::BOOTSTRAP_FONT)
                     .size(16),
                 text("Account").size(16)

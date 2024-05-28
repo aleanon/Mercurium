@@ -13,6 +13,7 @@ pub mod metadata;
 pub mod network;
 pub mod non_fungibles;
 pub mod radix_request_client;
+pub mod resource;
 pub mod response_models;
 pub mod transaction;
 pub mod unwrap_unreachable;
