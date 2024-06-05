@@ -65,7 +65,7 @@ impl AppData {
             // Placeholder channel until the usable channel is returned from the subscription
             backend_sender: iced::futures::channel::mpsc::channel::<Action>(0).0,
             // Placeholder in-memory database until the actual database is received from the subscription
-            db: Db::placeholder(),
+            db: Db::new_in_memory(),
         }
     }
 }

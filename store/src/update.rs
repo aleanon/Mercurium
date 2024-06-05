@@ -1,9 +1,12 @@
-use super::{statements::upsert, AsyncDb, Db};
+use super::{
+    statements::{insert, upsert},
+    AsyncDb, Db,
+};
 use anyhow::Result;
 use rusqlite::params;
 use types::{
-    assets::FungibleAsset, Account, AccountAddress, EntityAccount, Fungibles, NonFungibles,
-    Transaction,
+    assets::{FungibleAsset, NonFungibleAsset},
+    Account, AccountAddress, EntityAccount, Fungibles, NonFungibles, Transaction,
 };
 
 impl Db {
@@ -40,8 +43,7 @@ impl Db {
             }
         }
 
-        tx.commit()?;
-        Ok(())
+        tx.commit()
     }
 
     pub fn update_fungibles_for_account(
@@ -98,8 +100,7 @@ impl Db {
             }
         }
 
-        tx.commit()?;
-        Ok(())
+        tx.commit()
     }
 
     pub fn update_non_fungibles_for_account(
@@ -153,11 +154,10 @@ impl Db {
             }
         }
 
-        tx.commit()?;
-        Ok(())
+        tx.commit()
     }
 
-    fn upsert_fungible_assets_for_account(
+    pub fn upsert_fungible_assets_for_account(
         &mut self,
         account_address: &AccountAddress,
         fungibles: &[FungibleAsset],
@@ -178,14 +178,13 @@ impl Db {
             }
         }
 
-        tx.commit()?;
-        Ok(())
+        tx.commit()
     }
 
-    fn upsert_non_fungible_assets_for_account(
+    pub fn upsert_non_fungible_assets_for_account(
         &mut self,
         account_address: &AccountAddress,
-        non_fungibles: &[FungibleAsset],
+        non_fungibles: &[NonFungibleAsset],
     ) -> Result<(), rusqlite::Error> {
         let tx = self.connection.transaction()?;
 
@@ -196,40 +195,68 @@ impl Db {
                 stmt.execute(params![
                     non_fungible_asset.id,
                     non_fungible_asset.resource_address,
-                    non_fungible_asset.amount,
+                    non_fungible_asset.nfids,
                     non_fungible_asset.last_updated,
                     account_address,
                 ])?;
             }
         }
 
-        tx.commit()?;
-        Ok(())
+        tx.commit()
     }
 
-    // fn upsert_transactions_for_account(
-    //     &mut self,
-    //     account: &AccountAddress,
-    //     transactions: &[Transaction],
-    // ) -> Result<(), rusqlite::Error> {
-    //     let tx = self.connection.transaction()?;
+    pub fn update_transaction_status(
+        &mut self,
+        transactions: &[Transaction],
+    ) -> Result<(), rusqlite::Error> {
+        let tx = self.connection.transaction()?;
 
-    //     {
-    //         let mut stmt = tx.prepare_cached(upsert::UPSERT_TRANSACTION)?;
+        {
+            let mut stmt = tx.prepare_cached(&upsert::UPSERT_TRANSACTION)?;
 
-    //         for transaction in transactions {
-    //             stmt.execute(params![
-    //                 transaction.id,
-    //                 transaction.timestamp,
-    //                 transaction.state_version as i64,
-    //                 transaction.balance_changes
-    //             ])?;
-    //         }
-    //     }
+            for transaction in transactions {
+                stmt.execute(params![
+                    transaction.id,
+                    transaction.transaction_address,
+                    transaction.timestamp,
+                    transaction.state_version as i64,
+                ])?;
+            }
+        }
 
-    //     tx.commit()?;
-    //     Ok(())
-    // }
+        tx.commit()
+    }
+
+    fn insert_transactions(&mut self, transactions: &[Transaction]) -> Result<(), rusqlite::Error> {
+        let tx = self.connection.transaction()?;
+
+        {
+            let mut transaction_stmt = tx.prepare_cached(upsert::UPSERT_TRANSACTION)?;
+            let mut balance_changes_stmt = tx.prepare_cached(insert::INSERT_BALANCE_CHANGE)?;
+
+            for transaction in transactions {
+                transaction_stmt.execute(params![
+                    transaction.id,
+                    transaction.transaction_address,
+                    transaction.timestamp,
+                    transaction.state_version as i64,
+                ])?;
+
+                for balance_change in &transaction.balance_changes {
+                    balance_changes_stmt.execute(params![
+                        balance_change.id,
+                        balance_change.account,
+                        balance_change.resource,
+                        balance_change.nfids,
+                        balance_change.amount,
+                        transaction.transaction_address,
+                    ])?;
+                }
+            }
+        }
+
+        tx.commit()
+    }
 }
 
 impl AsyncDb {
@@ -249,9 +276,7 @@ impl AsyncDb {
                     ])?;
                 Ok::<(), rusqlite::Error>(())
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 
     pub async fn update_accounts(
@@ -275,12 +300,9 @@ impl AsyncDb {
                     }
                 }
 
-                tx.commit()?;
-                Ok::<(), rusqlite::Error>(())
+                tx.commit()
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 
     pub async fn update_fungibles_for_account(
@@ -338,12 +360,9 @@ impl AsyncDb {
                     }
                 }
 
-                tx.commit()?;
-                Ok::<(), rusqlite::Error>(())
+                tx.commit()
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 
     pub async fn update_non_fungibles_for_account(
@@ -399,11 +418,64 @@ impl AsyncDb {
                     }
                 }
 
-                tx.commit()?;
-                Ok::<(), rusqlite::Error>(())
+                tx.commit()
             })
-            .await?;
+            .await
+    }
 
-        Ok(())
+    pub async fn upsert_fungible_assets_for_account(
+        &mut self,
+        account_address: AccountAddress,
+        fungibles: Vec<FungibleAsset>,
+    ) -> Result<(), rusqlite::Error> {
+        self.connection
+            .call_unwrap(move |connection| {
+                let tx = connection.transaction()?;
+
+                {
+                    let mut stmt = tx.prepare_cached(upsert::UPSERT_FUNGIBLE_ASSET)?;
+
+                    for fungible_asset in fungibles {
+                        stmt.execute(params![
+                            fungible_asset.id,
+                            fungible_asset.resource_address,
+                            fungible_asset.amount,
+                            fungible_asset.last_updated,
+                            account_address,
+                        ])?;
+                    }
+                }
+
+                tx.commit()
+            })
+            .await
+    }
+
+    pub async fn upsert_non_fungible_assets_for_account(
+        &mut self,
+        account_address: AccountAddress,
+        non_fungibles: Vec<NonFungibleAsset>,
+    ) -> Result<(), rusqlite::Error> {
+        self.connection
+            .call_unwrap(move |connection| {
+                let tx = connection.transaction()?;
+
+                {
+                    let mut stmt = tx.prepare_cached(upsert::UPSERT_NON_FUNGIBLE_ASSET)?;
+
+                    for non_fungible_asset in non_fungibles {
+                        stmt.execute(params![
+                            non_fungible_asset.id,
+                            non_fungible_asset.resource_address,
+                            non_fungible_asset.nfids,
+                            non_fungible_asset.last_updated,
+                            account_address,
+                        ])?;
+                    }
+                }
+
+                tx.commit()
+            })
+            .await
     }
 }

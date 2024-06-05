@@ -33,7 +33,7 @@ pub use network::Network;
 pub use non_fungibles::{NFIDs, NonFungible, NonFungibles, NFID};
 pub use transaction::Transaction;
 pub use update::Update;
-
+pub use resource::*;
 // Re exporting
 pub use scrypto::crypto::Ed25519PublicKey;
 pub use scrypto::math::Decimal as RadixDecimal;

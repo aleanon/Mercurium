@@ -1,222 +1,15 @@
-use std::{error::Error, future::IntoFuture, io::Read};
+use std::{future::IntoFuture, io::Read, ops::Add, sync::Arc};
 
-use debug_print::debug_println;
 use flate2::bufread::GzDecoder;
+use iced::futures::future::join_all;
 use radix_gateway_sdk::generated::model::{
-    LedgerStateSelector, ResourceAggregationLevel, StateEntityDetailsOptIns,
-    StateEntityDetailsResponse,
+    ResourceAggregationLevel, StateEntityDetailsOptIns, StateEntityDetailsResponse,
+    StateNonFungibleDataResponse,
 };
-use serde_json::json;
-use types::{
-    radix_request_client::{RadixDltRequestClient, RadixDltRequestError},
-    response_models::{
-        accounts_details::AccountsDetails, AllFungiblesResponse, AllNFTsResponse,
-        FungibleVaultsResponse, TransactionsResponse,
-    },
-    AccountAddress, Network, ResourceAddress,
-};
+use types::{address::AddressTrait, radix_request_client::RadixDltRequestError};
 
-use crate::radix_dlt::urls::{GET_ENTITY_DETAILS_MAINNET, GET_ENTITY_DETAILS_STOKENET};
-
-use super::urls::{
-    GET_COMPONENT_FUNGIBLES_MAINNET, GET_COMPONENT_FUNGIBLES_STOKENET, GET_COMPONENT_NFTS_MAINNET,
-    GET_COMPONENT_NFTS_STOKENET, GET_FUNGIBLE_VAULTS_MAINNET, GET_FUNGIBLE_VAULTS_STOKENET,
-    GET_TRANSACTIONS_STREAM_MAINNET, GET_TRANSACTIONS_STREAM_STOKENET,
-};
-
-// pub async fn get_all_fungibles_for_account(
-//     client: &RadixDltRequestClient,
-//     account: &AccountAddress,
-//     network: Network,
-// ) -> Result<AllFungiblesResponse, RadixDltRequestError> {
-//     let url = match network {
-//         Network::Mainnet => GET_COMPONENT_FUNGIBLES_MAINNET,
-//         Network::Stokenet => GET_COMPONENT_FUNGIBLES_STOKENET,
-//     };
-
-//     let body = json!({
-//         "address": account.as_str(),
-//     });
-
-//     let response = client.post(url).json(&body).send().await?;
-
-//     let decoded = decode(response).await?;
-
-//     let all_fungibles: AllFungiblesResponse = serde_json::from_str(&decoded)?;
-
-//     Ok(all_fungibles)
-// }
-
-// pub async fn get_all_nfts_for_account(
-//     client: &RadixDltRequestClient,
-//     account: &AccountAddress,
-//     network: Network,
-// ) -> Result<AllNFTsResponse, RadixDltRequestError> {
-//     let url = match network {
-//         Network::Mainnet => GET_COMPONENT_NFTS_MAINNET,
-//         Network::Stokenet => GET_COMPONENT_NFTS_STOKENET,
-//     };
-
-//     let body = json!({
-//         "address": account.as_str()
-//     });
-
-//     let response = client.post(url).json(&body).send().await?;
-
-//     let decoded = decode(response).await?;
-//     let all_non_fungibles: AllNFTsResponse = serde_json::from_str(&decoded)?;
-
-//     Ok(all_non_fungibles)
-// }
-
-// pub async fn get_fungible_vaults_for_account(
-//     client: &RadixDltRequestClient,
-//     account: &AccountAddress,
-//     resource: ResourceAddress,
-//     network: Network,
-// ) -> Result<FungibleVaultsResponse, RadixDltRequestError> {
-//     let url = match network {
-//         Network::Mainnet => GET_FUNGIBLE_VAULTS_MAINNET,
-//         Network::Stokenet => GET_FUNGIBLE_VAULTS_STOKENET,
-//     };
-
-//     let body = json!({
-//         "address": account.as_str(),
-//         "resource_address": resource.as_str(),
-//     });
-
-//     let response = client.post(url).json(&body).send().await?;
-
-//     let decoded = decode(response).await?;
-//     let fungible_vaults: FungibleVaultsResponse = serde_json::from_str(&decoded)?;
-
-//     Ok(fungible_vaults)
-// }
-
-// pub async fn get_transactions_for_affected_entity(
-//     client: &RadixDltRequestClient,
-//     affected_entities_addresses: &[&str],
-//     network: Network,
-//     from_state_version: u64,
-// ) -> Result<String, RadixDltRequestError> {
-//     let url = match network {
-//         Network::Mainnet => GET_TRANSACTIONS_STREAM_MAINNET,
-//         Network::Stokenet => GET_TRANSACTIONS_STREAM_STOKENET,
-//     };
-
-//     let body = json!({
-//         "limit_per_page": 100,
-//         "affected_global_entities_filter": affected_entities_addresses,
-//         "from_ledger_state": {
-//             "state_version": from_state_version
-//         },
-//         "opt_ins": {
-//         "balance_changes": true
-//         }
-//     });
-
-//     let response = client.post(url).json(&body).send().await?;
-
-//     let decoded = decode(response).await?;
-
-//     #[cfg(test)]
-//     {
-//         use std::fs::File;
-//         use std::io::Write;
-//         let mut file = File::create("./transactions.json").unwrap();
-//         let value: serde_json::Value = serde_json::from_str(&decoded).unwrap();
-//         let formatted = serde_json::to_string_pretty(&value).unwrap();
-//         file.write_all(&formatted.as_bytes()).unwrap();
-
-//         Ok(formatted)
-//     }
-
-//     #[cfg(not(test))]
-//     Ok(decoded)
-// }
-
-// pub async fn get_entity_details(
-//     client: &RadixDltRequestClient,
-//     addresses: &[&str],
-//     network: Network,
-// ) -> Result<String, RadixDltRequestError> {
-//     let url = match network {
-//         Network::Mainnet => GET_ENTITY_DETAILS_MAINNET,
-//         Network::Stokenet => GET_ENTITY_DETAILS_STOKENET,
-//     };
-
-//     let body = json!({
-//         "addresses": addresses,
-//         "aggregation_level": "Vault",
-//         "opt_ins": {
-//             "ancestor_identities": true,
-//             "component_royalty_vault_balance": true,
-//             "package_royalty_vault_balance": true,
-//             "non_fungible_include_nfids": true,
-//             "explicit_metadata": [
-//                 "name",
-//                 "description"
-//             ]
-//         }
-//     });
-
-//     debug_println!("{:?}", addresses);
-
-//     let response = client.post(url).json(&body).send().await?;
-
-//     debug_println!("{:?}", &response);
-
-//     let decoded = decode(response).await?;
-
-//     #[cfg(test)]
-//     {
-//         use std::fs::File;
-//         use std::io::Write;
-//         let mut file = File::create("./entity_details.json").unwrap();
-//         let value: serde_json::Value = serde_json::from_str(&decoded).unwrap();
-//         let formatted = serde_json::to_string_pretty(&value).unwrap();
-//         file.write_all(&formatted.as_bytes()).unwrap();
-
-//         Ok(formatted)
-//     }
-
-//     #[cfg(not(test))]
-//     Ok(decoded)
-// }
-
-// pub async fn get_details_for_accounts(
-//     client: &RadixDltRequestClient,
-//     addresses: &[&str],
-//     network: Network,
-// ) -> Result<AccountsDetails, RadixDltRequestError> {
-//     let entity_details = get_entity_details(client, addresses, network).await?;
-
-//     let component_details: AccountsDetails = serde_json::from_str(&entity_details)?;
-
-//     Ok(component_details)
-// }
-
-// pub async fn get_transactions_for_account(
-//     client: &RadixDltRequestClient,
-//     account_addresses: &AccountAddress,
-//     network: Network,
-//     from_state_version: u64,
-// ) -> Result<TransactionsResponse, RadixDltRequestError> {
-//     let decoded_response = get_transactions_for_affected_entity(
-//         client,
-//         &[account_addresses.as_str()],
-//         network,
-//         from_state_version,
-//     )
-//     .await?;
-
-//     let transactions: TransactionsResponse = serde_json::from_str(&decoded_response)?;
-
-//     Ok(transactions)
-// }
-
-pub async fn get_accounts_details(
-    client: radix_gateway_sdk::Client,
+pub async fn get_entities_details2(
+    client: &radix_gateway_sdk::Client,
     addresses: &[&str],
 ) -> Result<StateEntityDetailsResponse, radix_gateway_sdk::Error> {
     let opt_ins = StateEntityDetailsOptIns {
@@ -232,6 +25,93 @@ pub async fn get_accounts_details(
         .await
 }
 
+pub async fn get_entities_details(
+    client: Arc<radix_gateway_sdk::Client>,
+    addresses: &[String],
+) -> Result<StateEntityDetailsResponse, radix_gateway_sdk::Error> {
+    let tasks = addresses.chunks(100).map(|chunk| {
+        let client = client.clone();
+        let chunk = chunk.to_owned();
+        let opt_ins = StateEntityDetailsOptIns {
+            non_fungible_include_nfids: Some(true),
+            explicit_metadata: Some(vec!["symbol".to_string()]),
+            ..Default::default()
+        };
+
+        tokio::task::spawn(async move {
+            let addresses = chunk
+                .iter()
+                .map(|address| address.as_str())
+                .collect::<Vec<&str>>();
+
+            client
+                .get_inner_client()
+                .state_entity_details(
+                    addresses.as_slice(),
+                    ResourceAggregationLevel::Vault,
+                    opt_ins,
+                )
+                .into_future()
+                .await
+        })
+    });
+
+    join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| join_result.ok())
+        .reduce(|acc, response_result| match response_result {
+            Ok(response) => match acc {
+                Ok(mut ok_acc) => {
+                    ok_acc.items.extend(response.items.into_iter());
+                    Ok(ok_acc)
+                }
+                Err(_) => Ok(response),
+            },
+            Err(e) => acc.map_err(|_| e),
+        })
+        .unwrap_or(Err(radix_gateway_sdk::Error::NetworkInvalid))
+}
+
+pub async fn get_non_fungible_data(
+    client: Arc<radix_gateway_sdk::Client>,
+    resource_address: &str,
+    non_fungible_ids: &[String],
+) -> Result<StateNonFungibleDataResponse, radix_gateway_sdk::Error> {
+    let tasks = non_fungible_ids.chunks(100).map(|chunk| {
+        let client = client.clone();
+        let resource_address = resource_address.to_string();
+        let chunk = chunk.to_owned();
+
+        tokio::task::spawn(async move {
+            let addresses: Vec<&str> = chunk.iter().map(|address| address.as_str()).collect();
+            client
+                .get_inner_client()
+                .non_fungible_data(addresses.as_slice(), resource_address.as_str())
+                .into_future()
+                .await
+        })
+    });
+
+    join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| join_result.ok())
+        .fold(
+            Err(radix_gateway_sdk::Error::NetworkInvalid),
+            |acc, response_result| match response_result {
+                Ok(response) => match acc {
+                    Ok(mut ok_acc) => {
+                        ok_acc.non_fungible_ids.extend(response.non_fungible_ids);
+                        Ok(ok_acc)
+                    }
+                    Err(_) => Ok(response),
+                },
+                Err(e) => acc.map_err(|_| e),
+            },
+        )
+}
+
 async fn decode(response: reqwest::Response) -> Result<String, RadixDltRequestError> {
     let bytes = response.bytes().await?;
 
@@ -239,6 +119,47 @@ async fn decode(response: reqwest::Response) -> Result<String, RadixDltRequestEr
     let mut string = String::with_capacity(bytes.len());
     decoder.read_to_string(&mut string)?;
     Ok(string)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use types::{AccountAddress, ResourceAddress};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_entities_details() {
+        let client = Arc::new(
+            radix_gateway_sdk::Client::new(radix_gateway_sdk::Network::Mainnet, None, None)
+                .unwrap(),
+        );
+
+        let account_address = AccountAddress::from_str(
+            "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
+        )
+        .unwrap();
+
+        let account_details = get_entities_details(client.clone(), &[account_address.to_string()])
+            .await
+            .unwrap();
+
+        assert_eq!(account_details.items.len(), 1);
+        assert!(account_details.items[0].fungible_resources.is_some());
+        assert!(account_details.items[0].non_fungible_resources.is_some());
+
+        let resource_address = ResourceAddress::from_str(
+            "resource_rdx1t4h4396mukhpzdrr5sfvegjsxl8q7a34q2vkt4quxcxahna8fucuz4",
+        )
+        .unwrap();
+        let resource_details =
+            get_entities_details(client.clone(), &[resource_address.to_string()])
+                .await
+                .unwrap();
+
+        assert_eq!(resource_details.items.len(), 1);
+    }
 }
 
 // #[cfg(test)]

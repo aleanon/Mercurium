@@ -66,6 +66,13 @@ impl TransactionAddress {
         }
     }
 
+    pub fn chechsum_slice(&self) -> &[u8] {
+        match self {
+            Self::Mainnet(slice) => &slice[Self::MAINNET_CHECKSUM_START_INDEX..],
+            Self::Stokenet(slice) => &slice[Self::STOKENET_CHECKSUM_START_INDEX..],
+        }
+    }
+
     pub fn checksum_str(&self) -> &str {
         match self {
             Self::Mainnet(slice) => {
@@ -143,6 +150,23 @@ impl FromStr for TransactionAddress {
         } else {
             Err(ParseAddrError::NonAsciiCharacter)
         }
+    }
+}
+
+impl rusqlite::types::FromSql for TransactionAddress {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        let blob = value.as_blob()?;
+        let address =
+            std::str::from_utf8(blob).map_err(|_| rusqlite::types::FromSqlError::InvalidType)?;
+        Self::from_str(address).map_err(|_| rusqlite::types::FromSqlError::InvalidType)
+    }
+}
+
+impl rusqlite::types::ToSql for TransactionAddress {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Borrowed(
+            rusqlite::types::ValueRef::Blob(self.as_bytes()),
+        ))
     }
 }
 

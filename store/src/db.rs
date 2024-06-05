@@ -44,7 +44,7 @@ impl Db {
         Ok(db)
     }
 
-    pub fn placeholder() -> Db {
+    pub fn new_in_memory() -> Db {
         let connection = rusqlite::Connection::open_in_memory().unwrap();
         Self { connection }
     }

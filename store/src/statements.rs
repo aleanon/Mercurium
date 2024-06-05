@@ -17,10 +17,10 @@ pub mod create {
             address BLOB NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
             symbol TEXT NOT NULL,
-            total_supply TEXT NOT NULL,
             description TEXT NOT NULL,
-            last_updated INTEGER NOT NULL,
-            metadata BLOB NOT NULL
+            current_supply TEXT NOT NULL,
+            divisibility BLOB,
+            tags BLOB NOT NULL
         )
     ";
 
@@ -51,9 +51,10 @@ pub mod create {
     pub const CREATE_TABLE_TRANSACTIONS: &'static str = "CREATE TABLE IF NOT EXISTS 
         transactions (
             id BLOB NOT NULL PRIMARY KEY,
+            transaction_address BLOB NOT NULL,
             timestamp BLOB NOT NULL,
             state_version INTEGER NOT NULL,
-            status INTEGER NOT NULL
+            message TEXT
         )
     ";
 
@@ -62,7 +63,8 @@ pub mod create {
             id BLOB NOT NULL PRIMARY KEY,
             account BLOB NOT NULL,
             resource BLOB NOT NULL,
-            amount TEXT NOT NULL,
+            nfids BLOB,
+            amount TEXT,
             tx_id BLOB NOT NULL,
             FOREIGN KEY(tx_id) REFERENCES transactions(id)
         )
@@ -98,21 +100,20 @@ pub mod upsert {
             address,
             name,
             symbol,
-            current_supply,
             description,
-            last_updated,
-            metadata
+            current_supply,
+            divisibility,
+            tags
         )
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (address)
         DO UPDATE SET 
             name = excluded.name,
             symbol = excluded.symbol,
-            current_supply = excluded.current_supply,
             description = excluded.description,
-            public_key = excluded.public_key,
-            hidden = excluded.hidden,
-            settings = excluded.settings
+            current_supply = excluded.current_supply,
+            divisibility = excluded.divisibility,
+            tags = excluded.tags
     ";
 
     pub const UPSERT_FUNGIBLE_ASSET: &'static str = "INSERT INTO
@@ -126,7 +127,8 @@ pub mod upsert {
         VALUES (?, ?, ?, ?)
         ON CONFLICT (id)
         DO UPDATE SET
-            amount = excluded.amount
+            amount = excluded.amount,
+            last_updated = excluded.last_updated
     ";
 
     pub const UPSERT_NON_FUNGIBLE_ASSET: &'static str = "INSERT INTO
@@ -146,14 +148,28 @@ pub mod upsert {
     pub const UPSERT_TRANSACTION: &'static str = "INSERT INTO
         transactions (
             id,
+            transaction_address,
             timestamp,
             state_version,
-            balance_changes,
             status
         )
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT (id)
         DO UPDATE SET 
             status = excluded.status
+    ";
+}
+
+pub mod insert {
+    pub const INSERT_BALANCE_CHANGE: &'static str = "INSERT INTO
+        balance_changes (
+            id,
+            account,
+            resource,
+            nfids,
+            amount,
+            tx_id
+        )
+        VALUES (?,?,?,?,?,?)
     ";
 }
