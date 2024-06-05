@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::response_models::entity_details::NFTVaults;
+use crate::response_models::{entity_details::NFTVaults, non_fungible_id_data::NFIdData};
 
 use super::{Icon, MetaData, ResourceAddress};
 
@@ -121,6 +121,12 @@ impl DerefMut for NFIDs {
     }
 }
 
+impl From<BTreeSet<NFID>> for NFIDs {
+    fn from(value: BTreeSet<NFID>) -> Self {
+        Self(value)
+    }
+}
+
 impl From<NFTVaults> for NFIDs {
     fn from(value: NFTVaults) -> Self {
         Self(
@@ -167,6 +173,10 @@ impl NFID {
             id,
             nfdata: Vec::new(),
         }
+    }
+
+    pub fn new_with_data(id: String, data: Vec<NFData>) -> Self {
+        Self { id, nfdata: data }
     }
 
     pub fn get_id(self) -> String {

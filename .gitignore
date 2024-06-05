@@ -4,5 +4,6 @@
 /slint_ui
 /ravault/dist
 /dioxus_ui
+/archive
 entity_details.json
 transactions.json

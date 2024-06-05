@@ -1,5 +1,6 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+use anyhow::Context;
 use rusqlite::OptionalExtension;
 
 use super::{AsyncDb, Db};
@@ -8,11 +9,48 @@ use types::{
     assets::{FungibleAsset, NonFungibleAsset},
     fungibles, non_fungibles,
     resource::Resource,
+    transaction::{BalanceChange, TransactionId},
     AccountAddress, Ed25519PublicKey, EntityAccount, Fungible, Fungibles, NonFungible,
-    NonFungibles, ResourceAddress,
+    NonFungibles, ResourceAddress, Transaction,
 };
 
 impl Db {
+    pub fn get_fungible_assets_for_account(
+        &self,
+        account_address: &AccountAddress,
+    ) -> Result<HashMap<ResourceAddress, FungibleAsset>, rusqlite::Error> {
+        self.connection
+            .prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?
+            .query_map([account_address.as_str()], |row| {
+                let fungible_asset = FungibleAsset {
+                    id: row.get(0)?,
+                    resource_address: row.get(1)?,
+                    amount: row.get(2)?,
+                    last_updated: row.get(3)?,
+                };
+                Ok((fungible_asset.resource_address.clone(), fungible_asset))
+            })?
+            .collect()
+    }
+
+    pub fn get_non_fungible_assets_for_account(
+        &self,
+        account_address: &AccountAddress,
+    ) -> Result<HashMap<ResourceAddress, NonFungibleAsset>, rusqlite::Error> {
+        self.connection
+            .prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?
+            .query_map([account_address.as_str()], |row| {
+                let fungible_asset = NonFungibleAsset {
+                    id: row.get(0)?,
+                    resource_address: row.get(1)?,
+                    nfids: row.get(2)?,
+                    last_updated: row.get(3)?,
+                };
+                Ok((fungible_asset.resource_address.clone(), fungible_asset))
+            })?
+            .collect()
+    }
+
     pub fn get_fungible_assets_for_accounts(
         &self,
         account_addresses: &[AccountAddress],
@@ -89,10 +127,10 @@ impl Db {
                     address: row.get(0)?,
                     name: row.get(1)?,
                     symbol: row.get(2)?,
-                    total_supply: row.get(3)?,
-                    description: row.get(4)?,
-                    last_updated: row.get(5)?,
-                    metadata: row.get(6)?,
+                    description: row.get(3)?,
+                    current_supply: row.get(4)?,
+                    divisibility: row.get(5)?,
+                    tags: row.get(6)?,
                 };
                 Ok((resource.address.clone(), resource))
             })?
@@ -188,6 +226,13 @@ impl Db {
             .collect()
     }
 
+    pub fn get_account_addresses(&self) -> Result<Vec<AccountAddress>, rusqlite::Error> {
+        self.connection
+            .prepare_cached("SELECT address FROM accounts")?
+            .query_map([], |row| row.get(0))?
+            .collect()
+    }
+
     pub fn get_accounts_map(&self) -> Result<BTreeMap<AccountAddress, Account>, rusqlite::Error> {
         self.connection
             .prepare_cached("SELECT * FROM accounts")?
@@ -206,6 +251,69 @@ impl Db {
                 Ok((address, account))
             })?
             .collect()
+    }
+
+    pub fn get_transactions_for_account(
+        &self,
+        account_address: &AccountAddress,
+    ) -> Result<BTreeSet<Transaction>, rusqlite::Error> {
+        let balance_changes = self.get_balance_changes_for_account(account_address)?;
+
+        balance_changes
+            .into_iter()
+            .map(|(transaction_id, balance_changes)| {
+                self.connection
+                    .prepare_cached("SELECT * FROM transactions WHERE transaction_id = ?")?
+                    .query_row([transaction_id], |row| {
+                        Ok(Transaction {
+                            id: row.get(0)?,
+                            transaction_address: row.get(1)?,
+                            timestamp: row.get(2)?,
+                            state_version: row.get(3)?,
+                            balance_changes,
+                            message: row.get(4)?,
+                        })
+                    })
+            })
+            .collect()
+    }
+
+    pub fn get_balance_changes_for_account(
+        &self,
+        account_address: &AccountAddress,
+    ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, rusqlite::Error> {
+        self.connection
+            .prepare_cached("SELECT * FROM balance_changes WHERE account_address = ?")?
+            .query_map([account_address], |row| {
+                let transaction_id: TransactionId = row.get(5)?;
+                let balance_change = BalanceChange {
+                    id: row.get(0)?,
+                    account: row.get(1)?,
+                    resource: row.get(2)?,
+                    nfids: row.get(3)?,
+                    amount: row.get(4)?,
+                };
+                Ok((transaction_id, balance_change))
+            })?
+            .fold(
+                Err(rusqlite::Error::QueryReturnedNoRows),
+                |acc, result| match result {
+                    Ok((transaction_id, balance_change)) => match acc {
+                        Ok(mut map) => {
+                            map.entry(transaction_id)
+                                .or_insert(Vec::new())
+                                .push(balance_change);
+                            Ok(map)
+                        }
+                        Err(_) => {
+                            let mut map = HashMap::new();
+                            map.insert(transaction_id, vec![balance_change]);
+                            Ok(map)
+                        }
+                    },
+                    Err(err) => acc.map_err(|_| err),
+                },
+            )
     }
 }
 
@@ -231,32 +339,6 @@ impl AsyncDb {
                         })
                     })
                     .optional()
-            })
-            .await
-    }
-
-    pub async fn get_all_fungibles(
-        &self,
-    ) -> Result<HashMap<AccountAddress, Fungible>, rusqlite::Error> {
-        self.connection
-            .call_unwrap(|conn| {
-                conn.prepare_cached("SELECT * FROM fungibles")?
-                    .query_map([], |row| {
-                        let account: AccountAddress = row.get(9)?;
-                        let fungible = Fungible {
-                            address: row.get(0)?,
-                            name: row.get(1)?,
-                            symbol: row.get(2)?,
-                            icon: row.get(3)?,
-                            amount: row.get(4)?,
-                            total_supply: row.get(5)?,
-                            description: row.get(6)?,
-                            last_updated_at_state_version: row.get(7)?,
-                            metadata: row.get(8)?,
-                        };
-                        Ok((account, fungible))
-                    })?
-                    .collect()
             })
             .await
     }

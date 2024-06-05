@@ -104,7 +104,7 @@ const fn evaluate_prefix_len(str: &'static str) -> usize {
     str.len()
 }
 
-trait AddressTrait: Sized {
+pub trait AddressTrait: Sized {
     const NETWORK: Network;
     const ADDRESS_TYPE: AddressType;
     const REGEX_PATTERN: &'static str;

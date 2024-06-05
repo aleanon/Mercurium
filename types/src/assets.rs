@@ -112,6 +112,7 @@ impl NonFungibleAsset {
     }
 }
 
+#[derive(Debug)]
 pub struct NewAssets {
     pub new_fungibles: BTreeSet<ResourceAddress>,
     pub new_non_fungibles: NewNonFungibles,
@@ -124,9 +125,16 @@ impl NewAssets {
             new_non_fungibles: NewNonFungibles::new(),
         }
     }
+
+    pub fn extend(&mut self, other: NewAssets) {
+        self.new_fungibles.extend(other.new_fungibles);
+        self.new_non_fungibles
+            .extend(other.new_non_fungibles.inner());
+    }
 }
 
-pub struct NewNonFungibles(HashMap<ResourceAddress, Vec<String>>);
+#[derive(Debug)]
+pub struct NewNonFungibles(pub HashMap<ResourceAddress, Vec<String>>);
 
 impl NewNonFungibles {
     pub fn new() -> Self {
@@ -139,6 +147,10 @@ impl NewNonFungibles {
         } else {
             self.0.insert(resource_address.clone(), vec![nfid]);
         }
+    }
+
+    pub fn extend(&mut self, other: HashMap<ResourceAddress, Vec<String>>) {
+        self.0.extend(other.into_iter())
     }
 
     pub fn inner(self) -> HashMap<ResourceAddress, Vec<String>> {

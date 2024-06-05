@@ -1,13 +1,16 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Display,
+    hash,
 };
 
+use iced::advanced::graphics::futures::backend::default::time;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     address::transaction_address::TransactionAddress, debug_info,
-    unwrap_unreachable::UnwrapUnreachable, AccountAddress, Address, Decimal, ResourceAddress,
+    unwrap_unreachable::UnwrapUnreachable, AccountAddress, Address, Decimal, NFIDs,
+    ResourceAddress,
 };
 
 // use anyhow::Result;
@@ -17,31 +20,72 @@ pub enum TransactionError {
     InvalidIdLength { expected: usize, found: usize },
 }
 
+// #[derive(Debug, Clone)]
+// pub struct BalanceChange {
+//     id: BalanceChangeID,
+//     transaction_id: TransactionAddress,
+//     account_address: AccountAddress,
+//     resource_address: ResourceAddress,
+//     amount: Decimal,
+// }
+
+// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+// pub struct BalanceChangeID([u8; Self::LENGTH]);
+
+// impl BalanceChangeID {
+//     const LENGTH: usize = TimeStamp::LENGTH
+//         + TransactionAddress::CHECKSUM_LENGTH
+//         + AccountAddress::CHECKSUM_LENGTH
+//         + ResourceAddress::CHECKSUM_LEN;
+
+//     const STEP3_INDEX: usize =
+//         TransactionAddress::CHECKSUM_LENGTH + AccountAddress::CHECKSUM_LENGTH;
+//     const STEP4_INDEX: usize = Self::LENGTH - TimeStamp::LENGTH;
+
+//     pub fn new(
+//         timestamp: TimeStamp,
+//         transaction_id: &TransactionAddress,
+//         account_address: &AccountAddress,
+//         resource_address: &ResourceAddress,
+//     ) -> Self {
+//         let mut id = [0u8; Self::LENGTH];
+
+//         id[..TransactionAddress::CHECKSUM_LENGTH].copy_from_slice(transaction_id.chechsum_slice());
+//         id[TransactionAddress::CHECKSUM_LENGTH..AccountAddress::CHECKSUM_LENGTH]
+//             .copy_from_slice(account_address.checksum_slice());
+//         id[Self::STEP3_INDEX..Self::STEP4_INDEX].copy_from_slice(resource_address.checksum_slice());
+//         id[Self::STEP4_INDEX..].copy_from_slice(timestamp.as_slice());
+
+//         Self(id)
+//     }
+// }
+
 #[derive(Debug, Clone)]
 pub struct Transaction {
     pub id: TransactionId, //primary key
-    pub address: TransactionAddress,
+    pub transaction_address: TransactionAddress,
     pub timestamp: TimeStamp,
     pub state_version: u64,
-    pub withdraws: Vec<(ResourceAddress, String)>,
-    pub deposits: Vec<(ResourceAddress, String)>,
+    pub balance_changes: Vec<BalanceChange>,
+    pub message: Option<String>,
 }
 
 impl Transaction {
     pub fn new(
         timestamp: TimeStamp,
         state_version: u64,
-        withdraws: Vec<(ResourceAddress, String)>,
+        balance_changes: Vec<BalanceChange>,
         account_address: &AccountAddress,
         transaction_address: TransactionAddress,
+        message: Option<String>,
     ) -> Self {
         Self {
             id: TransactionId::new(&account_address, &transaction_address),
-            address: transaction_address,
+            transaction_address,
             timestamp,
             state_version,
-            withdraws,
-            deposits: Vec::new(),
+            balance_changes,
+            message,
         }
     }
 }
@@ -92,7 +136,7 @@ impl PartialEq for Transaction {
 
 impl Eq for Transaction {}
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransactionId([u8; Self::LENGTH]);
 
 impl TransactionId {
@@ -234,11 +278,13 @@ impl Display for TransactionStatus {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BalanceChange {
-    id: BalanceChangeId,
-    account: AccountAddress,
-    resource: ResourceAddress,
-    amount: String,
+    pub id: BalanceChangeId,
+    pub account: AccountAddress,
+    pub resource: ResourceAddress,
+    pub nfids: Option<NFIDs>,
+    pub amount: Option<String>,
 }
 
 impl BalanceChange {
@@ -246,7 +292,8 @@ impl BalanceChange {
         transaction: TransactionId,
         account: AccountAddress,
         resource: ResourceAddress,
-        amount: String,
+        nfids: Option<NFIDs>,
+        amount: Option<String>,
     ) -> Self {
         Self {
             id: BalanceChangeId::new(
@@ -256,11 +303,13 @@ impl BalanceChange {
             ),
             account,
             resource,
+            nfids,
             amount,
         }
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BalanceChangeId([u8; Self::LENGTH]);
 
 impl BalanceChangeId {

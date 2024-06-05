@@ -4,6 +4,9 @@ pub mod component_all_nfts;
 pub mod component_fungible_vaults;
 pub mod entity_details;
 pub mod ledger_state;
+pub mod metadata;
+pub mod non_fungible_id_data;
+pub mod resource;
 pub mod transactions;
 
 pub use accounts_details::FungibleResourceVaultAggregated;
@@ -12,4 +15,6 @@ pub use component_all_nfts::*;
 pub use component_fungible_vaults::*;
 pub use entity_details::*;
 pub use ledger_state::LedgerState;
+pub use metadata::*;
+pub use resource::*;
 pub use transactions::*;
