@@ -6,7 +6,7 @@ use anyhow::Result;
 use rusqlite::params;
 use types::{
     assets::{FungibleAsset, NonFungibleAsset},
-    Account, AccountAddress, EntityAccount, Fungibles, NonFungibles, Transaction,
+    Account, AccountAddress, EntityAccount, Fungibles, NonFungibles, Resource, Transaction,
 };
 
 impl Db {
@@ -22,134 +22,28 @@ impl Db {
                 account.public_key.0,
                 account.hidden,
                 account.settings,
+                account.balances_last_updated,
+                account.transactions_last_updated,
             ])?;
 
         Ok(())
     }
 
-    pub fn update_accounts(&mut self, accounts: &[EntityAccount]) -> Result<(), rusqlite::Error> {
+    pub fn upsert_resources(&mut self, resources: &[Resource]) -> Result<(), rusqlite::Error> {
         let tx = self.connection.transaction()?;
 
         {
-            let mut stmt = tx.prepare_cached(
-                "
-                UPDATE accounts SET name = ?, settings =?
-                WHERE address = ?
-                ",
-            )?;
+            let mut stmt = tx.prepare_cached(upsert::UPSERT_RESOURCE)?;
 
-            for account in accounts {
-                stmt.execute(params![account.name, account.settings, account.address,])?;
-            }
-        }
-
-        tx.commit()
-    }
-
-    pub fn update_fungibles_for_account(
-        &mut self,
-        fungibles: &Fungibles,
-        account_address: &AccountAddress,
-    ) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(
-                "
-                INSERT INTO 
-                fungibles (
-                    address, 
-                    name, 
-                    symbol, 
-                    icon, 
-                    amount,
-                    current_supply,
-                    description, 
-                    last_updated, 
-                    metadata, 
-                    account_address
-                )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
-                ON CONFLICT (address)
-                DO UPDATE SET 
-                    name = excluded.name, 
-                    symbol = excluded.symbol, 
-                    icon = excluded.icon, 
-                    amount = excluded.amount,
-                    current_supply = excluded.current_supply,
-                    description = excluded.description, 
-                    last_updated = excluded.last_updated, 
-                    metadata = excluded.metadata, 
-                    account_address = excluded.account_address
-                ",
-            )?;
-
-            for fungible in fungibles {
+            for resource in resources {
                 stmt.execute(params![
-                    fungible.address,
-                    fungible.name,
-                    fungible.symbol,
-                    fungible.icon,
-                    fungible.amount,
-                    fungible.total_supply,
-                    fungible.description,
-                    fungible.last_updated_at_state_version,
-                    fungible.metadata,
-                    account_address,
-                ])?;
-            }
-        }
-
-        tx.commit()
-    }
-
-    pub fn update_non_fungibles_for_account(
-        &mut self,
-        non_fungibles: &NonFungibles,
-        account_address: &AccountAddress,
-    ) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(
-                "
-                INSERT INTO 
-                non_fungibles (
-                    address, 
-                    name, 
-                    symbol, 
-                    icon, 
-                    description, 
-                    nfids, 
-                    last_updated, 
-                    metadata, 
-                    account_address
-                )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-                ON CONFLICT (address)
-                DO UPDATE SET
-                    name = excluded.name,
-                    symbol = excluded.symbol,
-                    icon = excluded.icon,
-                    description = excluded.description,
-                    nfids = excluded.nfids,
-                    last_updated = excluded.last_updated,
-                    metadata = excluded.metadata,
-                    account_address = excluded.account_address
-                ",
-            )?;
-
-            for non_fungible in non_fungibles {
-                stmt.execute(params![
-                    non_fungible.address,
-                    non_fungible.name,
-                    non_fungible.symbol,
-                    non_fungible.icon,
-                    non_fungible.description,
-                    non_fungible.nfids,
-                    non_fungible.last_updated_at_state_version,
-                    non_fungible.metadata,
-                    account_address,
+                    resource.address,
+                    resource.name,
+                    resource.symbol,
+                    resource.description,
+                    resource.current_supply,
+                    resource.divisibility,
+                    resource.tags,
                 ])?;
             }
         }
@@ -172,7 +66,6 @@ impl Db {
                     fungible_asset.id,
                     fungible_asset.resource_address,
                     fungible_asset.amount,
-                    fungible_asset.last_updated,
                     account_address,
                 ])?;
             }
@@ -196,7 +89,6 @@ impl Db {
                     non_fungible_asset.id,
                     non_fungible_asset.resource_address,
                     non_fungible_asset.nfids,
-                    non_fungible_asset.last_updated,
                     account_address,
                 ])?;
             }
@@ -279,150 +171,6 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn update_accounts(
-        &mut self,
-        accounts: Vec<EntityAccount>,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
-                let tx = conn.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(
-                        "
-                    UPDATE accounts SET name = ?, settings =?
-                    WHERE address = ?
-                    ",
-                    )?;
-
-                    for account in accounts {
-                        stmt.execute(params![account.name, account.settings, account.address,])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
-    }
-
-    pub async fn update_fungibles_for_account(
-        &mut self,
-        fungibles: Fungibles,
-        account_address: AccountAddress,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
-                let tx = conn.transaction()?;
-                {
-                    let mut stmt = tx.prepare_cached(
-                        "
-                    INSERT INTO 
-                    fungibles (
-                        address, 
-                        name, 
-                        symbol, 
-                        icon, 
-                        amount,
-                        current_supply,
-                        description, 
-                        last_updated, 
-                        metadata, 
-                        account_address
-                    )
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
-                    ON CONFLICT (address)
-                    DO UPDATE SET 
-                        name = excluded.name, 
-                        symbol = excluded.symbol, 
-                        icon = excluded.icon, 
-                        amount = excluded.amount,
-                        current_supply = excluded.current_supply,
-                        description = excluded.description, 
-                        last_updated = excluded.last_updated, 
-                        metadata = excluded.metadata, 
-                        account_address = excluded.account_address
-                    ",
-                    )?;
-
-                    for fungible in &fungibles {
-                        stmt.execute(params![
-                            fungible.address,
-                            fungible.name,
-                            fungible.symbol,
-                            fungible.icon,
-                            fungible.amount,
-                            fungible.total_supply,
-                            fungible.description,
-                            fungible.last_updated_at_state_version,
-                            fungible.metadata,
-                            &account_address,
-                        ])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
-    }
-
-    pub async fn update_non_fungibles_for_account(
-        &mut self,
-        non_fungibles: NonFungibles,
-        account_address: AccountAddress,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
-                let tx = conn.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(
-                        "
-                    INSERT INTO 
-                    non_fungibles (
-                        address, 
-                        name, 
-                        symbol, 
-                        icon, 
-                        description, 
-                        nfids, 
-                        last_updated, 
-                        metadata, 
-                        account_address
-                    )
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-                    ON CONFLICT (address)
-                    DO UPDATE SET
-                        name = excluded.name,
-                        symbol = excluded.symbol,
-                        icon = excluded.icon,
-                        description = excluded.description,
-                        nfids = excluded.nfids,
-                        last_updated = excluded.last_updated,
-                        metadata = excluded.metadata,
-                        account_address = excluded.account_address,
-                    ",
-                    )?;
-
-                    for non_fungible in &non_fungibles {
-                        stmt.execute(params![
-                            non_fungible.address,
-                            non_fungible.name,
-                            non_fungible.symbol,
-                            non_fungible.icon,
-                            non_fungible.description,
-                            non_fungible.nfids,
-                            non_fungible.last_updated_at_state_version,
-                            non_fungible.metadata,
-                            account_address,
-                        ])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
-    }
-
     pub async fn upsert_fungible_assets_for_account(
         &mut self,
         account_address: AccountAddress,
@@ -440,7 +188,6 @@ impl AsyncDb {
                             fungible_asset.id,
                             fungible_asset.resource_address,
                             fungible_asset.amount,
-                            fungible_asset.last_updated,
                             account_address,
                         ])?;
                     }
@@ -468,7 +215,6 @@ impl AsyncDb {
                             non_fungible_asset.id,
                             non_fungible_asset.resource_address,
                             non_fungible_asset.nfids,
-                            non_fungible_asset.last_updated,
                             account_address,
                         ])?;
                     }

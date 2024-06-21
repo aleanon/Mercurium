@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet,
+    collections::{btree_set::IntoIter, BTreeSet},
     ops::{Deref, DerefMut},
 };
 
-use crate::response_models::{entity_details::NFTVaults, non_fungible_id_data::NFIdData};
+use crate::response_models::{
+    entity_details::NFTVaults,
+    non_fungible_id_data::{Field, NFIdData},
+};
 
 use super::{Icon, MetaData, ResourceAddress};
 
@@ -96,11 +99,11 @@ impl Ord for NonFungible {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NFIDs(BTreeSet<NFID>);
+pub struct NFIDs(Vec<NFID>);
 
 impl NFIDs {
     pub fn new() -> Self {
-        Self(BTreeSet::new())
+        Self(Vec::new())
     }
 
     pub fn nr_of_nfts(&self) -> usize {
@@ -109,7 +112,7 @@ impl NFIDs {
 }
 
 impl Deref for NFIDs {
-    type Target = BTreeSet<NFID>;
+    type Target = Vec<NFID>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -121,8 +124,22 @@ impl DerefMut for NFIDs {
     }
 }
 
-impl From<BTreeSet<NFID>> for NFIDs {
-    fn from(value: BTreeSet<NFID>) -> Self {
+impl IntoIterator for NFIDs {
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type Item = NFID;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<T: Into<NFID>> FromIterator<T> for NFIDs {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Self(iter.into_iter().map(|item| item.into()).collect())
+    }
+}
+
+impl From<Vec<NFID>> for NFIDs {
+    fn from(value: Vec<NFID>) -> Self {
         Self(value)
     }
 }
@@ -179,6 +196,17 @@ impl NFID {
         Self { id, nfdata: data }
     }
 
+    pub fn from_nfid_data(id: String, data: Vec<Field>) -> Self {
+        let nfdata = data
+            .into_iter()
+            .map(|field| NFData {
+                key: field.field_name,
+                value: field.value,
+            })
+            .collect();
+        Self { id, nfdata }
+    }
+
     pub fn get_id(self) -> String {
         self.id
     }
@@ -187,6 +215,15 @@ impl NFID {
 impl PartialEq<String> for NFID {
     fn eq(&self, other: &String) -> bool {
         &self.id == other
+    }
+}
+
+impl From<String> for NFID {
+    fn from(value: String) -> Self {
+        Self {
+            id: value,
+            nfdata: Vec::new(),
+        }
     }
 }
 

@@ -39,6 +39,10 @@ impl ResourceAddress {
     pub const CHECKSUM_LEN: usize = 6;
     pub const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LEN;
 
+    pub fn empty() -> Self {
+        Self([b'0'; Self::LENGTH])
+    }
+
     pub fn as_ref(&self) -> &[u8] {
         &self.0
     }

@@ -6,7 +6,10 @@ use iced::{
     Element, Length,
 };
 
-use crate::{app::App, message::{setup_message::SetupMessage, Message}};
+use crate::{
+    app::App,
+    message::{setup_message::SetupMessage, Message},
+};
 
 use self::{new_wallet::NewWallet, restore_wallet::RestoreWallet};
 
@@ -23,9 +26,7 @@ impl<'a> Setup {
     }
 }
 
-
 impl<'a> Setup {
-
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
         let content: Element<'a, Message> = match self {
             Self::SelectCreation => {
@@ -35,8 +36,8 @@ impl<'a> Setup {
                 let restore_from_seed = Self::creation_button("Restore from seed")
                     .on_press(SetupMessage::FromSeed.into());
 
-                let new_wallet =
-                    Self::creation_button("Create new wallet").on_press(SetupMessage::NewWallet.into());
+                let new_wallet = Self::creation_button("Create new wallet")
+                    .on_press(SetupMessage::NewWallet.into());
 
                 widget::column![restore_from_backup, restore_from_seed, new_wallet]
                     .width(Length::Shrink)

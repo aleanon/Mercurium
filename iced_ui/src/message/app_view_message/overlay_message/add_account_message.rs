@@ -82,7 +82,7 @@ impl AddAccountMessage {
                 encrypted_mnemonic
                     .decrypt_mnemonic(&add_account_view.password)
                     .and_then(|mnemonic| {
-                        let accounts = app_data.db.get_accounts_map().unwrap_or(BTreeMap::new());
+                        let accounts = app_data.db.get_accounts().unwrap_or(BTreeMap::new());
                         let mut id = 0;
                         let mut new_account_index = 0;
 

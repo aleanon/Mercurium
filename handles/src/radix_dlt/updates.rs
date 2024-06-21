@@ -1,17 +1,17 @@
 use super::*;
 use debug_print::debug_println;
-use iced::futures::future::join_all;
-use parse_responses::parse_resource_details_response;
+use iced::futures::future::{join_all, BoxFuture, Join};
 use std::{
     collections::{BTreeMap, HashMap},
-    str::FromStr,
     sync::Arc,
 };
 use store::Db;
 use thiserror::Error;
+use tokio::task::JoinHandle;
 use types::{
-    assets::{FungibleAsset, NewAssets, NonFungibleAsset},
-    debug_info, AccountAddress, Resource, ResourceAddress, Transaction,
+    assets::{FungibleAsset, NonFungibleAsset},
+    Account, AccountAddress, AccountUpdate, AccountsUpdate, Network, Resource, ResourceAddress,
+    NFID,
 };
 
 #[derive(Debug, Error)]
@@ -23,281 +23,654 @@ pub enum UpdateError {
     #[error("Error pasing address")]
     AddressParseError,
     #[error("No assets found")]
-    NoAssetsFound,
+    EmptyResponse,
 }
 
-pub struct AccountUpdateEntities {
-    pub account_address: AccountAddress,
-    pub fungibles: HashMap<ResourceAddress, FungibleAsset>,
-    pub non_fungibles: HashMap<ResourceAddress, NonFungibleAsset>,
+pub async fn update_all_accounts(network: Network, db: Db) -> AccountsUpdate {
+    let accounts = db
+        .get_accounts()
+        .unwrap_or(BTreeMap::new())
+        .into_iter()
+        .map(|(_, account)| account)
+        .collect();
+
+    update_accounts(network, accounts, db).await
 }
 
-pub struct UpdateAccountsResult {
-    pub accounts_entities: Vec<AccountUpdateEntities>,
-    pub new_resources: HashMap<ResourceAddress, Resource>,
-    pub icon_urls: BTreeMap<ResourceAddress, String>,
-}
-
-impl UpdateAccountsResult {
-    pub fn new() -> Self {
-        Self {
-            accounts_entities: Vec::new(),
-            new_resources: HashMap::new(),
-            icon_urls: BTreeMap::new(),
-        }
-    }
-}
-
-pub async fn update_all_accounts(
-    gateway_client: Arc<radix_gateway_sdk::Client>,
-    db: Db,
-) -> Result<UpdateAccountsResult, UpdateError> {
-    let account_addresses = db.get_account_addresses().unwrap_or(Vec::new());
-
-    update_accounts(account_addresses, gateway_client, db).await
-}
-
-pub async fn update_accounts(
-    account_addresses: Vec<AccountAddress>,
-    gateway_client: Arc<radix_gateway_sdk::Client>,
-    db: Db,
-) -> Result<UpdateAccountsResult, UpdateError> {
+pub async fn update_accounts(network: Network, accounts: Vec<Account>, db: Db) -> AccountsUpdate {
     let resources = Arc::new(db.get_all_resources().unwrap_or(HashMap::new()));
-    let mut fungible_assets = db
-        .get_fungible_assets_for_accounts(account_addresses.as_slice())
-        .unwrap_or(HashMap::new());
-    let mut non_fungible_assets = db
-        .get_non_fungible_assets_for_accounts(account_addresses.as_slice())
-        .unwrap_or(HashMap::new());
 
-    let tasks = account_addresses.into_iter().map(|account_address| {
-        let client = gateway_client.clone();
+    let tasks = accounts.into_iter().map(|account| {
         let resources = resources.clone();
-        let fungible_assets_for_account = fungible_assets
-            .remove(&account_address)
-            .unwrap_or(HashMap::new());
-        let non_fungible_assets_for_account = non_fungible_assets
-            .remove(&account_address)
-            .unwrap_or(HashMap::new());
-
-        let account_update_entities = AccountUpdateEntities {
-            account_address,
-            fungibles: fungible_assets_for_account,
-            non_fungibles: non_fungible_assets_for_account,
-        };
-
-        tokio::spawn(
-            async move { update_account(client, resources, account_update_entities).await },
-        )
+        tokio::spawn(async move { update_account(network, resources, account).await })
     });
 
     join_all(tasks)
         .await
         .into_iter()
-        .filter_map(|join_result| join_result.ok())
-        .fold::<Result<
-            (
-                Vec<AccountUpdateEntities>,
-                HashMap<ResourceAddress, Resource>,
-                BTreeMap<ResourceAddress, String>,
-            ),
-            UpdateError,
-        >, _>(Err(UpdateError::NoAssetsFound), |mut acc, response| {
-            match response {
-                Ok(ok_response) => match acc {
-                    Ok((ref mut account_entities, ref mut new_resources, ref mut icon_urls)) => {
-                        account_entities.push(ok_response.0);
-                        new_resources.extend(ok_response.1.into_iter());
-                        icon_urls.extend(ok_response.2.into_iter());
-                    }
-                    Err(_) => acc = Ok((vec![ok_response.0], ok_response.1, ok_response.2)),
-                },
-                Err(err) => acc = acc.map_err(|_| err),
+        .filter_map(|join_result| {
+            #[cfg(debug_assertions)]
+            if let Err(err) = &join_result {
+                println!("Failed to join task {}", err);
             }
-            acc
+
+            join_result.ok()
         })
-        .and_then(|(accounts_entities, new_resources, icon_urls)| {
-            Ok(UpdateAccountsResult {
-                accounts_entities,
-                new_resources,
-                icon_urls,
-            })
-        })
+        .fold(
+            AccountsUpdate::new(),
+            |mut acc, (accountupdate, new_resources)| {
+                new_resources
+                    .into_iter()
+                    .for_each(|(resource_address, (resource, url))| {
+                        acc.new_resources.insert(resource_address.clone(), resource);
+                        acc.icon_urls.insert(resource_address, url);
+                    });
+                acc.account_updates.push(accountupdate);
+                acc
+            },
+        )
 }
 
 pub async fn update_account(
-    gateway_client: Arc<radix_gateway_sdk::Client>,
+    network: Network,
     resources: Arc<HashMap<ResourceAddress, Resource>>,
-    mut account_update_entities: AccountUpdateEntities,
+    mut account: Account,
+) -> (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>) {
+    let balances_last_updated_at_state_version = account.balances_last_updated.unwrap_or(0);
+    let transactions_last_updated = account.transactions_last_updated;
+
+    let account_address = account.address.clone();
+    let stored_resources = resources.clone();
+    let fungible_assets_task = tokio::spawn(async move {
+        update_fungible_assets_and_resources_for_account(
+            network,
+            account_address,
+            stored_resources,
+            balances_last_updated_at_state_version,
+        )
+        .await
+    });
+
+    let account_address = account.address.clone();
+    let stored_resources = resources.clone();
+    let non_fungible_assets_task = tokio::spawn(async move {
+        update_non_fungible_assets_and_resources_for_account(
+            network,
+            account_address,
+            stored_resources,
+            balances_last_updated_at_state_version,
+        )
+        .await
+    });
+    let (new_state_version_fungible_balances, fungible_assets, new_fungible_resources) =
+        fungible_assets_task
+            .await
+            .and_then(|result| Ok(result.unwrap_or((0, HashMap::new(), HashMap::new()))))
+            .unwrap_or_else(|err| {
+                debug_println!("Failed to update fungible assets: {}", err);
+                (0, HashMap::new(), HashMap::new())
+            });
+
+    let (new_state_version_non_fungible_balances, non_fungible_assets, new_non_fungible_resources) =
+        non_fungible_assets_task
+            .await
+            .and_then(|result| Ok(result.unwrap_or((0, HashMap::new(), HashMap::new()))))
+            .unwrap_or_else(|err| {
+                debug_println!("Failed to get Non fungible assets {}", err);
+                (0, HashMap::new(), HashMap::new())
+            });
+
+    let new_state_version =
+        new_state_version_fungible_balances.min(new_state_version_non_fungible_balances);
+
+    account.balances_last_updated = Some(new_state_version);
+    let mut new_resources = new_fungible_resources;
+    new_resources.extend(new_non_fungible_resources);
+
+    (
+        AccountUpdate {
+            account,
+            fungibles: fungible_assets,
+            non_fungibles: non_fungible_assets,
+        },
+        new_resources,
+    )
+}
+
+/// returns the updated `Resource` and the accompanying icon url
+pub async fn update_resources(
+    network: Network,
+    resources: Vec<ResourceAddress>,
+) -> HashMap<ResourceAddress, (Resource, String)> {
+    let tasks = resources.chunks(20).map(|chunk| {
+        let chunk = chunk.to_owned();
+
+        tokio::spawn(async move {
+            let addresses = chunk
+                .iter()
+                .map(|address| address.as_str())
+                .collect::<Vec<_>>();
+
+            let response =
+                gateway_requests::get_entity_details(network.into(), addresses.as_slice()).await?;
+
+            let new_resources = response
+                .items
+                .into_iter()
+                .filter_map(|response_item| {
+                    let (resource_address, resource_and_icon_url) =
+                        parse_responses::parse_resource_details_response(response_item)?;
+                    Some((resource_address, resource_and_icon_url))
+                })
+                .collect::<HashMap<ResourceAddress, (Resource, String)>>();
+
+            Ok::<_, UpdateError>(new_resources)
+        })
+    });
+
+    join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| join_result.ok()?.ok())
+        .reduce(|mut acc, new_resources| {
+            acc.extend(new_resources);
+            acc
+        })
+        .unwrap_or(HashMap::new())
+}
+
+pub async fn update_fungible_assets_and_resources_for_account(
+    network: Network,
+    account_address: AccountAddress,
+    stored_resources: Arc<HashMap<ResourceAddress, Resource>>,
+    last_updated_at_state_version: i64,
 ) -> Result<
     (
-        AccountUpdateEntities,
-        HashMap<ResourceAddress, Resource>,
-        BTreeMap<ResourceAddress, String>,
+        i64,
+        HashMap<ResourceAddress, FungibleAsset>,
+        HashMap<ResourceAddress, (Resource, String)>,
     ),
     UpdateError,
 > {
-    // Account details include fungible and non-fungible assets held in the account
-    let mut account_details_response = gateway_requests::get_entities_details(
-        gateway_client.clone(),
-        &[account_update_entities.account_address.to_string()],
+    let (state_version, assets) = update_fungible_balances_for_account(
+        network,
+        &account_address,
+        last_updated_at_state_version,
     )
     .await?;
 
-    // Parses the above response and updated all fungibles and non fungibles already held in the account
-    // any new assets are returned for further processing
-    let mut new_assets = NewAssets::new();
-    if account_details_response.items.len() > 0 {
-        let entity_response = account_details_response.items.remove(0);
-        let account_address = AccountAddress::from_str(entity_response.address.as_str())
-            .map_err(|_| UpdateError::AddressParseError)?;
-
-        new_assets = parse_responses::parse_account_details_response_and_update_assets(
-            account_address,
-            &mut account_update_entities.fungibles,
-            &mut account_update_entities.non_fungibles,
-            entity_response,
-        )
-    }
-
-    debug_println!("Parsed {} new fungibles", new_assets.new_fungibles.len());
-
-    // Collects all fungible and non fungible new resources in one collection
-    let mut new_resource_addresses = new_assets.new_fungibles;
-
-    let new_non_fungibles = new_assets.new_non_fungibles.inner();
-
-    for (resource_address, _) in &new_non_fungibles {
-        new_resource_addresses.insert(resource_address.clone());
-    }
-
-    debug_println!("Found {} new resources", new_resource_addresses.len());
-
-    // Sorts out the resources we already have in our database, this includes resources held in other accounts
-    let new_resource_addresses_as_string = new_resource_addresses
+    let new_resource_addresses = assets
         .iter()
-        .filter_map(|resource_address| {
-            if !resources.contains_key(resource_address) {
-                Some(resource_address.to_string())
+        .filter_map(|(resource_address, _)| {
+            if !stored_resources.contains_key(resource_address) {
+                Some(resource_address.clone())
             } else {
                 None
             }
         })
-        .collect::<Vec<String>>();
+        .collect::<Vec<ResourceAddress>>();
 
-    debug_println!(
-        "Number of new resources as string: {}",
-        new_resource_addresses_as_string.len()
-    );
+    let new_resources = update_resources(network.into(), new_resource_addresses).await;
 
-    // Gets the details of all resources not held in any accounts
-    let resources_detail_response = gateway_requests::get_entities_details(
-        gateway_client.clone(),
-        new_resource_addresses_as_string.as_slice(),
+    Ok::<_, UpdateError>((state_version, assets, new_resources))
+}
+
+pub async fn update_fungible_balances_for_account(
+    network: Network,
+    account_address: &AccountAddress,
+    last_updated_at_state_version: i64,
+) -> Result<(i64, HashMap<ResourceAddress, FungibleAsset>), UpdateError> {
+    let mut response = gateway_requests::get_fungible_balances_for_entity(
+        network,
+        account_address.as_str(),
+        None,
+        None,
     )
     .await?;
 
-    debug_println!("Successfully retrieved details for new resources");
+    let mut result = (
+        response.ledger_state_mixin.ledger_state.state_version,
+        HashMap::new(),
+    );
 
-    // Parses resource details and gets icon urls for new resources
-    let mut new_resources = HashMap::with_capacity(resources_detail_response.items.len());
-    let mut icon_urls = BTreeMap::new();
+    'main: loop {
+        let next_cursor = response.next_cursor.take();
+        if next_cursor.is_none() {
+            let parsed = parse_responses::parse_fungible_balances_response(
+                response,
+                last_updated_at_state_version,
+                &account_address,
+            );
+            result.1.extend(parsed);
+            break;
+        } else {
+            let address = account_address.clone();
+            let cursor = next_cursor.clone();
+            let at_state_version = Some(result.0);
+            let next_response = tokio::spawn(async move {
+                gateway_requests::get_fungible_balances_for_entity(
+                    network,
+                    address.as_str(),
+                    cursor,
+                    at_state_version,
+                )
+                .await
+            });
 
-    for item in resources_detail_response.items {
-        if let Some(((resource_address, resource), url)) = parse_resource_details_response(item) {
-            new_resources.insert(resource_address, resource);
+            let parsed = parse_responses::parse_fungible_balances_response(
+                response,
+                last_updated_at_state_version,
+                &account_address,
+            );
+            result.1.extend(parsed);
 
-            if let Some((resource_address, url)) = url {
-                icon_urls.insert(resource_address, url);
+            match next_response.await {
+                Ok(response_result) => match response_result {
+                    Ok(new_response) => response = new_response,
+                    Err(_) => {
+                        for _ in 0..3 {
+                            let retry_result = gateway_requests::get_fungible_balances_for_entity(
+                                network,
+                                account_address.as_str(),
+                                next_cursor.clone(),
+                                Some(result.0),
+                            )
+                            .await;
+                            match retry_result {
+                                Ok(new_response) => {
+                                    response = new_response;
+                                    continue 'main;
+                                }
+                                Err(_) => continue,
+                            }
+                        }
+                        debug_println!(
+                            "Failed to get fungible balances for {}",
+                            account_address.as_str()
+                        );
+                        break;
+                    }
+                },
+                Err(_) => {
+                    debug_println!(
+                        "Join error when getting fungible balances for {}",
+                        account_address.as_str()
+                    );
+                    break;
+                }
             }
         }
     }
 
-    debug_println!(
-        "Successfully parsed {} resource details",
-        new_resources.len()
-    );
-
-    // Send a request for details on all new NFT ids, creates a task for each resource,
-    // the result of the taks are collected and stored in the return value
-    let non_fungibles_data = {
-        let tasks = new_non_fungibles
-            .into_iter()
-            .map(|(resource_address, ids)| {
-                let client = gateway_client.clone();
-                let resource_address = resource_address;
-                tokio::task::spawn(async move {
-                    gateway_requests::get_non_fungible_data(
-                        client,
-                        resource_address.as_str(),
-                        ids.as_slice(),
-                    )
-                    .await
-                })
-            });
-
-        join_all(tasks)
-            .await
-            .into_iter()
-            .filter_map(|join_result| {
-                let response = join_result.ok()?.ok()?;
-                let resource_address =
-                    ResourceAddress::from_str(response.resource_address.as_str()).ok()?;
-
-                let (resource_address, asset) = account_update_entities
-                    .non_fungibles
-                    .remove_entry(&resource_address)?;
-                let asset =
-                    parse_responses::parse_non_fungibles_data_response_for_asset(asset, response);
-                Some((resource_address, asset))
-            })
-            .collect::<HashMap<ResourceAddress, NonFungibleAsset>>()
-    };
-
-    debug_println!(
-        "Successfully parsed {} non fungible ids",
-        non_fungibles_data.len()
-    );
-
-    account_update_entities
-        .non_fungibles
-        .extend(non_fungibles_data.into_iter());
-
-    Ok((account_update_entities, new_resources, icon_urls))
+    Ok(result)
 }
 
-pub async fn update_transactions_for_account(
-    gateway_client: Arc<radix_gateway_sdk::Client>,
-    db: Db,
+pub async fn update_non_fungible_assets_and_resources_for_account(
+    network: Network,
     account_address: AccountAddress,
-) -> Result<BTreeMap<Transaction>, UpdateError> {
-    let last_updated = 
+    stored_resources: Arc<HashMap<ResourceAddress, Resource>>,
+    last_updated_at_state_version: i64,
+) -> Result<
+    (
+        i64,
+        HashMap<ResourceAddress, NonFungibleAsset>,
+        HashMap<ResourceAddress, (Resource, String)>,
+    ),
+    UpdateError,
+> {
+    let (state_version, assets) = update_non_fungible_assets_for_account(
+        network,
+        &account_address,
+        last_updated_at_state_version,
+    )
+    .await?;
+
+    let assets_with_ids =
+        update_non_fungible_ids_for_assets(network, &account_address, assets).await?;
+
+    let assets_with_nfdata = update_non_fungible_data_for_ids(network, assets_with_ids).await;
+
+    let new_resource_addresses = assets_with_nfdata
+        .iter()
+        .filter_map(|(resource_address, _)| {
+            if !stored_resources.contains_key(resource_address) {
+                Some(resource_address.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<ResourceAddress>>();
+
+    let new_resources = update_resources(network, new_resource_addresses).await;
+
+    Ok((state_version, assets_with_nfdata, new_resources))
+}
+
+pub async fn update_non_fungible_assets_for_account(
+    network: Network,
+    account_address: &AccountAddress,
+    last_updated_at_state_version: i64,
+) -> Result<(i64, HashMap<ResourceAddress, (String, NonFungibleAsset)>), UpdateError> {
+    let mut response = gateway_requests::get_non_fungible_balances_for_entity(
+        network,
+        account_address.as_str(),
+        None,
+        None,
+    )
+    .await?;
+
+    let mut result = (
+        response.ledger_state_mixin.ledger_state.state_version,
+        HashMap::new(),
+    );
+
+    'main: loop {
+        let next_cursor = response
+            .non_fungible_resources_collection
+            .next_cursor
+            .take();
+
+        if next_cursor.is_none() {
+            let parsed = parse_responses::parse_non_fungible_balances_response_without_nfids(
+                response,
+                last_updated_at_state_version,
+                &account_address,
+            );
+            result.1.extend(parsed);
+            break;
+        } else {
+            let address = account_address.clone();
+            let cursor = next_cursor.clone();
+            let at_state_version = Some(result.0);
+            let next_response = tokio::spawn(async move {
+                gateway_requests::get_non_fungible_balances_for_entity(
+                    network,
+                    address.as_str(),
+                    cursor,
+                    at_state_version,
+                )
+                .await
+            });
+
+            let parsed = parse_responses::parse_non_fungible_balances_response_without_nfids(
+                response,
+                last_updated_at_state_version,
+                &account_address,
+            );
+            result.1.extend(parsed);
+
+            match next_response.await {
+                Ok(response_result) => match response_result {
+                    Ok(new_response) => response = new_response,
+                    Err(_) => {
+                        for _ in 0..3 {
+                            let retry_result =
+                                gateway_requests::get_non_fungible_balances_for_entity(
+                                    network,
+                                    account_address.as_str(),
+                                    next_cursor.clone(),
+                                    Some(result.0),
+                                )
+                                .await;
+                            match retry_result {
+                                Ok(new_response) => {
+                                    response = new_response;
+                                    continue 'main;
+                                }
+                                Err(_) => continue,
+                            }
+                        }
+                        debug_println!(
+                            "Failed to get non-fungible balances for account: {}",
+                            account_address.as_str()
+                        );
+                        break;
+                    }
+                },
+                Err(_) => {
+                    debug_println!(
+                        "Join Error when getting non_fungible balances for account: {}",
+                        account_address.as_str()
+                    );
+                    break;
+                }
+            }
+        }
+    }
+    Ok(result)
+}
+
+pub async fn update_non_fungible_ids_for_assets(
+    network: Network,
+    account_address: &AccountAddress,
+    assets: HashMap<ResourceAddress, (String, NonFungibleAsset)>,
+) -> Result<HashMap<ResourceAddress, NonFungibleAsset>, UpdateError> {
+    let tasks = assets
+        .into_iter()
+        .map(|(resource_address, (vault_address, asset))| {
+            let account_address = account_address.clone();
+            tokio::spawn(async move {
+                update_non_fungible_ids_for_asset(
+                    network,
+                    account_address,
+                    resource_address,
+                    vault_address,
+                    asset,
+                )
+                .await
+            })
+        });
+
+    join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| {
+            #[cfg(debug_assertions)]
+            if let Err(err) = &join_result {
+                println!("Join Error when getting nfids {}", err)
+            }
+            join_result.ok()
+        })
+        .fold(Err(UpdateError::EmptyResponse), |mut acc, result| {
+            match result {
+                Ok((resource_address, asset)) => match acc {
+                    Ok(ref mut map) => {
+                        map.insert(resource_address, asset);
+                    }
+                    Err(_) => {
+                        let mut map = HashMap::new();
+                        map.insert(resource_address, asset);
+                        acc = Ok(map);
+                    }
+                },
+                Err(err) => {
+                    debug_println!("Error when updating nfids {}", err);
+                    acc = acc.map_err(|_| err)
+                }
+            }
+            acc
+        })
+}
+async fn update_non_fungible_ids_for_asset(
+    network: Network,
+    account_address: AccountAddress,
+    resource_address: ResourceAddress,
+    vault_address: String,
+    mut asset: NonFungibleAsset,
+) -> Result<(ResourceAddress, NonFungibleAsset), UpdateError> {
+    let mut response = gateway_requests::get_non_fungible_ids_from_vault(
+        network,
+        account_address.as_str(),
+        resource_address.as_str(),
+        vault_address.as_str(),
+        None,
+        None,
+    )
+    .await?;
+
+    let ledger_state_version = response.ledger_state.state_version;
+
+    'main: loop {
+        let next_cursor = response.non_fungible_ids_collection.next_cursor.take();
+
+        if next_cursor.is_none() {
+            asset.nfids.extend(
+                response
+                    .non_fungible_ids_collection
+                    .items
+                    .into_iter()
+                    .map(|id| NFID::new(id)),
+            );
+            break;
+        } else {
+            let account_address_string = response.address;
+            let resource_address_string = response.resource_address;
+            let vault_address_clone = vault_address.clone();
+            let cursor = next_cursor.clone();
+            let next_response = tokio::spawn(async move {
+                gateway_requests::get_non_fungible_ids_from_vault(
+                    network,
+                    account_address_string.as_str(),
+                    resource_address_string.as_str(),
+                    vault_address_clone.as_str(),
+                    cursor,
+                    Some(ledger_state_version),
+                )
+                .await
+            });
+
+            asset.nfids.extend(
+                response
+                    .non_fungible_ids_collection
+                    .items
+                    .into_iter()
+                    .map(|id| NFID::new(id)),
+            );
+
+            match next_response.await {
+                Ok(response_result) => match response_result {
+                    Ok(new_response) => response = new_response,
+                    Err(_) => {
+                        for _ in 0..3 {
+                            let retry_result = gateway_requests::get_non_fungible_ids_from_vault(
+                                network,
+                                account_address.as_str(),
+                                resource_address.as_str(),
+                                vault_address.as_str(),
+                                next_cursor.clone(),
+                                Some(ledger_state_version),
+                            )
+                            .await;
+                            match retry_result {
+                                Ok(new_response) => {
+                                    response = new_response;
+                                    continue 'main;
+                                }
+                                Err(_) => continue,
+                            }
+                        }
+                        debug_println!(
+                            "Failed to get nfids for account {}, resource {}",
+                            account_address.as_str(),
+                            resource_address.as_str()
+                        );
+                        break;
+                    }
+                },
+                Err(_) => {
+                    debug_println!(
+                        "Join Error when getting nfids for account {}, resource {}",
+                        account_address.as_str(),
+                        resource_address.as_str()
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    Ok((resource_address, asset))
+}
+
+async fn update_non_fungible_data_for_ids(
+    network: Network,
+    assets: HashMap<ResourceAddress, NonFungibleAsset>,
+) -> HashMap<ResourceAddress, NonFungibleAsset> {
+    let mut tasks: Vec<JoinHandle<Result<(ResourceAddress, NonFungibleAsset), UpdateError>>> =
+        Vec::new();
+
+    assets
+        .into_iter()
+        .for_each(|(resource_address, mut asset)| {
+            let ids = asset.nfids_as_string();
+            for chunk in ids.chunks(100) {
+                let chunk = chunk.to_vec();
+                let resource_address = resource_address.clone();
+                let asset = asset.clone();
+                tasks.push(tokio::spawn(async move {
+                    let response = gateway_requests::get_non_fungible_data(
+                        network,
+                        resource_address.as_str(),
+                        chunk.as_slice(),
+                    )
+                    .await?;
+                    let asset_with_nfdata =
+                        parse_responses::parse_non_fungibles_data_response_for_asset(
+                            asset, response,
+                        );
+                    Ok((resource_address, asset_with_nfdata))
+                }))
+            }
+        });
+
+    join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| {
+            #[cfg(debug_assertions)]
+            match &join_result {
+                Ok(result) => {
+                    if let Err(err) = &result {
+                        println!("Failed to update non fungible data {}", err);
+                    }
+                }
+                Err(err) => {
+                    println!("Join error when updating non fungible data {}", err);
+                }
+            }
+            join_result.ok()?.ok()
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::str::FromStr;
 
+    use super::*;
+    use types::Ed25519PublicKey;
     #[tokio::test]
     async fn test_update_accounts() {
-        let gateway_client = Arc::new(
-            radix_gateway_sdk::Client::new(radix_gateway_sdk::Network::Mainnet, None, None)
-                .unwrap(),
-        );
+        let network = Network::Mainnet;
 
         let db = Db::new_in_memory();
 
         let account_address = AccountAddress::from_str(
-            "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
+            "account_rdx16y60m8p2lxl72rdqcxh6wj270ckku7e3hrr6fra05f9p34zlqwgd0k",
         )
         .unwrap();
+        let account = Account::new(
+            1,
+            "test".to_string(),
+            types::Network::Mainnet,
+            [0; 6],
+            account_address,
+            Ed25519PublicKey([0; Ed25519PublicKey::LENGTH]),
+        );
 
-        let mut updated_accounts_entities =
-            update_accounts(vec![account_address], gateway_client, db)
-                .await
-                .unwrap();
+        let mut updated_accounts_entities = update_accounts(network, vec![account], db).await;
 
-        let account_entities = updated_accounts_entities.accounts_entities.remove(0);
+        let account_entities = updated_accounts_entities.account_updates.remove(0);
         let new_fungibles = account_entities.fungibles;
         let new_non_fungibles = account_entities.non_fungibles;
         let new_resources = updated_accounts_entities.new_resources;

@@ -6,6 +6,8 @@ use image::{codecs::png::PngEncoder, DynamicImage, ExtendedColorType, ImageEncod
 
 const IMAGE_STANDARD_WIDTH: u32 = 150;
 const IMAGE_STANDARD_HEIGHT: u32 = 150;
+const IMAGE_SMALL_WIDTH: u32 = 40;
+const IMAGE_SMALL_HEIGHT: u32 = 40;
 const FILTER_TYPE: image::imageops::FilterType = image::imageops::FilterType::Lanczos3;
 const RESIZE_ALGORITHM: fr::ResizeAlg = fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3);
 
@@ -128,6 +130,10 @@ pub fn fast_resize(
     Some(result_buf)
 }
 
-fn resize_standard_dimensions(image: &DynamicImage) -> DynamicImage {
+pub fn resize_standard_dimensions(image: &DynamicImage) -> DynamicImage {
+    image.resize(IMAGE_STANDARD_WIDTH, IMAGE_STANDARD_HEIGHT, FILTER_TYPE)
+}
+
+pub fn resize_small_dimensions(image: &DynamicImage) -> DynamicImage {
     image.resize(IMAGE_STANDARD_WIDTH, IMAGE_STANDARD_HEIGHT, FILTER_TYPE)
 }

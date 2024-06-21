@@ -47,3 +47,12 @@ impl rusqlite::types::ToSql for Network {
         ))
     }
 }
+
+impl Into<radix_gateway_sdk::Network> for Network {
+    fn into(self) -> radix_gateway_sdk::Network {
+        match self {
+            Network::Mainnet => radix_gateway_sdk::Network::Mainnet,
+            Network::Stokenet => radix_gateway_sdk::Network::Stokenet,
+        }
+    }
+}

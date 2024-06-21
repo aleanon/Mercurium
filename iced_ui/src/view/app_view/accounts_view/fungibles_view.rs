@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use iced::{
     theme,
     widget::{self, column, container, row, text, Button},
@@ -9,14 +11,14 @@ use crate::{
     App,
 };
 use ravault_iced_theme::styles::{self, button::AssetListButton, container::AssetListItem};
-use types::{AccountAddress, Fungible, Fungibles, ResourceAddress};
+use types::{assets::FungibleAsset, AccountAddress, Fungible, Fungibles, ResourceAddress};
 
 use super::fungible_view::FungibleView;
 
 #[derive(Debug, Clone)]
 pub struct FungiblesView {
-    pub(crate) account_addr: AccountAddress,
-    pub(crate) selected: Option<ResourceAddress>,
+    pub account_addr: AccountAddress,
+    pub selected: Option<FungibleView>,
 }
 
 impl<'a> FungiblesView {
@@ -30,33 +32,24 @@ impl<'a> FungiblesView {
 
 impl<'a> FungiblesView {
     pub fn view(&self, app: &'a App) -> iced::Element<'a, Message> {
-        match self.selected {
-            Some(ref address) => {
-                if let Some(fungible) = app.app_data.db.get_fungible(address).unwrap_or(None) {
-                    FungibleView(fungible).view(app)
-                } else {
-                    // Create a token not found screen
-                    column![].into()
-                }
-            }
+        match &self.selected {
+            Some(fungible_view) => fungible_view.view(app),
             None => {
-                let fungibles = app
-                    .app_data
-                    .db
-                    .get_fungibles_by_account(&self.account_addr)
-                    .unwrap_or(Fungibles::new());
-
                 let mut elements: Vec<Element<'a, Message>> = Vec::new();
 
-                for fungible in fungibles.0 {
-                    let button = Self::fungible_list_button(&fungible, app)
-                        .on_press(FungiblesMessage::SelectFungible(fungible.address).into());
+                if let Some(fungibles) = app.app_data.fungibles.get(&self.account_addr) {
+                    for fungible in fungibles {
+                        let button = Self::fungible_list_button(fungible, app)
+                            .on_press(FungiblesMessage::SelectFungible(fungible.clone()).into());
 
-                    let button_container = container(button).style(AssetListItem::style);
+                        let button_container = container(button).style(AssetListItem::style);
 
-                    let rule = widget::Rule::horizontal(2);
+                        let rule = widget::Rule::horizontal(2);
 
-                    elements.push(column![button_container, rule].into())
+                        elements.push(column![button_container, rule].into())
+                    }
+                } else {
+                    // Push no elements found widget to "elements"
                 }
 
                 let column = column(elements)
@@ -76,9 +69,9 @@ impl<'a> FungiblesView {
         }
     }
 
-    fn fungible_list_button(fungible: &Fungible, app: &'a App) -> Button<'a, Message> {
+    fn fungible_list_button(fungible: &FungibleAsset, app: &'a App) -> Button<'a, Message> {
         let icon: iced::Element<'a, Message> =
-            match app.appview.resource_icons.get(&fungible.address) {
+            match app.app_data.resource_icons.get(&fungible.resource_address) {
                 Some(handle) => widget::image(handle.clone()).width(40).height(40).into(),
                 None => container(
                     text(iced_aw::Bootstrap::Image)
@@ -91,19 +84,20 @@ impl<'a> FungiblesView {
                 .center_y()
                 .into(),
             };
+        let (name, symbol) = match app.app_data.resources.get(&fungible.resource_address) {
+            Some(resource) => (resource.name.as_str(), resource.symbol.as_str()),
+            None => ("NoName", ""),
+        };
 
-        let name_and_symbol = column![
-            text(&fungible.name).size(16),
-            text(&fungible.symbol).size(14)
-        ]
-        .spacing(3)
-        .align_items(iced::Alignment::Start);
+        let name_and_symbol = column![text(name).size(16), text(&symbol).size(14)]
+            .spacing(3)
+            .align_items(iced::Alignment::Start);
 
         let list_button_content = row![
             icon,
             name_and_symbol,
             widget::Space::new(Length::Fill, 1),
-            text(format!("{} {}", &fungible.amount, &fungible.symbol)).size(18)
+            text(format!("{} {}", &fungible.amount, symbol)).size(18)
         ]
         .padding(Padding {
             left: 10.,

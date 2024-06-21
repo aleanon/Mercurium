@@ -1,4 +1,7 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::{BTreeSet, HashMap},
+    str::FromStr,
+};
 
 use iced::{
     theme,
@@ -140,12 +143,6 @@ impl<'a> AddAssets {
     }
 
     fn tokens_tab(&'a self, app: &'a App, within_limits: &mut bool) -> Container<'a, Message> {
-        let fungibles = app
-            .app_data
-            .db
-            .get_fungibles_by_account(&self.from_account)
-            .unwrap_or(Fungibles::new());
-
         let headers: Element<'a, Message> = {
             let token_name = text("Token").size(12);
 
@@ -172,14 +169,14 @@ impl<'a> AddAssets {
                 }
             });
 
-            let row = row![token_name, space, balance, amount, selected]
+            let header_row = row![token_name, space, balance, amount, selected]
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .spacing(10)
                 .padding(5)
                 .align_items(iced::Alignment::Center);
 
-            container(row)
+            container(header_row)
                 .width(Length::Fill)
                 .height(30)
                 .padding(Padding {
@@ -189,116 +186,145 @@ impl<'a> AddAssets {
                 .into()
         };
 
-        let elements: Vec<Element<'a, Message>> = fungibles
-            .into_iter()
-            .filter(|token| {
-                token.name.to_ascii_lowercase().contains(&self.filter)
-                    || token.symbol.to_ascii_lowercase().contains(&self.filter)
-                    || token.address.as_str().contains(&self.filter)
-            })
-            .map(|token| {
-                let selected = self
-                    .selected
-                    .get(&token.address)
-                    .and_then(|selected| Some((true, selected.1.as_str())))
-                    .unwrap_or((self.select_all, ""));
+        let fungibles = app.app_data.fungibles.get(&self.from_account);
 
-                let icon: Element<'a, Message> = app
-                    .appview
-                    .resource_icons
-                    .get(&token.address)
-                    .and_then(|handle| {
-                        Some(widget::image(handle.clone()).width(40).height(40).into())
-                    })
-                    .unwrap_or(
-                        container(
-                            text(iced_aw::Bootstrap::Image)
-                                .font(iced_aw::BOOTSTRAP_FONT)
-                                .size(30),
-                        )
-                        .width(40)
-                        .height(40)
-                        .center_x()
-                        .center_y()
-                        .into(),
-                    );
-
-                let name = text(&token.name).size(12);
-                let symbol = text(&token.symbol).size(10);
-                let name_and_symbol = column![name, symbol].spacing(2);
-
-                let space = widget::Space::new(Length::Fill, 1);
-
-                let token_balance = token.amount.to_string();
-                let balance = button(text(format!("{} {}", &token_balance, token.symbol)).size(12))
-                    .style(theme::Button::Text)
-                    .on_press(
-                        AddAssetsMessage::InputAmount(
-                            token.address.clone(),
-                            token.symbol.clone(),
-                            token_balance,
-                        )
-                        .into(),
-                    );
-
-                let token_address = token.address.clone();
-                let token_symbol = token.symbol.clone();
-                let amount = TextInput::new("Amount", selected.1)
-                    .size(10)
-                    .width(80)
-                    .style(theme::TextInput::Custom(Box::new(
-                        styles::text_input::AssetAmount,
-                    )))
-                    .on_input(move |input| {
-                        AddAssetsMessage::InputAmount(
-                            token_address.clone(),
-                            token_symbol.clone(),
-                            input,
-                        )
-                        .into()
-                    });
-
-                let checkbox = checkbox("", selected.0).size(12).on_toggle(move |select| {
-                    if select {
-                        AddAssetsMessage::SelectAsset(token.address.clone(), token.symbol.clone())
-                            .into()
-                    } else {
-                        AddAssetsMessage::UnselectAsset(token.address.clone()).into()
-                    }
-                });
-
-                let asset = row![icon, name_and_symbol, space, balance, amount, checkbox]
-                    .spacing(10)
-                    .align_items(iced::Alignment::Center)
-                    .width(Length::Fill)
-                    .padding(5);
-
-                let rule = widget::Rule::horizontal(1);
-
-                let mut column = column![asset].width(Length::Fill);
-
-                if selected.0 {
-                    if let Ok(decimal) = types::RadixDecimal::from_str(selected.1) {
-                        if decimal > token.amount.0 {
-                            *within_limits = false;
-                            let warning = text("Amount exceeds available balance")
-                                .size(10)
-                                .line_height(1.5)
-                                .horizontal_alignment(iced::alignment::Horizontal::Center);
-
-                            let container = container(warning)
-                                .width(Length::Fill)
-                                .padding(5)
-                                .align_x(iced::alignment::Horizontal::Right);
-
-                            column = column.push(container);
+        let elements: Vec<Element<'a, Message>> = match fungibles {
+            Some(fungibles) => {
+                fungibles
+                    .into_iter()
+                    .filter_map(|token| {
+                        if let Some(resource) = app.app_data.resources.get(&token.resource_address)
+                        {
+                            if resource.name.to_ascii_lowercase().contains(&self.filter)
+                                || resource.symbol.to_ascii_lowercase().contains(&self.filter)
+                                || resource.address.as_str().contains(&self.filter)
+                            {
+                                Some((token, resource))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
                         }
-                    }
-                }
+                    })
+                    .map(|(token, resource)| {
+                        let selected = self
+                            .selected
+                            .get(&token.resource_address)
+                            .and_then(|selected| Some((true, selected.1.as_str())))
+                            .unwrap_or((self.select_all, ""));
 
-                column.push(rule).into()
-            })
-            .collect();
+                        let icon: Element<'a, Message> = app
+                            .app_data
+                            .resource_icons
+                            .get(&token.resource_address)
+                            .and_then(|handle| {
+                                Some(widget::image(handle.clone()).width(40).height(40).into())
+                            })
+                            .unwrap_or(
+                                container(
+                                    text(iced_aw::Bootstrap::Image)
+                                        .font(iced_aw::BOOTSTRAP_FONT)
+                                        .size(30),
+                                )
+                                .width(40)
+                                .height(40)
+                                .center_x()
+                                .center_y()
+                                .into(),
+                            );
+
+                        let name = text(&resource.name).size(12);
+                        let symbol = text(&resource.symbol).size(10);
+                        let name_and_symbol = column![name, symbol].spacing(2);
+
+                        let space = widget::Space::new(Length::Fill, 1);
+
+                        let balance =
+                            button(text(format!("{} {}", &token.amount, resource.symbol)).size(12))
+                                .style(theme::Button::Text)
+                                .on_press(
+                                    AddAssetsMessage::InputAmount(
+                                        resource.address.clone(),
+                                        resource.symbol.clone(),
+                                        token.amount.clone(),
+                                    )
+                                    .into(),
+                                );
+
+                        // let token_address = resource.address.clone();
+                        // let token_symbol = resource.symbol.clone();
+                        let amount = TextInput::new("Amount", selected.1)
+                            .size(10)
+                            .width(80)
+                            .style(theme::TextInput::Custom(Box::new(
+                                styles::text_input::AssetAmount,
+                            )))
+                            .on_input(move |input| {
+                                AddAssetsMessage::InputAmount(
+                                    token.resource_address.clone(),
+                                    resource.symbol.clone(),
+                                    input,
+                                )
+                                .into()
+                            });
+
+                        let checkbox = checkbox("", selected.0).size(12).on_toggle(move |select| {
+                            if select {
+                                AddAssetsMessage::SelectAsset(
+                                    resource.address.clone(),
+                                    resource.symbol.clone(),
+                                )
+                                .into()
+                            } else {
+                                AddAssetsMessage::UnselectAsset(resource.address.clone()).into()
+                            }
+                        });
+
+                        let asset = row![icon, name_and_symbol, space, balance, amount, checkbox]
+                            .spacing(10)
+                            .align_items(iced::Alignment::Center)
+                            .width(Length::Fill)
+                            .padding(5);
+
+                        let rule = widget::Rule::horizontal(1);
+
+                        let mut column = column![asset].width(Length::Fill);
+
+                        if selected.0 {
+                            if let Ok(decimal) = types::RadixDecimal::from_str(selected.1) {
+                                if let Ok(token_amount) =
+                                    types::RadixDecimal::from_str(token.amount.as_str())
+                                {
+                                    if decimal > token_amount {
+                                        *within_limits = false;
+                                        let warning = text("Amount exceeds available balance")
+                                            .size(10)
+                                            .line_height(1.5)
+                                            .horizontal_alignment(
+                                                iced::alignment::Horizontal::Center,
+                                            );
+
+                                        let container = container(warning)
+                                            .width(Length::Fill)
+                                            .padding(5)
+                                            .align_x(iced::alignment::Horizontal::Right);
+
+                                        column = column.push(container);
+                                    }
+                                }
+                            }
+                        }
+
+                        column.push(rule).into()
+                    })
+                    .collect()
+            }
+            None => {
+                // Create element for no assets found
+                vec![]
+            }
+        };
 
         let scrollable = widget::scrollable(column(elements).padding(Padding {
             right: 15.,
@@ -313,15 +339,191 @@ impl<'a> AddAssets {
             .height(Length::Fill)
     }
 
-    fn nfts_tab(&self, app: &'a App, _within_limits: &mut bool) -> Container<'a, Message> {
-        let _non_fungibles = app
-            .app_data
-            .db
-            .get_non_fungibles_by_account(&self.from_account)
-            .unwrap_or(NonFungibles::new());
-        let scrollable = widget::scrollable(column!());
+    fn nfts_tab(&self, app: &'a App, within_limits: &mut bool) -> Container<'a, Message> {
+        let headers: Element<'a, Message> = {
+            let token_name = text("Token").size(12);
 
-        container(scrollable)
+            let space = widget::Space::new(Length::Fill, 1);
+
+            let balance = text("Available balance").size(12);
+
+            let amount = container(
+                button(text("Set max").size(12))
+                    .padding(0)
+                    .style(theme::Button::Text)
+                    .on_press(AddAssetsMessage::InputMaxSelected.into()),
+            )
+            .width(85)
+            .height(Length::Fill)
+            .center_x()
+            .center_y();
+
+            let selected = checkbox("", self.select_all).size(12).on_toggle(|select| {
+                if select {
+                    AddAssetsMessage::SelectAllTokens.into()
+                } else {
+                    AddAssetsMessage::UnselectAllTokens.into()
+                }
+            });
+
+            let header_row = row![token_name, space, balance, amount, selected]
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .spacing(10)
+                .padding(5)
+                .align_items(iced::Alignment::Center);
+
+            container(header_row)
+                .width(Length::Fill)
+                .height(30)
+                .padding(Padding {
+                    right: 15.,
+                    ..Padding::ZERO
+                })
+                .into()
+        };
+
+        // let non_fungibles = app
+        //     .app_data
+        //     .non_fungibles
+        //     .get(&self.from_account)
+        //     .unwrap_or(&BTreeSet::new());
+
+        // let elements: Vec<Element<'a, Message>> = non_fungibles
+        //     .into_iter()
+        //     .filter_map(|token| {
+        //         if let Some(resource) = app.app_data.resources.get(&token.resource_address) {
+        //             if resource.name.to_ascii_lowercase().contains(&self.filter)
+        //                 || resource.symbol.to_ascii_lowercase().contains(&self.filter)
+        //                 || resource.address.as_str().contains(&self.filter)
+        //             {
+        //                 Some((token, resource))
+        //             } else {
+        //                 None
+        //             }
+        //         } else {
+        //             None
+        //         }
+        //     })
+        //     .map(|(token, resource)| {
+        //         let selected = self
+        //             .selected
+        //             .get(&token.resource_address)
+        //             .and_then(|selected| Some((true, selected.1.as_str())))
+        //             .unwrap_or((self.select_all, ""));
+
+        //         let icon: Element<'a, Message> = app
+        //             .app_data
+        //             .resource_icons
+        //             .get(&token.resource_address)
+        //             .and_then(|handle| {
+        //                 Some(widget::image(handle.clone()).width(40).height(40).into())
+        //             })
+        //             .unwrap_or(
+        //                 container(
+        //                     text(iced_aw::Bootstrap::Image)
+        //                         .font(iced_aw::BOOTSTRAP_FONT)
+        //                         .size(30),
+        //                 )
+        //                 .width(40)
+        //                 .height(40)
+        //                 .center_x()
+        //                 .center_y()
+        //                 .into(),
+        //             );
+
+        //         let name = text(&resource.name).size(12);
+        //         let symbol = text(&resource.symbol).size(10);
+        //         let name_and_symbol = column![name, symbol].spacing(2);
+
+        //         let space = widget::Space::new(Length::Fill, 1);
+
+        //         let balance =
+        //             button(text(format!("{} {}", &token.amount, resource.symbol)).size(12))
+        //                 .style(theme::Button::Text)
+        //                 .on_press(
+        //                     AddAssetsMessage::InputAmount(
+        //                         resource.address.clone(),
+        //                         resource.symbol.clone(),
+        //                         token.amount.clone(),
+        //                     )
+        //                     .into(),
+        //                 );
+
+        //         // let token_address = resource.address.clone();
+        //         // let token_symbol = resource.symbol.clone();
+        //         let amount = TextInput::new("Amount", selected.1)
+        //             .size(10)
+        //             .width(80)
+        //             .style(theme::TextInput::Custom(Box::new(
+        //                 styles::text_input::AssetAmount,
+        //             )))
+        //             .on_input(move |input| {
+        //                 AddAssetsMessage::InputAmount(
+        //                     token.resource_address.clone(),
+        //                     resource.symbol.clone(),
+        //                     input,
+        //                 )
+        //                 .into()
+        //             });
+
+        //         let checkbox = checkbox("", selected.0).size(12).on_toggle(move |select| {
+        //             if select {
+        //                 AddAssetsMessage::SelectAsset(
+        //                     resource.address.clone(),
+        //                     resource.symbol.clone(),
+        //                 )
+        //                 .into()
+        //             } else {
+        //                 AddAssetsMessage::UnselectAsset(resource.address.clone()).into()
+        //             }
+        //         });
+
+        //         let asset = row![icon, name_and_symbol, space, balance, amount, checkbox]
+        //             .spacing(10)
+        //             .align_items(iced::Alignment::Center)
+        //             .width(Length::Fill)
+        //             .padding(5);
+
+        //         let rule = widget::Rule::horizontal(1);
+
+        //         let mut column = column![asset].width(Length::Fill);
+
+        //         if selected.0 {
+        //             if let Ok(decimal) = types::RadixDecimal::from_str(selected.1) {
+        //                 if let Ok(token_amount) =
+        //                     types::RadixDecimal::from_str(token.amount.as_str())
+        //                 {
+        //                     if decimal > token_amount {
+        //                         *within_limits = false;
+        //                         let warning = text("Amount exceeds available balance")
+        //                             .size(10)
+        //                             .line_height(1.5)
+        //                             .horizontal_alignment(iced::alignment::Horizontal::Center);
+
+        //                         let container = container(warning)
+        //                             .width(Length::Fill)
+        //                             .padding(5)
+        //                             .align_x(iced::alignment::Horizontal::Right);
+
+        //                         column = column.push(container);
+        //                     }
+        //                 }
+        //             }
+        //         }
+
+        //         column.push(rule).into()
+        //     })
+        //     .collect();
+
+        let scrollable = widget::scrollable(column!().padding(Padding {
+            right: 15.,
+            ..Padding::ZERO
+        }))
+        .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
+        .height(Length::Shrink);
+
+        container(column![headers, scrollable])
             .padding(10)
             .width(Length::Fill)
             .height(Length::Fill)

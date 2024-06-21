@@ -1,10 +1,11 @@
 mod connection;
 mod create;
+mod db;
 mod delete;
+mod icon_cache;
 mod read;
 mod statements;
 mod update;
-mod db;
 
-
-pub use db::{Db, AsyncDb, DbError};
+pub use db::{AsyncDb, Db, DbError};
+pub use icon_cache::IconCache;

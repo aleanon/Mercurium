@@ -8,62 +8,81 @@ use iced::{
 use ravault_iced_theme::styles;
 
 use crate::{app::App, message::Message};
-use types::Fungible;
+use types::{app_path::AppPath, assets::FungibleAsset, Fungible, ResourceAddress};
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
 
-pub struct FungibleView(pub Fungible);
-
-impl Deref for FungibleView {
-    type Target = Fungible;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+#[derive(Debug, Clone)]
+pub struct FungibleView {
+    pub fungible: FungibleAsset,
+    pub image: Option<Handle>,
 }
 
 impl<'a> FungibleView {
+    pub fn new(fungible: FungibleAsset, image: Option<Handle>) -> Self {
+        Self { fungible, image }
+    }
+
     pub fn view(&self, app: &'a App) -> iced::Element<'a, Message> {
-        let name = if self.name.len() != 0 {
-            &self.name
-        } else {
-            "NoName"
-        };
+        let resource = app.app_data.resources.get(&self.fungible.resource_address);
 
-        let name = text(name).size(15).line_height(2.);
+        let name = text(
+            resource
+                .and_then(|resource| Some(resource.name.as_str()))
+                .unwrap_or("NoName"),
+        )
+        .size(15)
+        .line_height(2.);
 
-        let image: Element<'a, Message> = {
-            let directory = app.app_data.app_path.icons_directory();
-            let mut icon_path = directory.clone();
-            icon_path.push(&self.address.to_string());
-            icon_path.set_extension("png");
-            if icon_path.exists() {
-                widget::image(Handle::from_path(icon_path))
-                    .width(150)
-                    .height(150)
-                    .into()
-            } else {
-                container(
-                    text(iced_aw::Bootstrap::Image)
-                        .font(iced_aw::BOOTSTRAP_FONT)
-                        .size(100),
-                )
-                .width(150)
-                .height(150)
-                .center_x()
-                .center_y()
-                .into()
-            }
+        let image: Element<'a, Message> = match &self.image {
+            Some(handle) => widget::image(handle.clone()).into(),
+            None => container(
+                text(iced_aw::Bootstrap::Image)
+                    .font(iced_aw::BOOTSTRAP_FONT)
+                    .size(100),
+            )
+            .width(150)
+            .height(150)
+            .center_x()
+            .center_y()
+            .into(),
         };
+        //     let directory = AppPath::get().icons_directory();
+        //     let mut icon_path = directory.clone();
+        //     icon_path.push(&self.fungible.address.to_string());
+        //     icon_path.set_extension("png");
+        //     if icon_path.exists() {
+        //         widget::image(Handle::from_path(icon_path))
+        //             .width(150)
+        //             .height(150)
+        //             .into()
+        //     } else {
+        //         container(
+        //             text(iced_aw::Bootstrap::Image)
+        //                 .font(iced_aw::BOOTSTRAP_FONT)
+        //                 .size(100),
+        //         )
+        //         .width(150)
+        //         .height(150)
+        //         .center_x()
+        //         .center_y()
+        //         .into()
+        //     }
+        // };
 
         let amount = row![
-            text(&self.amount)
+            text(&self.fungible.amount)
                 .line_height(1.5)
                 .size(12)
                 .width(Length::Shrink),
-            text(&self.symbol)
-                .line_height(1.5)
-                .size(12)
-                .width(Length::Shrink)
+            text(
+                resource
+                    .and_then(|resource| Some(resource.symbol.as_str()))
+                    .unwrap_or("")
+            )
+            .line_height(1.5)
+            .size(12)
+            .width(Length::Shrink)
         ]
         .spacing(2)
         .align_items(iced::Alignment::Center);
@@ -76,17 +95,21 @@ impl<'a> FungibleView {
                 ..Padding::from(0)
             });
 
-        let description = text(self.description.as_deref().unwrap_or("No description"))
-            .line_height(1.5)
-            .size(12)
-            .width(Length::Fill);
+        let description = text(
+            resource
+                .and_then(|resource| Some(resource.description.as_str()))
+                .unwrap_or("No description"),
+        )
+        .line_height(1.5)
+        .size(12)
+        .width(Length::Fill);
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);
 
         let address = row![
             text("Address:").size(12),
             space,
-            text(&self.address.truncate()).size(12)
+            text(&self.fungible.resource_address.truncate()).size(12)
         ]
         .padding(Padding {
             top: 5.,
@@ -98,7 +121,12 @@ impl<'a> FungibleView {
         let current_supply = row![
             text("Current Supply:").size(12),
             space,
-            text(&self.total_supply).size(12),
+            text(
+                resource
+                    .and_then(|resource| Some(resource.current_supply.as_str()))
+                    .unwrap_or("Unknown")
+            )
+            .size(12),
         ];
 
         let rule = widget::Rule::horizontal(2);

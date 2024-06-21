@@ -8,7 +8,9 @@ pub mod create {
             derivation_path BLOB NOT NULL,
             public_key BLOB NOT NULL,
             hidden BOOL NOT NULL,
-            settings BLOB NOT NULL
+            settings BLOB NOT NULL,
+            balances_last_updated INTEGER,
+            transactions_last_updated INTEGER
         )
     ";
 
@@ -26,10 +28,9 @@ pub mod create {
 
     pub const CREATE_TABLE_FUNGIBLE_ASSETS: &'static str = "CREATE TABLE IF NOT EXISTS 
         fungible_assets (
-            id TEXT NOT NULL PRIMARY KEY,
+            id BLOB NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             amount TEXT NOT NULL,
-            last_updated INTEGER NOT NULL,
             account_address BLOB NOT NULL,
             FOREIGN KEY(resource_address) REFERENCES resources(address),
             FOREIGN KEY(account_address) REFERENCES accounts(address)
@@ -38,10 +39,9 @@ pub mod create {
 
     pub const CREATE_TABLE_NON_FUNGIBLE_ASSETS: &'static str = "CREATE TABLE IF NOT EXISTS 
         non_fungible_assets (
-            id TEXT NOT NULL PRIMARY KEY,
+            id BLOB NOT NULL PRIMARY KEY,
             resource_address BLOB NOT NULL,
             nfids BLOB NOT NULL,
-            last_updated INTEGER NOT NULL,
             account_address BLOB NOT NULL,
             FOREIGN KEY(resource_address) REFERENCES resources(address),
             FOREIGN KEY(account_address) REFERENCES accounts(address)
@@ -69,6 +69,22 @@ pub mod create {
             FOREIGN KEY(tx_id) REFERENCES transactions(id)
         )
     ";
+
+    pub const CREATE_TABLE_RESOURCE_IMAGES: &'static str = "CREATE TABLE IF NOT EXISTS
+        resource_images (
+            resource_address BLOB NOT NULL PRIMARY KEY,
+            image_data BLOB NOT NULL
+        )
+    ";
+
+    pub const CREATE_TABLE_NFT_IMAGES: &'static str = "CREATE TABLE IF NOT EXISTS
+        nft_images (
+            nfid TEXT NOT NULL PRIMARY KEY,
+            image_data BLOB NOT NULL,
+            resource_address BLOB NOT NULL,
+            FOREIGN KEY(resource_address) REFERENCES resource_images(resource_address)
+        )
+    ";
 }
 
 pub mod upsert {
@@ -81,9 +97,11 @@ pub mod upsert {
             derivation_path,
             public_key,
             hidden,
-            settings
+            settings,
+            balances_last_updated,
+            transactions_last_updated
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (address)
         DO UPDATE SET 
             id = excluded.id,
@@ -92,7 +110,9 @@ pub mod upsert {
             derivation_path = excluded.derivation_path,
             public_key = excluded.public_key,
             hidden = excluded.hidden,
-            settings = excluded.settings
+            settings = excluded.settings,
+            balances_last_updated = excluded.balances_last_updated,
+            transactions_last_updated = excluded.transactions_last_updated
         ";
 
     pub const UPSERT_RESOURCE: &'static str = "INSERT INTO
@@ -121,14 +141,12 @@ pub mod upsert {
             id,
             resource_address,
             amount,
-            last_updated,
             account_address
         )
         VALUES (?, ?, ?, ?)
         ON CONFLICT (id)
         DO UPDATE SET
-            amount = excluded.amount,
-            last_updated = excluded.last_updated
+            amount = excluded.amount
     ";
 
     pub const UPSERT_NON_FUNGIBLE_ASSET: &'static str = "INSERT INTO
@@ -136,7 +154,6 @@ pub mod upsert {
             id,
             resource_address,
             nfids,
-            last_updated,
             account_address
         )
         VALUES (?, ?, ?, ?)
@@ -158,6 +175,29 @@ pub mod upsert {
         DO UPDATE SET 
             status = excluded.status
     ";
+
+    pub const UPSERT_RESOURCE_IMAGE: &'static str = "INSERT INTO
+        resource_images (
+            resource_address,
+            image_data
+        )
+        VALUES (?,?)
+        ON CONFLICT (resource_address)
+        DO UPDATE SET
+            image_data = excluded.image_data
+    ";
+
+    pub const UPSERT_NFT_IMAGE: &'static str = "INSERT INTO
+        nft_images (
+            nfid,
+            image_data,
+            resource_address
+        )
+        VALUES (?,?,?)
+        ON CONFLICT (nfid)
+        DO UPDATE SET
+            image_data = excluded.image_data
+    ";
 }
 
 pub mod insert {
@@ -171,5 +211,6 @@ pub mod insert {
             tx_id
         )
         VALUES (?,?,?,?,?,?)
+
     ";
 }

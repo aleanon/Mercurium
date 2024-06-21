@@ -12,7 +12,7 @@ use crate::{
     CREDENTIALS_STORE_NAME,
 };
 use store::Db;
-use types::{crypto::Password, Action, Network};
+use types::{Action, Network};
 
 use super::{NewWallet, SetupMessage};
 
@@ -237,7 +237,7 @@ impl<'a> WalletMessage {
             }
         };
 
-        let mut db = Db::new().unwrap_or_else(|err| {
+        let mut db = Db::new(app_data.settings.network).unwrap_or_else(|err| {
             unreachable!(
                 "{}:{} Unable to create database: {err}",
                 module_path!(),
@@ -263,31 +263,31 @@ impl<'a> WalletMessage {
                 err
             );
             //TODO("Implement notification in app {err}")
+        } else {
+            debug_println!("Account stored in database");
         }
-
-        debug_println!("Account stored in database");
 
         app_data.db = db;
         // if let Err(err) = app.action_tx.send(Action::LoadDatabase(key)) {
         //     app.state = State::Error(AppError::Fatal(Box::new(err)))
         // }
 
-        let mut sender_clone = app_data.backend_sender.clone();
-        let key_clone = key.clone();
+        // let mut sender_clone = app_data.backend_sender.clone();
+        // let key_clone = key.clone();
 
-        let load_database = Command::perform(
-            async move { sender_clone.send(Action::LoadDatabase(key_clone)).await },
-            |result| {
-                if let Err(err) = result {
-                    debug_println!("Unable to send command to backend: {:?}", err);
+        // let load_database = Command::perform(
+        //     async move { sender_clone.send(Action::LoadDatabase(key_clone)).await },
+        //     |result| {
+        //         if let Err(err) = result {
+        //             debug_println!("Unable to send command to backend: {:?}", err);
 
-                    //todo!("implement app notification");
-                    Message::None
-                } else {
-                    Message::Common(CommonMessage::PerformLogin(key))
-                }
-            },
-        );
+        //             //todo!("implement app notification");
+        //             Message::None
+        //         } else {
+        //             Message::Common(CommonMessage::PerformLogin(key))
+        //         }
+        //     },
+        // );
 
         let password = new_wallet_state.password.clone();
         let mnemonic = new_wallet_state.mnemonic.take().unwrap();
@@ -298,11 +298,12 @@ impl<'a> WalletMessage {
                 })
             },
             |result| match result {
-                Ok(_account_address) => Message::None,
+                Ok(_) => Message::None,
                 Err(err) => CommonMessage::Notify(format!("Unable to save mnemonic: {err}")).into(),
             },
         );
+        let login = Command::perform(async {}, |_| CommonMessage::PerformLogin(key).into());
 
-        Command::batch([load_database, save_mnemonic])
+        Command::batch([save_mnemonic, login])
     }
 }

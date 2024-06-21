@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ResourceAddress;
 
+#[derive(Debug, Clone)]
 pub struct Resource {
     pub address: ResourceAddress,
     pub name: String,
@@ -14,7 +15,7 @@ pub struct Resource {
     pub tags: Tags,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tags(Vec<String>);
 
 impl Deref for Tags {

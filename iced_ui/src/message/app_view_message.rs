@@ -2,10 +2,10 @@ pub mod accounts_message;
 pub mod overlay_message;
 pub mod transaction_message;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use iced::Command;
-use types::{Account, Decimal, ResourceAddress};
+use types::{Account, Decimal, RadixDecimal, ResourceAddress};
 
 use crate::{
     app::App,
@@ -74,19 +74,26 @@ impl<'a> AppViewMessage {
     fn new_transaction(from_account: Option<Account>, app: &'a mut App) {
         match from_account {
             Some(ref account) => {
-                let resource_amounts = app
-                    .app_data
-                    .db
-                    .get_fungibles_by_account(&account.address)
-                    .and_then(|fungibles| {
-                        Ok(fungibles
-                            .into_iter()
-                            .map(|fungible| (fungible.address, fungible.amount))
-                            .collect::<HashMap<ResourceAddress, Decimal>>())
-                    })
-                    .ok();
+                let asset_amounts =
+                    app.app_data
+                        .fungibles
+                        .get(&account.address)
+                        .and_then(|fungibles| {
+                            Some(
+                                fungibles
+                                    .into_iter()
+                                    .filter_map(|fungible| {
+                                        Some((
+                                            fungible.resource_address.clone(),
+                                            RadixDecimal::from_str(&fungible.amount).ok()?.into(),
+                                        ))
+                                    })
+                                    .collect::<HashMap<ResourceAddress, Decimal>>(),
+                            )
+                        });
+
                 app.appview.active_tab =
-                    ActiveTab::Transfer(TransactionView::new(from_account, resource_amounts));
+                    ActiveTab::Transfer(TransactionView::new(from_account, asset_amounts));
             }
             None => {
                 app.appview.active_tab = ActiveTab::Transfer(TransactionView::new(None, None));
