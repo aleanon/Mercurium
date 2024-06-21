@@ -17,6 +17,9 @@ pub struct Account {
     pub public_key: Ed25519PublicKey,
     pub hidden: bool,
     pub settings: Settings,
+    /// Last updated refers to the Ledger state version
+    pub balances_last_updated: Option<i64>,
+    pub transactions_last_updated: Option<i64>,
 }
 
 impl Account {
@@ -44,6 +47,8 @@ impl Account {
             public_key,
             hidden: false,
             settings: Settings::default(),
+            balances_last_updated: None,
+            transactions_last_updated: None,
         }
     }
 
@@ -59,6 +64,8 @@ impl Account {
                 .expect("Can not create public key from slice, module Account"),
             hidden: false,
             settings: Settings::default(),
+            balances_last_updated: None,
+            transactions_last_updated: None,
         }
     }
 
@@ -77,7 +84,10 @@ impl Account {
     }
 
     pub fn derivation_index(&self) -> u32 {
-        self.derivation_path()[5]
+        let bytes = self.derivation_path[20..]
+            .try_into()
+            .unwrap_unreachable(debug_info!("Failed to construct array from slice"));
+        u32::from_be_bytes(bytes)
     }
 }
 
@@ -159,7 +169,9 @@ mod test {
             );
 
             let reconstructed_derivation_path = account.derivation_path();
+            let derivation_index = account.derivation_index();
 
+            assert_eq!(derivation_index, reconstructed_derivation_path[5]);
             assert_eq!(derivation_path, reconstructed_derivation_path);
         }
     }

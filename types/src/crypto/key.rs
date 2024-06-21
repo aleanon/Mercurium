@@ -4,6 +4,7 @@ use std::num::NonZeroU32;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Debug, Clone, ZeroizeOnDrop, Zeroize)]
+// Represents a 256bit key
 pub struct Key([u8; Self::LENGTH]);
 
 impl Key {

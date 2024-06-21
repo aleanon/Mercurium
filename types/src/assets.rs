@@ -9,22 +9,18 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct AssetId(Vec<u8>);
+pub struct AssetId([u8; Self::LENGTH]);
 
 impl AssetId {
     const CHECKSUM_LEN: usize = AccountAddress::CHECKSUM_LENGTH + ResourceAddress::CHECKSUM_LEN;
+    const LENGTH: usize = AccountAddress::CHECKSUM_LENGTH + ResourceAddress::CHECKSUM_LEN;
 
-    pub fn new(
-        symbol: String,
-        account_address: &AccountAddress,
-        resource_address: &ResourceAddress,
-    ) -> Self {
-        let assetid = [
-            symbol.as_bytes(),
-            account_address.checksum_slice(),
-            resource_address.checksum_slice(),
-        ]
-        .concat();
+    pub fn new(account_address: &AccountAddress, resource_address: &ResourceAddress) -> Self {
+        let mut assetid = [0; Self::LENGTH];
+        assetid[..AccountAddress::CHECKSUM_LENGTH]
+            .copy_from_slice(account_address.checksum_slice());
+        assetid[AccountAddress::CHECKSUM_LENGTH..]
+            .copy_from_slice(resource_address.checksum_slice());
 
         Self(assetid)
     }
@@ -41,7 +37,7 @@ impl AssetId {
 impl rusqlite::types::ToSql for AssetId {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Borrowed(
-            rusqlite::types::ValueRef::Text(&self.0),
+            rusqlite::types::ValueRef::Blob(&self.0),
         ))
     }
 }
@@ -49,7 +45,12 @@ impl rusqlite::types::ToSql for AssetId {
 impl rusqlite::types::FromSql for AssetId {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
-            rusqlite::types::ValueRef::Text(slice) => Ok(Self(slice.to_vec())),
+            rusqlite::types::ValueRef::Blob(slice) => Ok(Self(slice.try_into().map_err(|_| {
+                rusqlite::types::FromSqlError::InvalidBlobSize {
+                    expected_size: Self::LENGTH,
+                    blob_size: slice.len(),
+                }
+            })?)),
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }
@@ -61,54 +62,97 @@ pub struct FungibleAsset {
     pub id: AssetId,
     pub resource_address: ResourceAddress,
     pub amount: String,
-    pub last_updated: u64,
 }
 
 impl FungibleAsset {
     pub fn new(
-        symbol: String,
         account_address: &AccountAddress,
         amount: String,
         resource_address: ResourceAddress,
-        last_updated: u64,
     ) -> Self {
-        let id = AssetId::new(symbol, account_address, &resource_address);
+        let id = AssetId::new(account_address, &resource_address);
         Self {
             id,
             amount,
             resource_address,
-            last_updated,
         }
     }
 
-    pub fn update_with_new_amount(&mut self, amount: String, state_version: u64) {
+    pub fn update_with_new_amount(&mut self, amount: String) {
         self.amount = amount;
-        self.last_updated = state_version;
+    }
+}
+impl PartialOrd for FungibleAsset {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.resource_address.cmp(&other.resource_address))
     }
 }
 
+impl Ord for FungibleAsset {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.resource_address.cmp(&other.resource_address)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct NonFungibleAsset {
     pub id: AssetId,
     pub resource_address: ResourceAddress,
     pub nfids: NFIDs,
-    pub last_updated: u64,
 }
 
 impl NonFungibleAsset {
     pub fn new(
-        symbol: String,
         account_address: &AccountAddress,
         nfids: NFIDs,
         resource_address: ResourceAddress,
-        last_updated: u64,
     ) -> Self {
-        let id = AssetId::new(symbol, account_address, &resource_address);
+        let id = AssetId::new(account_address, &resource_address);
         Self {
             id,
             resource_address,
             nfids,
-            last_updated,
         }
+    }
+
+    pub fn take_nfids(&mut self) -> NFIDs {
+        self.nfids.drain(..).collect()
+    }
+
+    pub fn nfids_as_string(&mut self) -> Vec<String> {
+        self.nfids.drain(..).map(|nfid| nfid.get_id()).collect()
+    }
+
+    pub fn placeholder() -> Self {
+        Self {
+            id: AssetId([0; AssetId::LENGTH]),
+            resource_address: ResourceAddress::empty(),
+            nfids: NFIDs::new(),
+        }
+    }
+}
+
+impl PartialEq for NonFungibleAsset {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.resource_address == other.resource_address
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.id != other.id || self.resource_address != other.resource_address
+    }
+}
+
+impl Eq for NonFungibleAsset {}
+
+impl PartialOrd for NonFungibleAsset {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.resource_address.cmp(&other.resource_address))
+    }
+}
+
+impl Ord for NonFungibleAsset {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.resource_address.cmp(&other.resource_address)
     }
 }
 
@@ -188,7 +232,7 @@ mod test {
             "resource_rdx1t5ywq4c6nd2lxkemkv4uzt8v7x7smjcguzq5sgafwtasa6luq7fclq",
         )
         .unwrap();
-        let assetid = AssetId::new("GUM".to_string(), &account_address, &resource_address);
+        let assetid = AssetId::new(&account_address, &resource_address);
 
         connection
             .execute(
@@ -214,14 +258,13 @@ mod test {
                     id: row.get(0)?,
                     resource_address: row.get(1)?,
                     amount: row.get(2)?,
-                    last_updated: row.get(3)?,
                 })
             })
             .unwrap();
 
         assert_eq!(
-            String::from_utf8(fungible_asset.id.0).unwrap(),
-            "GUMt2a5axq7fclq".to_string()
+            String::from_utf8(fungible_asset.id.0.to_vec()).unwrap(),
+            String::from("t2a5axq7fclq")
         );
     }
 }

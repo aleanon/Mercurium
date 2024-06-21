@@ -40,7 +40,7 @@ impl<'a> ChooseRecipient {
         let accounts = app
             .app_data
             .db
-            .get_accounts_map()
+            .get_accounts()
             .unwrap_or(BTreeMap::new())
             .into_iter()
             .map(|(_, account)| account)

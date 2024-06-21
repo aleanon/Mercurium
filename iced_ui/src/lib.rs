@@ -1,5 +1,4 @@
 mod app;
-mod icons;
 mod message;
 mod subscription;
 mod view;

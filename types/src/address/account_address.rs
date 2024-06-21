@@ -79,6 +79,7 @@ impl AccountAddress {
     const CHECKSUM_DOUBLE_START_INDEX: usize = Self::CHECKSUM_START_INDEX - Self::CHECKSUM_LENGTH;
     const TRUNCATE_PREFIX_LEN: usize = 4;
     const TRUNCATE_LONG_PREFIX_LEN: usize = 12;
+    const TRUNCATE_LENGTH: usize = Self::TRUNCATE_PREFIX_LEN + 3 + Self::CHECKSUM_LENGTH;
     const PREFIX: &'static str = "account_";
 
     pub fn empty() -> Self {
@@ -108,6 +109,17 @@ impl AccountAddress {
 
         String::from_utf8(truncated)
             .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
+    }
+
+    pub fn truncate_as_array(&self) -> [u8; Self::TRUNCATE_LENGTH] {
+        let mut truncated = [b'.'; Self::TRUNCATE_LENGTH];
+
+        truncated[..Self::TRUNCATE_PREFIX_LEN]
+            .copy_from_slice(&self.0[..Self::TRUNCATE_PREFIX_LEN]);
+        truncated[Self::TRUNCATE_LENGTH - Self::PREFIX_LENGTH..]
+            .copy_from_slice(&self.0[Self::CHECKSUM_START_INDEX..]);
+
+        truncated
     }
 
     pub fn truncate_long(&self) -> String {

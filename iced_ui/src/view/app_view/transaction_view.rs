@@ -91,11 +91,7 @@ impl<'a> TransactionView {
     }
 
     fn overview(&'a self, app: &'a App) -> Element<'a, Message> {
-        let accounts_map = app
-            .app_data
-            .db
-            .get_accounts_map()
-            .unwrap_or(BTreeMap::new());
+        let accounts_map = app.app_data.db.get_accounts().unwrap_or(BTreeMap::new());
 
         let mut accounts = accounts_map
             .values()
@@ -263,7 +259,7 @@ impl<'a> TransactionView {
 
                 for (resource_address, (symbol, amount)) in recipient.resources.iter() {
                     let icon: Element<'a, Message> = app
-                        .appview
+                        .app_data
                         .resource_icons
                         .get(&resource_address)
                         .and_then(|handle| {

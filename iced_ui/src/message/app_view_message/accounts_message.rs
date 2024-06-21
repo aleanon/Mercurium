@@ -1,7 +1,10 @@
 pub mod account_message;
 pub mod fungibles_message;
 
+use std::collections::BTreeSet;
+
 use iced::Command;
+use types::{debug_info, unwrap_unreachable::UnwrapUnreachable, AccountAddress};
 
 use crate::{
     app::App,
@@ -20,9 +23,9 @@ use super::AppViewMessage;
 pub enum AccountsViewMessage {
     Overview,
     NewAccount,
-    SelectAccount(AccountView),
+    SelectAccount(AccountAddress),
     //holds the address of the account to be expanded
-    ToggleExpand(String),
+    ToggleExpand(AccountAddress),
     AccountViewMessage(AccountViewMessage),
 }
 
@@ -43,9 +46,15 @@ impl<'a> AccountsViewMessage {
         }
     }
 
-    fn select_account(account: AccountView, app: &'a mut App) -> Command<Message> {
+    fn select_account(account_address: AccountAddress, app: &'a mut App) -> Command<Message> {
         if let ActiveTab::Accounts(ref mut accounts_view) = app.appview.active_tab {
-            *accounts_view = AccountsView::Account(account)
+            let account = app
+                .app_data
+                .accounts
+                .get(&account_address)
+                .unwrap_unreachable(debug_info!("Account not stored in app data"));
+            let fungible_assets = app.app_data.fungibles.get(&account_address);
+            *accounts_view = AccountsView::Account(AccountView::from_account(account))
         } else {
             unreachable!("{}:{} Invalid gui state", module_path!(), line!())
         }
@@ -53,7 +62,7 @@ impl<'a> AccountsViewMessage {
         Command::none()
     }
 
-    fn toggle_expand(address: String, app: &'a mut App) -> Command<Message> {
+    fn toggle_expand(address: AccountAddress, app: &'a mut App) -> Command<Message> {
         if let ActiveTab::Accounts(AccountsView::OverView(ref mut map)) = app.appview.active_tab {
             map.entry(address)
                 .and_modify(|bool| *bool = !*bool)

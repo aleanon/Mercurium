@@ -11,8 +11,8 @@ use ravault_iced_theme::styles::{
     button::{MenuButton, SelectedMenuButton},
     container::{CenterPanel, MainWindow, MenuContainer},
 };
-use std::collections::HashMap;
-use types::ResourceAddress;
+use std::collections::{BTreeSet, HashMap};
+use types::{Account, ResourceAddress};
 
 use crate::{
     app::App,
@@ -48,7 +48,6 @@ pub struct AppView {
     pub overlay: Option<Overlay>,
     //pub menu: Menu,
     //pub center_panel: CenterPanel,
-    pub resource_icons: HashMap<ResourceAddress, Handle>,
 }
 
 impl AppView {
@@ -59,7 +58,6 @@ impl AppView {
             overlay: None,
             //menu: Menu::new(),
             //center_panel: CenterPanel::new(),
-            resource_icons: HashMap::new(),
         }
     }
 }

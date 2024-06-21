@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::app::App;
 use crate::message::app_view_message::accounts_message::account_message::AccountViewMessage;
@@ -22,6 +22,7 @@ use ravault_iced_theme::styles;
 use ravault_iced_theme::styles::container::AssetListItem;
 
 use store::Db;
+use types::assets::FungibleAsset;
 use types::{Account, AccountAddress, EntityAccount, NonFungibles};
 
 use super::fungibles_view::FungiblesView;
@@ -48,7 +49,11 @@ pub struct AccountView {
 }
 
 impl<'a> AccountView {
-    pub fn new(name: String, address: AccountAddress) -> Self {
+    pub fn new(
+        name: String,
+        address: AccountAddress,
+        fungible_assets: BTreeSet<FungibleAsset>,
+    ) -> Self {
         Self {
             name,
             address: address.clone(),
@@ -58,7 +63,7 @@ impl<'a> AccountView {
         }
     }
 
-    pub fn from_account(account: &EntityAccount) -> Self {
+    pub fn from_account(account: &Account) -> Self {
         Self {
             name: account.name.clone(),
             address: account.address.clone(),
@@ -71,11 +76,7 @@ impl<'a> AccountView {
 
 impl<'a> AccountView {
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
-        let mut accounts = app
-            .app_data
-            .db
-            .get_accounts_map()
-            .unwrap_or(BTreeMap::new());
+        let mut accounts = app.app_data.db.get_accounts().unwrap_or(BTreeMap::new());
 
         let account = accounts.remove(&self.address).unwrap_or(Account::none());
 
@@ -145,7 +146,7 @@ impl<'a> AccountView {
             AssetView::NonFungibles => {
                 nft_button =
                     nft_button.style(theme::Button::custom(styles::button::GeneralSelectedButton));
-                self.view_non_fungibles(&app.app_data.db)
+                self.view_non_fungibles(&app)
             }
         };
 
@@ -166,57 +167,70 @@ impl<'a> AccountView {
 
     // fn account_header() -> Container<'a, Message> {}
 
-    pub fn view_non_fungibles(&self, db: &Db) -> iced::Element<'a, Message> {
-        let non_fungibles = db
-            .get_non_fungibles_by_account(&self.address)
-            .unwrap_or_else(|_| NonFungibles::new());
+    pub fn view_non_fungibles(&self, app: &'a App) -> iced::Element<'a, Message> {
+        let non_fungibles = app.app_data.non_fungibles.get(&self.address);
 
         let column = {
             //Each non-fungible is turned into an element
 
             let mut elements: Vec<Element<'a, Message>> = Vec::new();
 
-            for non_fungible in &non_fungibles {
-                let icon: iced::Element<'a, Message> = match non_fungible.icon {
-                    Some(ref icon) => widget::image(icon.handle()).width(40).height(40).into(),
-                    None => widget::Space::new(40, 40).into(),
-                };
+            if let Some(non_fungibles) = non_fungibles {
+                for non_fungible in non_fungibles {
+                    let icon: iced::Element<'a, Message> = match app
+                        .app_data
+                        .resource_icons
+                        .get(&non_fungible.resource_address)
+                    {
+                        Some(handle) => widget::image(handle.clone()).width(40).height(40).into(),
+                        None => widget::Space::new(40, 40).into(),
+                    };
 
-                let symbol = text(&non_fungible.symbol)
-                    .size(12)
-                    .height(15)
-                    .vertical_alignment(iced::alignment::Vertical::Center)
-                    .horizontal_alignment(iced::alignment::Horizontal::Left)
-                    .width(Length::Fill);
+                    let name = app
+                        .app_data
+                        .resources
+                        .get(&non_fungible.resource_address)
+                        .and_then(|no_fungible| Some(no_fungible.name.as_str()))
+                        .unwrap_or("NoName");
 
-                let nr_of_nfts = text(non_fungible.nfids.nr_of_nfts())
-                    .size(10)
-                    .height(15)
-                    .vertical_alignment(iced::alignment::Vertical::Center)
-                    .horizontal_alignment(iced::alignment::Horizontal::Right)
-                    .width(Length::Shrink);
+                    let symbol = text(name)
+                        .size(12)
+                        .height(15)
+                        .vertical_alignment(iced::alignment::Vertical::Center)
+                        .horizontal_alignment(iced::alignment::Horizontal::Left)
+                        .width(Length::Fill);
 
-                let col = column![symbol, nr_of_nfts]
-                    .align_items(iced::Alignment::Center)
-                    .width(Length::Fill)
-                    .height(Length::Shrink);
+                    let nr_of_nfts = text(non_fungible.nfids.nr_of_nfts())
+                        .size(10)
+                        .height(15)
+                        .vertical_alignment(iced::alignment::Vertical::Center)
+                        .horizontal_alignment(iced::alignment::Horizontal::Right)
+                        .width(Length::Shrink);
 
-                let row = row![icon, col]
-                    .height(Length::Fill)
-                    .width(Length::Fill)
-                    .padding(5)
-                    .spacing(5)
-                    .align_items(iced::Alignment::Center);
+                    let col = column![symbol, nr_of_nfts]
+                        .align_items(iced::Alignment::Center)
+                        .width(Length::Fill)
+                        .height(Length::Shrink);
 
-                let button = widget::button(row)
-                    .width(Length::Fill)
-                    .height(50)
-                    .on_press(Message::None)
-                    .style(theme::Button::Text);
+                    let row = row![icon, col]
+                        .height(Length::Fill)
+                        .width(Length::Fill)
+                        .padding(5)
+                        .spacing(5)
+                        .align_items(iced::Alignment::Center);
 
-                let container = container(button).style(AssetListItem::style);
+                    let button = widget::button(row)
+                        .width(Length::Fill)
+                        .height(50)
+                        .on_press(Message::None)
+                        .style(theme::Button::Text);
 
-                elements.push(container.into())
+                    let container = container(button).style(AssetListItem::style);
+
+                    elements.push(container.into())
+                }
+            } else {
+                elements.push(text("No non_fungibles found").into())
             }
 
             column(elements)

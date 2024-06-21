@@ -1,0 +1,70 @@
+use std::{
+    collections::{BTreeMap, HashMap},
+    io::Cursor,
+};
+
+use debug_print::debug_println;
+use iced::{futures::future::join_all, widget::image::Handle};
+use image::DynamicImage;
+use store::IconCache;
+use types::{Network, ResourceAddress};
+
+use crate::image::resize::{resize_small_dimensions, resize_standard_dimensions};
+
+pub async fn download_resize_and_store_resource_icons(
+    icon_urls: BTreeMap<ResourceAddress, String>,
+    network: Network,
+) -> HashMap<ResourceAddress, Handle> {
+    let icon_cache = IconCache::load(network).await;
+    let tasks = icon_urls.into_iter().map(|(resource_address, url)| {
+        tokio::spawn(async move {
+            download_image(&url).await.and_then(|image| {
+                Some((
+                    resource_address,
+                    resize_standard_dimensions(&image).as_bytes().to_vec(),
+                    resize_small_dimensions(&image).as_bytes().to_vec(),
+                ))
+            })
+        })
+    });
+
+    let (icons, icons_data) = join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| {
+            join_result
+                .ok()?
+                .and_then(|(resource_address, image_standard, image_small)| {
+                    let handle = iced::widget::image::Handle::from_memory(image_small);
+                    Some((
+                        (resource_address.clone(), handle),
+                        (resource_address, image_standard),
+                    ))
+                })
+        })
+        .fold(
+            (HashMap::new(), HashMap::new()),
+            |(mut icon_handles_acc, mut icons_data_acc), (icon_handles, icons_data)| {
+                icon_handles_acc.insert(icon_handles.0, icon_handles.1);
+                icons_data_acc.insert(icons_data.0, icons_data.1);
+                (icon_handles_acc, icons_data_acc)
+            },
+        );
+
+    if let Ok(icon_cache) = icon_cache {
+        icon_cache.upsert_resource_icons(icons_data).await.ok();
+    } else {
+        debug_println!("Unable to Open/Create Icon Cache")
+    }
+
+    icons
+}
+
+async fn download_image(url: &String) -> Option<DynamicImage> {
+    let response = reqwest::get(url).await.ok()?;
+
+    let bytes = response.bytes().await.ok()?;
+    let reader = image::io::Reader::new(Cursor::new(&bytes));
+    let with_guessed_format = reader.with_guessed_format().ok()?;
+    with_guessed_format.decode().ok()
+}

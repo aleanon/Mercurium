@@ -60,14 +60,14 @@ impl MnemonicNonceSequence {
         Self(Nonce::assume_unique_for_key(nonce.as_ref().clone()))
     }
 
-    pub fn get_current(&self) -> [u8; NONCE_LEN] {
+    pub fn get_current_as_bytes(&self) -> [u8; NONCE_LEN] {
         self.0.as_ref().clone()
     }
 }
 
 impl NonceSequence for MnemonicNonceSequence {
     fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
-        let nonce = Nonce::assume_unique_for_key(self.get_current());
+        let nonce = Nonce::assume_unique_for_key(self.get_current_as_bytes());
         Ok(nonce)
 
         // let nonce = Nonce::assume_unique_for_key(self.get_current());
@@ -93,7 +93,7 @@ impl EncryptedMnemonic {
             .map_err(|_err| EncryptedMnemonicError::FailedToCreateRandomValue)?;
 
         let nonce_sequence = MnemonicNonceSequence::new()?;
-        let nonce = nonce_sequence.get_current();
+        let nonce = nonce_sequence.get_current_as_bytes();
 
         let unbound_key = UnboundKey::new(&AES_256_GCM, key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;

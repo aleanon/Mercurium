@@ -2,7 +2,7 @@ pub mod account_view;
 pub mod fungible_view;
 pub mod fungibles_view;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use crate::{
     app::App,
@@ -17,7 +17,7 @@ use iced::{
     Element, Length,
 };
 use ravault_iced_theme::styles::{self, button::AccountButton};
-use types::EntityAccount;
+use types::{Account, AccountAddress};
 
 use self::account_view::AccountView;
 
@@ -25,7 +25,8 @@ use super::overlay::{add_account_view::AddAccountView, Overlay};
 
 #[derive(Debug, Clone)]
 pub enum AccountsView {
-    OverView(HashMap<String, bool>),
+    // The hashmap is used to store which accounts are expanded
+    OverView(HashMap<AccountAddress, bool>),
     Account(AccountView),
 }
 
@@ -38,18 +39,12 @@ impl AccountsView {
 impl<'a> AccountsView {
     pub fn view(&self, app: &'a App) -> Element<'a, Message> {
         match self {
-            Self::OverView(map) => self.overview(map, app),
+            Self::OverView(is_expanded) => Self::overview(is_expanded, app),
             Self::Account(account) => account.view(app),
         }
     }
 
-    pub fn overview(&self, map: &HashMap<String, bool>, app: &'a App) -> Element<'a, Message> {
-        let accounts = app
-            .app_data
-            .db
-            .get_entityaccounts()
-            .unwrap_or_else(|_| Vec::new());
-
+    fn overview(is_expanded: &HashMap<AccountAddress, bool>, app: &'a App) -> Element<'a, Message> {
         let title = text("Accounts").size(25);
 
         let new_account = button(
@@ -68,12 +63,22 @@ impl<'a> AccountsView {
             .align_items(iced::Alignment::End)
             .padding(20);
 
+        let accounts = app
+            .app_data
+            .accounts
+            .iter()
+            .map(|(_, account)| account)
+            .collect::<BTreeSet<&Account>>();
+
         let mut children: Vec<Element<'a, Message>> = Vec::new();
 
-        for account in accounts.iter() {
-            let expanded = map.get(&account.name).unwrap_or(&false).to_owned();
+        for account in accounts {
+            let expanded = is_expanded
+                .get(&account.address)
+                .unwrap_or(&false)
+                .to_owned();
 
-            let summary = self.view_account_summary(expanded, account);
+            let summary = Self::view_account_summary(expanded, account);
 
             children.push(summary.into())
         }
@@ -110,22 +115,21 @@ impl<'a> AccountsView {
     //         .into()
     // }
 
-    pub fn view_account_summary(
-        &self,
+    fn view_account_summary(
         _expanded: bool,
-        account: &EntityAccount,
+        account: &Account,
     ) -> iced::widget::Container<'a, Message> {
-        let account_name = account.get_name();
-        let account_address = account.get_address().truncate();
+        // let account_name = account.;
+        // let account_address = account.get_address().truncate();
 
-        let account_name_widget = widget::text(account_name)
+        let account_name_widget = widget::text(&account.name)
             .horizontal_alignment(iced::alignment::Horizontal::Left)
             .vertical_alignment(iced::alignment::Vertical::Center)
             .size(20);
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);
 
-        let account_address_widget = widget::text(account_address)
+        let account_address_widget = widget::text(account.address.truncate())
             .size(18)
             .horizontal_alignment(iced::alignment::Horizontal::Right)
             .vertical_alignment(iced::alignment::Vertical::Bottom);
@@ -140,9 +144,7 @@ impl<'a> AccountsView {
             .width(Length::Fill)
             .style(theme::Button::custom(AccountButton))
             .padding(5)
-            .on_press(
-                AccountsViewMessage::SelectAccount(AccountView::from_account(account)).into(),
-            );
+            .on_press(AccountsViewMessage::SelectAccount(account.address.clone()).into());
 
         container(button).width(Length::Fill).height(Length::Shrink)
     }
