@@ -9,7 +9,7 @@ use crate::response_models::{
     non_fungible_id_data::{Field, NFIdData},
 };
 
-use super::{Icon, MetaData, ResourceAddress};
+use super::{MetaData, ResourceAddress};
 
 #[derive(Debug, Clone)]
 pub struct NonFungibles(pub BTreeSet<NonFungible>);
@@ -70,7 +70,6 @@ impl DerefMut for NonFungibles {
 pub struct NonFungible {
     pub name: String,
     pub symbol: String,
-    pub icon: Option<Icon>,
     pub description: Option<String>,
     pub nfids: NFIDs,
     pub address: ResourceAddress,

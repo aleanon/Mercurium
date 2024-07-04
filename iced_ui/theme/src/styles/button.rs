@@ -1,7 +1,5 @@
 use iced::{border::Radius, widget::button, Background, Border, Color, Shadow, Theme, Vector};
 
-
-
 pub struct GeneralSelectedButton;
 
 impl button::StyleSheet for GeneralSelectedButton {

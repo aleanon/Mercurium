@@ -25,6 +25,7 @@ pub enum Theme {
     Moonfly,
     Nightfly,
     Oxocarbon,
+    Ferra,
     Custom,
 }
 
@@ -52,6 +53,7 @@ impl Into<iced::Theme> for Theme {
             Theme::Moonfly => iced::Theme::Moonfly,
             Theme::Nightfly => iced::Theme::Nightfly,
             Theme::Oxocarbon => iced::Theme::Oxocarbon,
+            Theme::Ferra => iced::Theme::Ferra,
             Theme::Custom => iced::Theme::Dark,
         }
     }
@@ -81,6 +83,7 @@ impl From<iced::Theme> for Theme {
             iced::Theme::Moonfly => Theme::Moonfly,
             iced::Theme::Nightfly => Theme::Nightfly,
             iced::Theme::Oxocarbon => Theme::Oxocarbon,
+            iced::Theme::Ferra => Theme::Ferra,
             iced::Theme::Custom(_) => Theme::Custom,
         }
     }
@@ -110,6 +113,7 @@ impl Display for Theme {
             Theme::Moonfly => f.write_str("Moonfly"),
             Theme::Nightfly => f.write_str("Nightfly"),
             Theme::Oxocarbon => f.write_str("Oxocarbon"),
+            Theme::Ferra => f.write_str("Ferra"),
             Theme::Custom => f.write_str("Custom"),
         }
     }
