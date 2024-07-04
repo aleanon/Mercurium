@@ -1,8 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
 
 use debug_print::debug_println;
+use iced::advanced::Application;
 use iced::widget::image::Handle;
-use iced::{futures::channel::mpsc::Sender as MpscSender, Application, Command};
+use iced::Renderer;
+use iced::{futures::channel::mpsc::Sender as MpscSender, Task};
 use types::assets::{FungibleAsset, NonFungibleAsset};
 use types::{
     theme::Theme, Account, AccountAddress, Action, AppError, AppSettings, Network, Resource,
@@ -81,12 +83,13 @@ pub struct App {
 }
 
 impl Application for App {
+    type Renderer = Renderer;
     type Message = AppMessage;
     type Executor = iced::executor::Default;
     type Theme = iced::Theme;
     type Flags = ();
 
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+    fn new(_flags: Self::Flags) -> (Self, iced::Task<Self::Message>) {
         let settings = handles::filesystem::app_settings::get_app_settings();
 
         let app_state =
@@ -108,12 +111,12 @@ impl Application for App {
             appview: AppView::new(),
         };
 
-        (app, Command::none())
+        (app, Task::none())
     }
 
     //All panels have their own Message Enum, they are handled in their own module
-    fn update(&mut self, message: AppMessage) -> Command<Self::Message> {
-        let mut command = Command::none();
+    fn update(&mut self, message: AppMessage) -> Task<Self::Message> {
+        let mut command = Task::none();
         match message {
             AppMessage::Setup(setup_message) => {
                 if let AppState::Initial(setup) = &mut self.app_state {
@@ -206,7 +209,8 @@ impl<'a> App {
             Theme::TokyoNight => self.app_data.settings.theme = Theme::TokyoNightLight,
             Theme::TokyoNightLight => self.app_data.settings.theme = Theme::TokyoNightStorm,
             Theme::TokyoNightStorm => self.app_data.settings.theme = Theme::Light,
-            Theme::Light => self.app_data.settings.theme = Theme::CatppuccinFrappe,
+            Theme::Light => self.app_data.settings.theme = Theme::Ferra,
+            Theme::Ferra => self.app_data.settings.theme = Theme::CatppuccinFrappe,
             Theme::Custom => self.app_data.settings.theme = Theme::Dark.into(),
         }
     }

@@ -45,7 +45,7 @@ pub async fn download_resize_and_store_resource_icons(
             join_result
                 .ok()?
                 .and_then(|(resource_address, image_standard, image_small)| {
-                    let handle = iced::widget::image::Handle::from_memory(image_small);
+                    let handle = iced::widget::image::Handle::from_bytes(image_small);
                     Some((
                         (resource_address.clone(), handle),
                         (resource_address, image_standard),

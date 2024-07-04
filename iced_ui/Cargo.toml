@@ -20,7 +20,7 @@ types = { path = "../1_types" }
 store = { path = "../2_store" }
 #backend = { path = "../backend" }
 handles = { path = "../3_handles" }
-ravault_iced_theme = { path = "./theme" }
+# ravault_iced_theme = { path = "./theme" }
 iced = { workspace = true }
 iced_aw = { workspace = true, features = ["icons"] }
 zeroize = { workspace = true }

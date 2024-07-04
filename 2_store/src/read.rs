@@ -426,84 +426,6 @@ impl Db {
 }
 
 impl AsyncDb {
-    pub async fn get_fungible(
-        &self,
-        resource_address: ResourceAddress,
-    ) -> Result<Option<Fungible>, rusqlite::Error> {
-        self.connection
-            .call_unwrap(|conn| {
-                conn.prepare_cached("SELECT * FROM fungibles WHERE address = ?")?
-                    .query_row([resource_address], |row| {
-                        Ok(Fungible {
-                            address: row.get(0)?,
-                            name: row.get(1)?,
-                            symbol: row.get(2)?,
-                            icon: row.get(3)?,
-                            amount: row.get(4)?,
-                            total_supply: row.get(5)?,
-                            description: row.get(6)?,
-                            last_updated_at_state_version: row.get(7)?,
-                            metadata: row.get(8)?,
-                        })
-                    })
-                    .optional()
-            })
-            .await
-    }
-
-    pub async fn get_fungibles_by_account(
-        &self,
-        account_address: &AccountAddress,
-    ) -> Result<Fungibles, rusqlite::Error> {
-        let account_address = account_address.clone();
-        let result = self
-            .connection
-            .call_unwrap(|conn| {
-                conn.prepare_cached("SELECT * FROM fungibles WHERE account_address = ?")?
-                    .query_map([account_address], |row| {
-                        Ok(Fungible {
-                            address: row.get(0)?,
-                            name: row.get(1)?,
-                            symbol: row.get(2)?,
-                            icon: row.get(3)?,
-                            amount: row.get(4)?,
-                            total_supply: row.get(5)?,
-                            description: row.get(6)?,
-                            last_updated_at_state_version: row.get(7)?,
-                            metadata: row.get(8)?,
-                        })
-                    })?
-                    .collect::<Result<Fungibles, rusqlite::Error>>()
-            })
-            .await?;
-        Ok(result)
-    }
-
-    pub async fn get_non_fungibles_by_account(
-        &self,
-        account_address: &AccountAddress,
-    ) -> Result<NonFungibles, rusqlite::Error> {
-        let account_address = account_address.clone();
-        self.connection
-            .call_unwrap(|conn| {
-                conn.prepare_cached("SELECT * FROM non_fungibles WHERE account_address = ?")?
-                    .query_map([account_address], |row| {
-                        Ok(NonFungible {
-                            address: row.get(0)?,
-                            name: row.get(1)?,
-                            symbol: row.get(2)?,
-                            icon: row.get(3)?,
-                            description: row.get(4)?,
-                            nfids: row.get(5)?,
-                            last_updated_at_state_version: row.get(6)?,
-                            metadata: row.get(7)?,
-                        })
-                    })?
-                    .collect::<Result<NonFungibles, rusqlite::Error>>()
-            })
-            .await
-    }
-
     pub async fn get_account(
         &self,
         account_address: &AccountAddress,
@@ -528,47 +450,6 @@ impl AsyncDb {
                     })
             })
             .await
-    }
-
-    pub async fn get_entity_account(
-        &self,
-        account_address: &AccountAddress,
-    ) -> Result<EntityAccount, rusqlite::Error> {
-        let account = self.get_account(account_address).await?;
-        let fungibles = self.get_fungibles_by_account(&account.address).await?;
-        let non_fungibles = self.get_non_fungibles_by_account(&account.address).await?;
-        Ok(EntityAccount {
-            address: account.address,
-            id: account.id,
-            name: account.name,
-            fungibles,
-            non_fungibles,
-            transactions: None,
-            settings: account.settings,
-        })
-    }
-
-    pub async fn get_entityaccounts(&self) -> Result<Vec<EntityAccount>, rusqlite::Error> {
-        let accounts = self.get_accounts_map().await?;
-        let mut entity_accounts = vec![];
-
-        for (account_address, account) in accounts.into_iter() {
-            let fungibles = self.get_fungibles_by_account(&account_address).await?;
-            let non_fungibles = self.get_non_fungibles_by_account(&account_address).await?;
-            let entity_account = EntityAccount {
-                address: account.address,
-                id: account.id,
-                name: account.name,
-                fungibles,
-                non_fungibles,
-                transactions: None,
-                settings: account.settings,
-            };
-
-            entity_accounts.push(entity_account)
-        }
-
-        Ok(entity_accounts)
     }
 
     pub async fn get_account_addresses(&self) -> Result<Vec<AccountAddress>, rusqlite::Error> {

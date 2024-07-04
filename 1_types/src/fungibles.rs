@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use super::{Decimal, Icon, MetaData, ResourceAddress};
+use super::{Decimal, MetaData, ResourceAddress};
 
 #[derive(Debug, Clone)]
 pub struct Fungibles(pub BTreeSet<Fungible>);
@@ -88,7 +88,6 @@ pub struct Fungible {
     pub name: String,
     pub address: ResourceAddress,
     pub symbol: String,
-    pub icon: Option<Icon>,
     pub amount: Decimal,
     pub description: Option<String>,
     pub last_updated_at_state_version: i64,

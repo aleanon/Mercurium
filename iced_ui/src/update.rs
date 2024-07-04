@@ -3,7 +3,7 @@ use std::collections::{BTreeSet, HashMap};
 use debug_print::debug_println;
 
 use iced::widget::image::Handle;
-use iced::Command;
+use iced::Task;
 
 use store::{Db, DbError};
 use types::{assets::FungibleAsset, AccountsAndResources, AccountsUpdate, ResourceAddress};
@@ -26,7 +26,7 @@ impl Into<AppMessage> for Update {
 }
 
 impl<'a> Update {
-    pub fn update(self, app: &'a mut App) -> Command<AppMessage> {
+    pub fn update(self, app: &'a mut App) -> Task<AppMessage> {
         match self {
             Self::Accounts(accounts_update) => {
                 Self::process_updated_accounts_and_resources(accounts_update, app)
@@ -41,7 +41,7 @@ impl<'a> Update {
     fn process_updated_accounts_and_resources(
         accounts_update: AccountsUpdate,
         app: &'a mut App,
-    ) -> Command<AppMessage> {
+    ) -> Task<AppMessage> {
         for account_update in &accounts_update.account_updates {
             match app
                 .app_data
@@ -111,7 +111,7 @@ impl<'a> Update {
         let download_icons = {
             let icon_urls = accounts_update.icon_urls;
             let network = app.app_data.settings.network;
-            Command::perform(
+            Task::perform(
                 async move {
                     handles::image::download::download_resize_and_store_resource_icons(
                         icon_urls, network,
@@ -130,7 +130,7 @@ impl<'a> Update {
                 .map(|(_, resource)| resource)
                 .collect::<Vec<_>>();
             let network = app.app_data.settings.network;
-            Command::perform(
+            Task::perform(
                 async move {
                     let mut db = Db::load(network)?;
                     db.upsert_resources(new_resources.as_slice())?;
@@ -178,30 +178,30 @@ impl<'a> Update {
             )
         };
 
-        Command::batch([download_icons, save_accounts_and_resources_to_disk])
+        Task::batch([download_icons, save_accounts_and_resources_to_disk])
     }
 
     fn store_icons_in_app_data(
         icons: HashMap<ResourceAddress, Handle>,
         app: &'a mut App,
-    ) -> Command<AppMessage> {
+    ) -> Task<AppMessage> {
         for (resource_address, icon) in icons {
             app.app_data.resource_icons.insert(resource_address, icon);
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn place_accounts_and_resources_in_memory(
         accounts_and_resources: AccountsAndResources,
         app: &'a mut App,
-    ) -> Command<AppMessage> {
+    ) -> Task<AppMessage> {
         app.app_data.accounts = accounts_and_resources.accounts;
         app.app_data.resources = accounts_and_resources.resources;
         app.app_data.fungibles = accounts_and_resources.fungible_assets;
         app.app_data.non_fungibles = accounts_and_resources.non_fungible_assets;
 
-        Command::none()
+        Task::none()
     }
 }
 

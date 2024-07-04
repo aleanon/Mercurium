@@ -27,13 +27,20 @@ tokio = { version = "1.37.0", features = ["full"] }
 # radix-engine-toolkit = { git = "https://github.com/radixdlt/radix-engine-toolkit.git", tag = "v1.0.5" }
 serde = { version = "1.0.201", features = ["derive"] }
 serde_json = { version = "1.0.117" }
-iced = { version = "0.12.1", features = [
-  "image",
+iced = { version = "0.13.0-dev", features = [
   "tokio",
-  "wgpu",
-  "svg",
+  "lazy",
+  "advanced",
+  "image",
   "qr_code",
 ] }
+# iced = { version = "0.12.1", features = [
+#   "image",
+#   "tokio",
+#   "wgpu",
+#   "svg",
+#   "qr_code",
+# ] }
 iced_aw = { version = "0.9.3", features = ["icons"] }
 tokio-rusqlite = "0.5.1"
 reqwest = { version = "0.12.4", features = ["blocking", "json"] }
@@ -58,3 +65,8 @@ once_cell = "1.19.0"
 const_format = "0.2.32"
 radix-gateway-sdk = { git = "https://github.com/borderline-labs/radix-gateway-sdk.git" }
 chrono = { version = "0.4.26", features = ["serde"] }
+
+
+[patch.crates-io]
+iced = { git = "https://github.com/iced-rs/iced", rev = "19db068bbbebcda1756720525da247f35bd3a5e0" }
+iced_core = { git = "https://github.com/iced-rs/iced", rev = "19db068bbbebcda1756720525da247f35bd3a5e0" }
