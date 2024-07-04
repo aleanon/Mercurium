@@ -1,0 +1,42 @@
+[package]
+name = "handles"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+types = { path = "../1_types" }
+store = { path = "../2_store" }
+ed25519-dalek-fiat.workspace = true
+tiny-bip39.workspace = true
+scrypto.workspace = true
+zeroize.workspace = true
+slip10_ed25519.workspace = true
+debug_print.workspace = true
+fast_image_resize.workspace = true
+image.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+ring.workspace = true
+serde_json.workspace = true
+reqwest = { workspace = true }
+flate2 = { workspace = true }
+# radix-engine-toolkit = { workspace = true }
+bytes = { workspace = true }
+tokio = { workspace = true }
+radix-gateway-sdk = { workspace = true }
+chrono = { workspace = true }
+
+#test
+iced = { workspace = true, features = ["image"] }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser"] }
+windows = { version = "0.56.0", features = [
+    "Win32_System",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Cryptography",
+    "Win32_Security_Credentials",
+] }

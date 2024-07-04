@@ -1,0 +1,22 @@
+[package]
+name = "store"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# [dev-dependencies]
+# debug_print = "1.0.0"
+
+[dependencies]
+types = { path = "../1_types" }
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+debug_print = "1.0.0"
+anyhow = { version = "1.0.79" }
+tokio-rusqlite = "0.5.0"
+thiserror.workspace = true
+once_cell = { workspace = true }
+
+
+[dev-dependencies]
+tiny-bip39.workspace = true

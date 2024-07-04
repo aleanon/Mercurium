@@ -1,7 +1,13 @@
 mod app;
-mod message;
+mod error;
+mod initial;
+mod locked;
+// mod message;
 mod subscription;
-mod view;
+mod unlocked;
+// mod view;
+mod common;
+mod update;
 // mod styles;
 //mod theme;
 

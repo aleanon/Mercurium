@@ -1,10 +1,10 @@
 [workspace]
 members = [
   #"backend",
-  "handles",
+  "3_handles",
   "ravault",
-  "store",
-  "types",
+  "2_store",
+  "1_types",
   "iced_ui",
   "iced_ui/theme",
 ]
