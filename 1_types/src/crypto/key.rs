@@ -1,3 +1,5 @@
+use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
+
 use super::{password::Password, salt::Salt};
 use ring::pbkdf2::{self, PBKDF2_HMAC_SHA256};
 use std::num::NonZeroU32;
@@ -76,7 +78,39 @@ impl Key {
         &self.0
     }
 
+    pub fn into_hex_key(self) -> HexKey {
+        HexKey::from_key(self)
+    }
+
     pub fn to_inner(self) -> [u8; Self::LENGTH] {
         self.0
+    }
+}
+
+#[derive(Debug, ZeroizeOnDrop)]
+pub struct HexKey([u8; Self::LENGTH]);
+
+impl HexKey {
+    const LENGTH: usize = Key::LENGTH * 2;
+
+    pub fn from_key(key: Key) -> Self {
+        let mut hex_key = [0u8; Self::LENGTH];
+        for (i, byte) in key.as_bytes().iter().enumerate() {
+            hex_key[i * 2] = Self::to_hex_digit(byte >> 4);
+            hex_key[i * 2 + 1] = Self::to_hex_digit(byte & 0x0F);
+        }
+        Self(hex_key)
+    }
+
+    pub fn as_str(&self) -> &str {
+        std::str::from_utf8(&self.0).unwrap_unreachable(debug_info!("Key contained non utf8 bytes"))
+    }
+
+    fn to_hex_digit(n: u8) -> u8 {
+        match n {
+            0..=9 => b'0' + n,
+            10..=15 => b'a' + (n - 10),
+            _ => unreachable!(),
+        }
     }
 }

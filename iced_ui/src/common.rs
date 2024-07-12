@@ -1,5 +1,4 @@
-use iced::{clipboard, Command};
-use types::crypto::Key;
+use iced::{clipboard, Task};
 
 use crate::App;
 
@@ -8,7 +7,6 @@ use super::app::AppMessage;
 #[derive(Debug, Clone)]
 pub enum Message {
     CopyToClipBoard(String),
-    PerformLogin(Key),
     Notify(String),
 }
 
@@ -25,14 +23,11 @@ impl Into<AppMessage> for Message {
 }
 
 impl<'a> Message {
-    pub fn process(self, app: &'a mut App) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn process(self, app: &'a mut App) -> Task<AppMessage> {
+        let mut command = Task::none();
         match self {
             Self::CopyToClipBoard(input) => command = clipboard::write(input),
             Self::Notify(message) => app.appview.notification = Some(message),
-            Self::PerformLogin(_key) => {
-                app.login().ok();
-            }
         };
         command
     }

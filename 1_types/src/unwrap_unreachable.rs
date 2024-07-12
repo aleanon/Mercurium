@@ -1,7 +1,9 @@
+use std::fmt::Display;
+
 pub trait UnwrapUnreachable<T> {
     /// Marks the failure case as unreachable to help the compiler optimize the path away.
     /// Takes a &str that is only printed in debug build.
-    fn unwrap_unreachable(self, msg: &str) -> T;
+    fn unwrap_unreachable(self, msg: impl Display) -> T;
 }
 
 impl<T, E> UnwrapUnreachable<T> for std::result::Result<T, E>
@@ -9,7 +11,7 @@ where
     E: std::fmt::Debug,
 {
     #[cfg(debug_assertions)]
-    fn unwrap_unreachable(self, msg: &str) -> T {
+    fn unwrap_unreachable(self, msg: impl Display) -> T {
         match self {
             Ok(t) => t,
             Err(e) => unreachable!("{msg}, error: {:?}", e),
@@ -17,7 +19,7 @@ where
     }
 
     #[cfg(not(debug_assertions))]
-    fn unwrap_unreachable(self, _: &str) -> T {
+    fn unwrap_unreachable(self, _: impl Display) -> T {
         match self {
             Ok(t) => t,
             Err(_) => unreachable!(),
@@ -27,7 +29,7 @@ where
 
 impl<T> UnwrapUnreachable<T> for std::option::Option<T> {
     #[cfg(debug_assertions)]
-    fn unwrap_unreachable(self, msg: &str) -> T {
+    fn unwrap_unreachable(self, msg: impl Display) -> T {
         match self {
             Some(t) => t,
             None => unreachable!("{msg}"),
@@ -35,7 +37,7 @@ impl<T> UnwrapUnreachable<T> for std::option::Option<T> {
     }
 
     #[cfg(not(debug_assertions))]
-    fn unwrap_unreachable(self, _: &str) -> T {
+    fn unwrap_unreachable(self, _: impl Display) -> T {
         match self {
             Some(t) => t,
             None => unreachable!(),

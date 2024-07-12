@@ -1,5 +1,9 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    ops::{Deref, DerefMut},
+    pin::Pin,
+};
 
+use scrypto::prelude::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::ResourceAddress;
@@ -13,6 +17,14 @@ pub struct Resource {
     pub current_supply: String,
     pub divisibility: Option<u8>,
     pub tags: Tags,
+}
+
+impl FromIterator<Resource> for HashMap<ResourceAddress, Resource> {
+    fn from_iter<T: IntoIterator<Item = Resource>>(iter: T) -> Self {
+        iter.into_iter()
+            .map(|resource| (resource.address.clone(), resource))
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

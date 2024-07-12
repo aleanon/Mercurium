@@ -1,73 +1,76 @@
 use iced::{
     border::Radius,
-    theme,
     widget::{
         self,
-        scrollable::{self, Scrollbar, Scroller},
+        scrollable::{default, Scrollbar, Scroller, Status, Style},
     },
     Border, Theme,
 };
 
-pub struct Scrollable;
-
-impl widget::scrollable::StyleSheet for Scrollable {
-    type Style = Theme;
-
-    fn active(&self, style: &Self::Style) -> widget::scrollable::Appearance {
-        let extended_palette = style.extended_palette();
-        let default = style.active(&theme::Scrollable::Default);
-
-        scrollable::Appearance {
-            scrollbar: Scrollbar {
-                scroller: Scroller {
-                    border: Border {
-                        radius: Radius::from(10),
-                        width: 3.5,
-                        color: extended_palette.background.base.color,
+pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
+    match status {
+        Status::Active => {
+            let palette = theme.extended_palette();
+            Style {
+                container: widget::container::transparent(theme),
+                gap: None,
+                vertical_scrollbar: Scrollbar {
+                    scroller: Scroller {
+                        border: Border {
+                            radius: Radius::from(10),
+                            width: 3.5,
+                            color: palette.background.base.color,
+                        },
+                        color: palette.background.weak.color,
                     },
-                    color: extended_palette.background.weak.color,
+                    background: None,
+                    border: Border::default(),
                 },
-                background: None,
-                border: Border::default(),
-            },
-            ..default
+                ..default(theme, status)
+            }
         }
-    }
+        Status::Hovered {
+            is_horizontal_scrollbar_hovered,
+            is_vertical_scrollbar_hovered,
+        } => {
+            let palette = theme.extended_palette();
+            let border_width;
+            let color;
 
-    fn hovered(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> scrollable::Appearance {
-        let extended_palette = style.extended_palette();
-        let active = self.active(style);
-        let border_width;
-        let color;
+            if is_vertical_scrollbar_hovered {
+                border_width = 2.;
+                color = palette.background.base.text
+            } else {
+                border_width = 3.5;
+                color = palette.background.weak.color
+            };
 
-        if is_mouse_over_scrollbar {
-            border_width = 2.;
-            color = extended_palette.background.base.text
-        } else {
-            border_width = 3.5;
-            color = active.scrollbar.scroller.color
-        };
-
-        scrollable::Appearance {
-            scrollbar: Scrollbar {
-                scroller: Scroller {
-                    border: Border {
-                        width: border_width,
-                        ..active.scrollbar.scroller.border
+            Style {
+                container: widget::container::transparent(theme),
+                vertical_scrollbar: Scrollbar {
+                    scroller: Scroller {
+                        border: Border {
+                            radius: Radius::from(10),
+                            width: border_width,
+                            color: palette.background.base.color,
+                        },
+                        color,
                     },
-                    color,
+                    background: None,
+                    border: Border::default(),
                 },
-                ..active.scrollbar
-            },
-            ..active
+                ..default(theme, status)
+            }
         }
-    }
-
-    fn dragging(&self, style: &Self::Style) -> scrollable::Appearance {
-        self.hovered(style, true)
+        Status::Dragged {
+            is_horizontal_scrollbar_dragged,
+            is_vertical_scrollbar_dragged,
+        } => vertical_scrollable(
+            theme,
+            Status::Hovered {
+                is_horizontal_scrollbar_hovered: is_horizontal_scrollbar_dragged,
+                is_vertical_scrollbar_hovered: is_vertical_scrollbar_dragged,
+            },
+        ),
     }
 }

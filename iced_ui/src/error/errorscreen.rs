@@ -1,4 +1,4 @@
-use iced::Command;
+use iced::Task;
 
 use crate::{
     app::{AppMessage, AppState},
@@ -19,21 +19,20 @@ impl Into<AppMessage> for ErrorMessage {
 }
 
 impl<'a> ErrorMessage {
-    pub fn update(self, app: &'a mut App) -> Command<AppMessage> {
+    pub fn update(self, app: &'a mut App) -> Task<AppMessage> {
         match self {
             Self::Notify(error) => Self::notify(error, app),
             Self::Fatal(error) => Self::fatal(error, app),
-            Self::Ignore(error) => Command::none(),
+            Self::Ignore(error) => {}
         }
+        Task::none()
     }
 
-    fn notify(error: String, app: &'a mut App) -> Command<AppMessage> {
+    fn notify(error: String, app: &'a mut App) {
         app.appview.notification = Some(error);
-        Command::none()
     }
 
-    fn fatal(error: String, app: &'a mut App) -> Command<AppMessage> {
+    fn fatal(error: String, app: &'a mut App) {
         app.app_state = AppState::Error(error);
-        Command::none()
     }
 }

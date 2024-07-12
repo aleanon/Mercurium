@@ -3,9 +3,12 @@ use std::collections::{BTreeSet, HashMap};
 use debug_print::debug_println;
 use iced::advanced::Application;
 use iced::widget::image::Handle;
-use iced::Renderer;
+use iced::widget::{column, container, text};
 use iced::{futures::channel::mpsc::Sender as MpscSender, Task};
+use iced::{Length, Renderer};
 use types::assets::{FungibleAsset, NonFungibleAsset};
+use types::crypto::Password;
+use types::notification::Notification;
 use types::{
     theme::Theme, Account, AccountAddress, Action, AppError, AppSettings, Network, Resource,
     ResourceAddress,
@@ -19,23 +22,22 @@ use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
 use crate::unlocked::app_view::AppView;
-use crate::update::Update;
+use crate::{task_response, tasks};
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
     Setup(setup::Message),
-    AppView(unlocked::app_view::Message),
     Login(loginscreen::Message),
-    Update(Update),
-    Common(Message),
+    AppView(unlocked::app_view::Message),
     Error(ErrorMessage),
+    TaskResponse(task_response::Message),
+    Common(Message),
     ToggleTheme,
     None,
 }
 
 use store::Db;
 
-#[derive(Debug)]
 pub struct AppData {
     pub accounts: HashMap<AccountAddress, Account>,
     pub fungibles: HashMap<AccountAddress, BTreeSet<FungibleAsset>>,
@@ -46,11 +48,13 @@ pub struct AppData {
     // Holds the sender for cloning into async tasks, there is a subscription
     // that listens on the receiver and produces Messages
     pub backend_sender: MpscSender<Action>,
-    pub db: Db,
+    pub address_decoder: scrypto::address::AddressBech32Decoder,
+    pub db: Option<Db>,
 }
 
 impl AppData {
     pub fn new(settings: AppSettings) -> Self {
+        let address_decoder = scrypto::address::AddressBech32Decoder::new(&settings.network.into());
         Self {
             accounts: HashMap::new(),
             fungibles: HashMap::new(),
@@ -60,8 +64,10 @@ impl AppData {
             settings,
             // Placeholder channel until the usable channel is returned from the subscription
             backend_sender: iced::futures::channel::mpsc::channel::<Action>(0).0,
+            address_decoder,
             // Placeholder in-memory database until the actual database is received from the subscription
-            db: Db::new_in_memory(),
+            // Placeholder in-memory database until the actual database is received from the subscription
+            db: None,
         }
     }
 }
@@ -76,10 +82,11 @@ pub enum AppState {
 
 pub struct App {
     version: [u8; 3],
-    pub(crate) app_state: AppState,
-    pub(crate) app_data: AppData,
+    pub app_state: AppState,
+    pub app_data: AppData,
     // Holds the gui unlocked state, not held in the AppState enum because we want to be able to return to last state on login
-    pub(crate) appview: AppView,
+    pub appview: AppView,
+    pub notification: Notification,
 }
 
 impl Application for App {
@@ -97,7 +104,7 @@ impl Application for App {
                 Err(err) => AppState::Error(err.to_string()),
                 Ok(_) => {
                     if Db::exists(settings.network) {
-                        AppState::Locked(LoginScreen::new())
+                        AppState::Locked(LoginScreen::new(true))
                     } else {
                         AppState::Initial(Setup::new())
                     }
@@ -109,6 +116,7 @@ impl Application for App {
             app_state,
             app_data: AppData::new(settings),
             appview: AppView::new(),
+            notification: Notification::None,
         };
 
         (app, Task::none())
@@ -116,30 +124,40 @@ impl Application for App {
 
     //All panels have their own Message Enum, they are handled in their own module
     fn update(&mut self, message: AppMessage) -> Task<Self::Message> {
-        let mut command = Task::none();
         match message {
             AppMessage::Setup(setup_message) => {
                 if let AppState::Initial(setup) = &mut self.app_state {
-                    command = setup.update(setup_message, &mut self.app_data);
+                    match setup.update(setup_message, &mut self.app_data) {
+                        Ok(task) => return task,
+                        Err(err) => self.handle_error(err),
+                    }
                 }
             }
-            AppMessage::Login(login_message) => {
-                if let AppState::Locked(ref mut loginscreen) = &mut self.app_state {
-                    command = loginscreen.update(login_message, &mut self.app_data);
+            AppMessage::Login(login_message) => match login_message {
+                loginscreen::Message::Login => match self.login() {
+                    Ok(task) => return task,
+                    Err(err) => self.handle_error(err),
+                },
+                _ => {
+                    if let AppState::Locked(ref mut loginscreen) = &mut self.app_state {
+                        return loginscreen.update(login_message, &mut self.app_data);
+                    }
                 }
-            }
+            },
             AppMessage::AppView(app_view_message) => {
                 if let AppState::Unlocked = self.app_state {
-                    command = self.appview.update(app_view_message, &mut self.app_data);
+                    return self.appview.update(app_view_message, &mut self.app_data);
                 }
             }
-            AppMessage::Common(common_message) => command = common_message.process(self),
-            AppMessage::Update(update_message) => command = update_message.update(self),
+            AppMessage::Common(common_message) => return common_message.process(self),
+            AppMessage::TaskResponse(response_message) => {
+                return self.process_task_response(response_message)
+            }
             AppMessage::ToggleTheme => self.toggle_theme(),
             AppMessage::Error(error_message) => {}
             AppMessage::None => {}
         }
-        command
+        Task::none()
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message> {
@@ -147,7 +165,10 @@ impl Application for App {
             AppState::Initial(setup) => setup.view(self),
             AppState::Locked(loginscreen) => loginscreen.view(),
             AppState::Unlocked => self.appview.view(&self.app_data),
-            AppState::Error(error) => self.appview.view(&self.app_data),
+            AppState::Error(error) => container(text(error))
+                .center_x(Length::Fill)
+                .center_y(Length::Fill)
+                .into(),
         }
     }
 
@@ -166,23 +187,60 @@ impl Application for App {
 }
 
 impl<'a> App {
-    pub fn login(&mut self /*key: Key*/) -> Result<(), AppError> {
-        match Db::load(self.app_data.settings.network) {
-            Ok(db) => {
-                // Self::load_accounts(&mut self.appview.center_panel, &mut db);
-                self.app_data.db = db;
-                self.app_state = AppState::Unlocked;
-                Ok(())
+    pub fn login(&mut self) -> Result<Task<AppMessage>, AppError> {
+        let (is_initial, password) = match &self.app_state {
+            AppState::Locked(loginscreen) => {
+                (loginscreen.application_is_starting, &loginscreen.password)
             }
-            Err(err) => {
-                debug_println!(
-                    "{}:{}: Unable to load database, error: {}",
-                    module_path!(),
-                    line!(),
-                    &err
-                );
+            _ => {
+                return Err(AppError::Fatal(
+                    "Called login when not in locked state".to_string(),
+                ))
+            }
+        };
 
-                Err(crate::app::AppError::Fatal(Box::new(err)))
+        let salt = handles::credentials::get_db_encryption_salt()?;
+        let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
+
+        debug_println!("Initial login");
+
+        let key = password.derive_db_encryption_key_from_salt(&salt);
+
+        debug_println!("Key created");
+
+        let db = Db::load(self.app_data.settings.network, &key)
+            .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+        debug_println!("Database successfully loaded");
+
+        let target_hash = db
+            .get_db_password_hash()
+            .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+        if password_hash == target_hash {
+            self.app_state = AppState::Unlocked;
+            if is_initial {
+                return Ok(tasks::initial_login_tasks(self.app_data.settings.network));
+            } else {
+                return Ok(Task::none());
+            }
+        } else {
+            let AppState::Locked(loginscreen) = &mut self.app_state else {
+                return Err(AppError::Fatal(
+                    "Called login when not in locked state".to_string(),
+                ));
+            };
+            loginscreen.notification = "Incorrect password".to_string();
+            return Err(AppError::NonFatal(Notification::None));
+        }
+    }
+
+    pub fn handle_error(&mut self, err: AppError) {
+        debug_println!("Error: {err}");
+        match err {
+            AppError::Fatal(err) => self.app_state = AppState::Error(err),
+            AppError::NonFatal(err) => {
+                self.notification = err;
             }
         }
     }

@@ -24,6 +24,15 @@ impl Network {
     }
 }
 
+impl Into<scrypto::network::NetworkDefinition> for Network {
+    fn into(self) -> scrypto::network::NetworkDefinition {
+        match self {
+            Self::Mainnet => scrypto::network::NetworkDefinition::mainnet(),
+            Self::Stokenet => scrypto::network::NetworkDefinition::stokenet(),
+        }
+    }
+}
+
 impl rusqlite::types::FromSql for Network {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {

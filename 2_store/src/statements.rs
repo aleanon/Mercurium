@@ -1,4 +1,11 @@
 pub mod create {
+    pub const CREATE_TABLE_PASSWORD_HASH: &'static str = "CREATE TABLE IF NOT EXISTS 
+        password_hash (
+            id INTEGER NOT NULL PRIMARY KEY,
+            password TEXT NOT NULL
+        )
+    ";
+
     pub const CREATE_TABLE_ACCOUNTS: &'static str = "CREATE TABLE IF NOT EXISTS 
         accounts (
             address BLOB NOT NULL PRIMARY KEY,
@@ -88,6 +95,17 @@ pub mod create {
 }
 
 pub mod upsert {
+    pub const UPSERT_PASSWORD_HASH: &'static str = "INSERT INTO
+        password_hash (
+            id,
+            password
+        )
+        VALUES (?,?)
+        ON CONFLICT (id)
+        DO UPDATE SET
+            password = excluded.password
+    ";
+
     pub const UPSERT_ACCOUNT: &'static str = "INSERT INTO 
         accounts (
             address,

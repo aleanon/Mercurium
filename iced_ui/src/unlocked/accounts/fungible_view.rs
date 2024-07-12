@@ -1,6 +1,6 @@
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
-    theme,
-    widget::{self, container, image::Handle, row, text},
+    widget::{self, container, image::Handle, row, text, Container},
     Element, Length, Padding,
 };
 use ravault_iced_theme::styles;
@@ -11,17 +11,24 @@ use types::assets::FungibleAsset;
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
 
 #[derive(Debug, Clone)]
+pub enum Icon {
+    None,
+    Loading,
+    Some(Handle),
+}
+
+#[derive(Debug, Clone)]
 pub struct FungibleView {
     pub fungible: FungibleAsset,
-    pub image: Option<Handle>,
+    pub image: Icon,
 }
 
 impl<'a> FungibleView {
-    pub fn new(fungible: FungibleAsset, image: Option<Handle>) -> Self {
+    pub fn new(fungible: FungibleAsset, image: Icon) -> Self {
         Self { fungible, image }
     }
 
-    pub fn view(&self, appdata: &'a AppData) -> iced::Element<'a, AppMessage> {
+    pub fn view(&'a self, appdata: &'a AppData) -> iced::Element<'a, AppMessage> {
         let resource = appdata.resources.get(&self.fungible.resource_address);
 
         let name = text(
@@ -33,17 +40,12 @@ impl<'a> FungibleView {
         .line_height(2.);
 
         let image: Element<'a, AppMessage> = match &self.image {
-            Some(handle) => widget::image(handle.clone()).into(),
-            None => container(
-                text(iced_aw::Bootstrap::Image)
-                    .font(iced_aw::BOOTSTRAP_FONT)
-                    .size(100),
-            )
-            .width(150)
-            .height(150)
-            .center_x()
-            .center_y()
-            .into(),
+            Icon::Some(handle) => widget::image(handle.clone()).into(),
+            Icon::Loading => Container::new("").width(150).height(150).into(),
+            Icon::None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(100))
+                .center_x(150)
+                .center_y(150)
+                .into(),
         };
         //     let directory = AppPath::get().icons_directory();
         //     let mut icon_path = directory.clone();
@@ -107,7 +109,7 @@ impl<'a> FungibleView {
         let address = row![
             text("Address:").size(12),
             space,
-            text(&self.fungible.resource_address.truncate()).size(12)
+            text(self.fungible.resource_address.truncate()).size(12)
         ]
         .padding(Padding {
             top: 5.,
@@ -137,8 +139,7 @@ impl<'a> FungibleView {
             .width(FUNGIBLE_VIEW_WIDTH)
             .padding(Padding::from([0, 10]));
 
-        let scrollable = widget::scrollable(col)
-            .style(theme::Scrollable::custom(styles::scrollable::Scrollable));
+        let scrollable = widget::scrollable(col).style(styles::scrollable::vertical_scrollable);
 
         let space_left = widget::Space::new(Length::Fill, Length::Fill);
         let space_right = widget::Space::new(Length::Fill, Length::Fill);

@@ -1,6 +1,4 @@
-use std::borrow::BorrowMut;
 use std::num::NonZeroU32;
-use std::ops::DerefMut;
 
 use bip39::Mnemonic;
 use ring::aead::{
@@ -9,12 +7,8 @@ use ring::aead::{
 use ring::pbkdf2;
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
-use std::error::Error as StdError;
 use thiserror::Error;
 use types::crypto::{Password, Salt};
-use types::debug_info;
-use types::unwrap_unreachable::UnwrapUnreachable;
-use windows::core::HSTRING;
 use windows::Win32::Foundation::E_POINTER;
 use zeroize::Zeroize;
 
@@ -35,11 +29,11 @@ pub enum EncryptedMnemonicError {
     #[error("Failed to parse EncryptedMnemonic")]
     FailedToParseEncryptedMnemonic,
     #[error("Failed to save mnemonic, {0}")]
-    FailedToSaveCredentials(Box<dyn StdError>),
+    FailedToSaveCredentials(String),
     #[error("Failed to retrieve Credentials: {0}")]
-    FailedToRetrieveCredentials(Box<dyn StdError>),
+    FailedToRetrieveCredentials(String),
     #[error("Failed to delete Credentials: {0}")]
-    FailedToDeleteCredentials(Box<dyn StdError>),
+    FailedToDeleteCredentials(String),
     #[error("Failed to construct mnemonic")]
     FailedToConstructMnemonic,
 }
@@ -202,7 +196,7 @@ impl EncryptedMnemonic {
             };
 
             CredWriteW(&credentials, 0)
-                .map_err(|err| EncryptedMnemonicError::FailedToSaveCredentials(Box::new(err)))?;
+                .map_err(|err| EncryptedMnemonicError::FailedToSaveCredentials(err.to_string()))?;
         }
 
         target_name.zeroize();
@@ -242,16 +236,16 @@ impl EncryptedMnemonic {
                         CredFree(cred_ptr as *mut _)
                     } else {
                         result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
-                            Box::new(windows::core::Error::new(
-                                E_POINTER,
-                                "Null pointer received for credentials.",
-                            )),
+                            format!(
+                                "E_POINTER: {}, Null pointer received for credentials",
+                                E_POINTER
+                            ),
                         ))
                     }
                 }
                 Err(err) => {
                     result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
-                        Box::new(err),
+                        err.to_string(),
                     ))
                 }
             }
@@ -271,9 +265,9 @@ impl EncryptedMnemonic {
             match CredDeleteW(PCWSTR(target_name.as_mut_ptr()), CRED_TYPE_GENERIC, 0) {
                 Ok(_) => result = Ok(()),
                 Err(err) => {
-                    result = Err(EncryptedMnemonicError::FailedToDeleteCredentials(Box::new(
-                        err,
-                    )))
+                    result = Err(EncryptedMnemonicError::FailedToDeleteCredentials(
+                        err.to_string(),
+                    ))
                 }
             }
         }

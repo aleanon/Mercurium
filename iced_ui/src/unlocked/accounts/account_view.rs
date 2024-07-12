@@ -4,26 +4,21 @@ use crate::app::AppData;
 use crate::app::AppMessage;
 use crate::common;
 use crate::unlocked::app_view;
-use crate::unlocked::overlays::receive::Receive;
+use crate::unlocked::overlays::overlay::SpawnOverlay;
 
+use iced::widget::button;
+use iced::Task;
 use iced::{
     alignment,
-    widget::{
-        self, column, container, row,
-        scrollable::{self, Properties},
-        text, Button,
-    },
+    widget::{self, column, container, row, text, Button},
     Element, Length, Padding,
 };
-use iced::{theme, Command};
 
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use ravault_iced_theme::styles;
-use ravault_iced_theme::styles::container::AssetListItem;
-
 use types::assets::FungibleAsset;
 use types::{Account, AccountAddress, Fungible};
 
-use super::super::overlays::overlay::Overlay;
 use super::accounts_view;
 use super::{fungibles, fungibles::Fungibles};
 
@@ -100,13 +95,13 @@ impl<'a> AccountView {
 }
 
 impl<'a> AccountView {
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+        let mut command = Task::none();
         match message {
-            Message::FungiblesView(account_address) => self.set_view_fungibles(account_address),
-            Message::NonFungiblesView(account_address) => {
-                self.set_view_non_fungibles(account_address)
+            Message::FungiblesView(account_address) => {
+                self.view = AssetView::Tokens(Fungibles::new(account_address))
             }
+            Message::NonFungiblesView(account_address) => self.view = AssetView::NonFungibles,
             Message::SelectFungible(fungible) => self.select_fungible(fungible, appdata),
             Message::SelectNonFungible {
                 account_id,
@@ -123,14 +118,6 @@ impl<'a> AccountView {
             } // Self::Transaction(account) => Self::transaction_from_account(account, app),
         }
         command
-    }
-
-    fn set_view_fungibles(&mut self, account_address: AccountAddress) {
-        self.view = AssetView::Tokens(Fungibles::new(account_address));
-    }
-
-    fn set_view_non_fungibles(&mut self, _account_address: AccountAddress) {
-        self.view = AssetView::NonFungibles;
     }
 
     fn set_view_poolunits(&mut self, _appdata: &'a mut AppData) {
@@ -163,10 +150,12 @@ impl<'a> AccountView {
     ) {
     }
 
-    pub fn view(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let mut accounts = appdata.db.get_accounts().unwrap_or(BTreeMap::new());
-
-        let account = accounts.remove(&self.address).unwrap_or(Account::none());
+    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+        // let mut accounts = appdata.db.get_accounts_map().unwrap_or(BTreeMap::new());
+        let Some(account) = appdata.accounts.get(&self.address) else {
+            return column!().into();
+        };
+        // let account = accounts.remove(&self.address).unwrap_or(Account::none());
 
         let account_name = text(&self.name)
             .size(20)
@@ -176,12 +165,10 @@ impl<'a> AccountView {
             .size(15)
             .vertical_alignment(iced::alignment::Vertical::Bottom);
 
-        let icon = text(iced_aw::Bootstrap::Copy)
-            .font(iced_aw::BOOTSTRAP_FONT)
-            .size(15);
+        let icon = text(Bootstrap::Copy).font(BOOTSTRAP_FONT).size(15);
 
         let account_address_button = Button::new(row!(account_address, icon).spacing(5))
-            .style(iced::theme::Button::Text)
+            .style(button::text)
             .on_press(AppMessage::Common(common::Message::CopyToClipBoard(
                 self.address.to_string(),
             )));
@@ -203,11 +190,10 @@ impl<'a> AccountView {
         let history_button = Self::nav_button("History");
 
         let transfer_button = Self::nav_button("Send")
-            .on_press(app_view::Message::NewTransaction(Some(account)).into());
+            .on_press(app_view::Message::NewTransaction(Some(account.clone())).into());
 
         let receive_button = Self::nav_button("Receive").on_press(
-            app_view::Message::SpawnOverlay(Overlay::Receive(Receive::new(self.address.clone())))
-                .into(),
+            app_view::Message::SpawnOverlay(SpawnOverlay::Receive(self.address.clone())).into(),
         );
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
 
@@ -216,7 +202,7 @@ impl<'a> AccountView {
             // .height(Length::Shrink)
             .spacing(20);
 
-        let nav_button_cont = container(nav_button_row).center_x().width(Length::Fill);
+        let nav_button_cont = container(nav_button_row).center_x(Length::Fill);
         // .height(Length::Shrink);
 
         let mut fung_button = Self::select_asset_button("Tokens")
@@ -227,19 +213,19 @@ impl<'a> AccountView {
 
         let assets = match self.view {
             AssetView::Tokens(ref fungibles_view) => {
-                fung_button =
-                    fung_button.style(theme::Button::custom(styles::button::GeneralSelectedButton));
+                fung_button = fung_button.style(styles::button::general_selected_button);
+
                 fungibles_view.view(appdata)
             }
             AssetView::NonFungibles => {
-                nft_button =
-                    nft_button.style(theme::Button::custom(styles::button::GeneralSelectedButton));
+                nft_button = nft_button.style(styles::button::general_selected_button);
+
                 self.view_non_fungibles(appdata)
             }
         };
 
         let asset_button_row = row![fung_button, nft_button].spacing(100);
-        let asset_button_cont = container(asset_button_row).center_x().width(Length::Fill);
+        let asset_button_cont = container(asset_button_row).center_x(Length::Fill);
 
         let col = column![top_row, nav_button_cont, asset_button_cont, assets]
             .width(Length::Fill)
@@ -309,9 +295,9 @@ impl<'a> AccountView {
                         .width(Length::Fill)
                         .height(50)
                         .on_press(AppMessage::None)
-                        .style(theme::Button::Text);
+                        .style(button::text);
 
-                    let container = container(button).style(AssetListItem::style);
+                    let container = container(button).style(styles::container::asset_list_item);
 
                     elements.push(container.into())
                 }
@@ -329,7 +315,7 @@ impl<'a> AccountView {
         };
 
         widget::scrollable(column)
-            .direction(scrollable::Direction::Vertical(Properties::default()))
+            // .direction(scrollable::Direction::Vertical(Properties::default()))
             .height(Length::Fill)
             .width(Length::Fill)
             .into()
@@ -352,6 +338,6 @@ impl<'a> AccountView {
                 .height(Length::Fill)
                 .width(Length::Fill),
         )
-        .style(theme::Button::custom(styles::button::GeneralButton))
+        .style(styles::button::general_button)
     }
 }

@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use asynciter::{AsyncIterator, FromAsyncIterator};
 use scrypto::crypto::Ed25519PublicKey;
 
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
@@ -91,7 +94,21 @@ impl Account {
     }
 }
 
+impl FromIterator<Account> for HashMap<AccountAddress, Account> {
+    fn from_iter<T: IntoIterator<Item = Account>>(iter: T) -> Self {
+        iter.into_iter()
+            .map(|account| (account.address.clone(), account))
+            .collect()
+    }
+}
+
 impl ToString for Account {
+    fn to_string(&self) -> String {
+        format!("{}:    {}", self.name, self.address.truncate_long())
+    }
+}
+
+impl ToString for &Account {
     fn to_string(&self) -> String {
         format!("{}:    {}", self.name, self.address.truncate_long())
     }

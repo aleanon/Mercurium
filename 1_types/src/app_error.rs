@@ -1,11 +1,13 @@
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+use crate::notification::Notification;
+
+#[derive(Debug, Clone, Error)]
 pub enum AppError {
     #[error("Fatal error occured, {0}")]
-    Fatal(Box<dyn std::error::Error>),
+    Fatal(String),
     #[error("Non fatal error occured, {0}")]
-    NonFatal(Box<dyn std::error::Error>),
+    NonFatal(Notification),
 }
 
 #[derive(Debug, Error, Clone)]

@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{btree_set::IntoIter, BTreeSet},
+    collections::{BTreeSet},
     ops::{Deref, DerefMut},
 };
 
 use crate::response_models::{
     entity_details::NFTVaults,
-    non_fungible_id_data::{Field, NFIdData},
+    non_fungible_id_data::{Field},
 };
 
 use super::{MetaData, ResourceAddress};

@@ -1,17 +1,22 @@
-use std::collections::BTreeMap;
-
 use handles::EncryptedMnemonic;
 use iced::{
-    futures::SinkExt,
-    theme,
-    widget::{self, button, column, text, text_input},
-    Command, Element,
+    widget::{self, button, column, row, text, text_input, Space},
+    Element, Length, Task,
 };
 use ravault_iced_theme::styles;
-use types::{crypto::Password, Action};
+use std::sync::Arc;
+use types::crypto::Password;
 use zeroize::Zeroize;
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view, CREDENTIALS_STORE_NAME};
+use crate::{
+    app::{AppData, AppMessage},
+    task_response,
+    unlocked::app_view,
+    CREDENTIALS_STORE_NAME,
+};
+
+pub static INPUT_ACCOUNT_NAME: &'static str = "input_account_name";
+pub static INPUT_PASSWORD: &'static str = "input_password";
 
 use super::overlay;
 
@@ -19,7 +24,8 @@ use super::overlay;
 pub enum Message {
     InputAccountName(String),
     InputPassword(String),
-    Next,
+    Back,
+    Continue,
     Submit,
 }
 
@@ -45,29 +51,29 @@ pub struct AddAccountView {
     pub view: View,
 }
 
-impl AddAccountView {
-    pub fn new() -> Self {
-        Self {
+impl<'a> AddAccountView {
+    pub fn new() -> (Self, Task<AppMessage>) {
+        let add_account_view = Self {
             notification: String::new(),
             account_name: String::new(),
             password: Password::new(),
             view: View::InputAccountName,
-        }
+        };
+
+        let task = text_input::focus(text_input::Id::new(INPUT_ACCOUNT_NAME));
+
+        (add_account_view, task)
     }
-}
 
-impl<'a> AddAccountView {
-    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
-
+    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
         match message {
             Message::InputAccountName(input) => self.update_account_name(input),
             Message::InputPassword(input) => self.update_password(input),
-            Message::Next => self.next(),
-            Message::Submit => command = self.submit(appdata),
+            Message::Back => return self.back(),
+            Message::Continue => return self.next(),
+            Message::Submit => return self.submit(appdata),
         }
-
-        command
+        Task::none()
     }
 
     fn update_account_name(&mut self, input: String) {
@@ -83,32 +89,41 @@ impl<'a> AddAccountView {
         input.zeroize();
     }
 
-    fn next(&mut self) {
+    fn back(&mut self) -> Task<AppMessage> {
+        if let View::InputPassword = self.view {
+            self.view = View::InputAccountName;
+            return text_input::focus(text_input::Id::new(INPUT_ACCOUNT_NAME));
+        }
+        Task::none()
+    }
+
+    fn next(&mut self) -> Task<AppMessage> {
         match self.view {
             View::InputAccountName => {
                 if self.account_name.len() > 0 {
                     self.notification.clear();
-                    self.view = View::InputPassword
+                    self.view = View::InputPassword;
+                    return text_input::focus(text_input::Id::new(INPUT_PASSWORD));
                 } else {
                     self.notification = "Account name cannot be empty".to_string();
                 }
             }
             View::InputPassword => {}
         };
+        Task::none()
     }
 
-    fn submit(&mut self, app_data: &mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    fn submit(&mut self, app_data: &mut AppData) -> Task<AppMessage> {
+        let mut task = Task::none();
         let account =
             EncryptedMnemonic::from_store(CREDENTIALS_STORE_NAME).and_then(|encrypted_mnemonic| {
                 encrypted_mnemonic
                     .decrypt_mnemonic(&self.password)
                     .and_then(|mnemonic| {
-                        let accounts = app_data.db.get_accounts().unwrap_or(BTreeMap::new());
                         let mut id = 0;
                         let mut new_account_index = 0;
 
-                        for (_, account) in accounts {
+                        for (_, account) in app_data.accounts.iter() {
                             if account.id >= id {
                                 id = account.id + 1
                             };
@@ -127,25 +142,38 @@ impl<'a> AddAccountView {
                     })
             });
         match account {
-            Ok(account) => match app_data.db.upsert_account(&account) {
-                Ok(()) => {
-                    let mut sender = app_data.backend_sender.clone();
-                    command = Command::perform(
-                        async move { sender.send(Action::UpdateAccount(account.address)).await },
-                        |_| AppMessage::None,
-                    )
-                }
-                Err(err) => {
-                    self.notification = format!("Unable to save account to database: {err}");
-                }
-            },
+            Ok(account) => {
+                app_data
+                    .accounts
+                    .insert(account.address.clone(), account.clone());
+
+                let network = app_data.settings.network;
+                let resources = app_data.resources.clone();
+                task = Task::perform(
+                    async move {
+                        let accounts_update = handles::radix_dlt::updates::update_accounts(
+                            network,
+                            Arc::new(resources),
+                            vec![account],
+                        )
+                        .await;
+                        Ok(accounts_update)
+                    },
+                    |result| match result {
+                        Ok(accounts_update) => {
+                            task_response::Message::AccountsUpdated(accounts_update).into()
+                        }
+                        Err(err) => task_response::Message::Error(err).into(),
+                    },
+                )
+            }
             Err(err) => self.notification = format!("Unable to create account: {err}"),
         };
 
-        command
+        task
     }
 
-    pub fn view(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
         let content = match self.view {
             View::InputAccountName => self.input_account_name(),
             View::InputPassword => self.input_password(),
@@ -155,46 +183,84 @@ impl<'a> AddAccountView {
         let column = column![notification, content];
 
         widget::container(column)
-            .width(400)
-            .height(400)
             .padding(10)
-            .center_x()
-            .center_y()
-            .style(styles::container::OverlayInner::style)
+            .center_x(400)
+            .center_y(400)
+            .style(styles::container::overlay_inner)
             .into()
     }
 
     fn input_account_name(&self) -> Element<'a, AppMessage> {
+        let header = text("Create new account")
+            .size(16)
+            .width(Length::Fill)
+            .horizontal_alignment(iced::alignment::Horizontal::Center)
+            .vertical_alignment(iced::alignment::Vertical::Center);
+
+        let top_space = Space::with_height(Length::Fill);
+
         let account_name_input = {
             let label = text("Account name");
             let account_name_input = text_input("Enter account name", &self.account_name)
-                .style(theme::TextInput::Custom(Box::new(
-                    styles::text_input::GeneralInput,
-                )))
-                .on_input(|input| Message::InputAccountName(input).into());
+                .style(styles::text_input::general_input)
+                .on_submit(Message::Continue.into())
+                .on_input(|input| Message::InputAccountName(input).into())
+                .id(text_input::Id::new(INPUT_ACCOUNT_NAME));
 
             column!(label, account_name_input).spacing(2)
         };
 
-        let next_button = button("Next").on_press(Message::Next.into());
+        let bottom_space = Space::with_height(Length::Fill);
+        let continue_button = button("continue").on_press_maybe(if !self.password.is_empty() {
+            Some(Message::Continue.into())
+        } else {
+            None
+        });
 
-        column![account_name_input, next_button].spacing(20).into()
+        column![
+            header,
+            top_space,
+            account_name_input,
+            bottom_space,
+            continue_button
+        ]
+        .align_items(iced::Alignment::Center)
+        .spacing(20)
+        .into()
     }
 
     fn input_password(&self) -> Element<'a, AppMessage> {
         let password_input = {
             let label = text("Password");
             let password_input = text_input("Enter password", &self.password.as_str())
-                .style(theme::TextInput::Custom(Box::new(
-                    styles::text_input::GeneralInput,
-                )))
-                .on_input(|input| Message::InputPassword(input).into());
+                .style(styles::text_input::general_input)
+                .on_input(|input| Message::InputPassword(input).into())
+                .on_submit(Message::Submit.into())
+                .id(text_input::Id::new(INPUT_PASSWORD))
+                .secure(true);
 
             column![label, password_input].spacing(2)
         };
 
-        let submit_button = button("Submit").on_press(Message::Submit.into());
+        let space = Space::with_height(Length::Fill);
+        let back_button = button("Back").on_press(Message::Back.into());
+        let submit_button = button("Submit").on_press_maybe(if self.password.is_empty() {
+            None
+        } else {
+            Some(Message::Submit.into())
+        });
 
-        column![password_input, submit_button].spacing(20).into()
+        let buttons_row = row!(
+            Space::with_width(Length::Fill),
+            back_button,
+            submit_button,
+            Space::with_width(Length::Fill)
+        )
+        .spacing(30);
+
+        column![password_input, space, buttons_row]
+            .align_items(iced::Alignment::Center)
+            .spacing(20)
+            .into()
     }
 }

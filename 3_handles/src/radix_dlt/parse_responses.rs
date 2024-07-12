@@ -202,10 +202,10 @@ pub fn parse_non_fungibles_data_response_for_asset(
 
 #[cfg(test)]
 mod tests {
-    use crate::radix_dlt::gateway_requests;
-    use radix_gateway_sdk::Network;
+    
+    
 
-    use super::*;
+    
 
     // #[tokio::test]
     // async fn test_update_assets_from_account_details_response() {

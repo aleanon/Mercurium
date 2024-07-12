@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
 
-use types::{app_path::AppPath, AppError, AppSettings};
+use types::{app_path::AppPath, notification::Notification, AppError, AppSettings};
 
 pub fn get_app_settings() -> AppSettings {
     match File::open(AppPath::get().settings_path_ref()) {
@@ -14,8 +14,14 @@ pub fn get_app_settings() -> AppSettings {
 }
 
 pub fn save_app_settings(app_settings: AppSettings) -> Result<(), AppError> {
-    let file = File::create(AppPath::get().settings_path_ref())
-        .map_err(|err| AppError::NonFatal(Box::new(err)))?;
-    serde_json::to_writer_pretty(file, &app_settings)
-        .map_err(|err| AppError::NonFatal(Box::new(err)))
+    let file = File::create(AppPath::get().settings_path_ref()).map_err(|err| {
+        AppError::NonFatal(Notification::Warn(format!(
+            "Unable to get app settings file: {err}"
+        )))
+    })?;
+    serde_json::to_writer_pretty(file, &app_settings).map_err(|err| {
+        AppError::NonFatal(Notification::Warn(format!(
+            "Unable to write app settings to file: {err}"
+        )))
+    })
 }

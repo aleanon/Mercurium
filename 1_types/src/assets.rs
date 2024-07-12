@@ -1,6 +1,5 @@
 use std::{
     collections::{BTreeSet, HashMap},
-    ops::Deref,
 };
 
 use crate::{

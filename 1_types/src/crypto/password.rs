@@ -1,7 +1,9 @@
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use super::{encryption_error::EncryptionError, key::Key, salt::Salt};
+use crate::hashed_password::HashedPassword;
+
+use super::{encryption_error::EncryptionError, key::Key, salt::Salt, HexKey};
 
 #[derive(Debug, Error)]
 pub enum PasswordError {
@@ -45,6 +47,10 @@ impl Password {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn clear(&mut self) {
         self.0.clear()
     }
@@ -53,15 +59,19 @@ impl Password {
         &self.0
     }
 
-    pub fn derive_new_db_encryption_key(&self) -> Result<(Key, Salt), PasswordError> {
+    pub fn derive_new_db_encryption_key(&self) -> Result<(HexKey, Salt), PasswordError> {
         let salt = Salt::new()?;
         let key = Key::db_encryption_key(&salt, &self);
 
-        Ok((key, salt))
+        Ok((key.into_hex_key(), salt))
     }
 
-    pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> Key {
-        Key::db_encryption_key(salt, &self)
+    pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> HexKey {
+        Key::db_encryption_key(salt, &self).into_hex_key()
+    }
+
+    pub fn derive_db_encryption_key_hash_from_salt(&self, salt: &Salt) -> HashedPassword {
+        HashedPassword::db_key_hash(salt, self)
     }
 
     pub fn derive_new_mnemonic_encryption_key(&self) -> Result<(Key, Salt), PasswordError> {

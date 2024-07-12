@@ -1,21 +1,27 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use bip39::{Language, Mnemonic, MnemonicType};
 use debug_print::debug_println;
 use handles::EncryptedMnemonic;
+use iced::futures::lock::Mutex;
 use iced::widget::text::LineHeight;
-use iced::Command;
+use iced::Task;
 use iced::{
     widget::{self, text_input::Id, Button, Column, Row},
     Element, Length,
 };
-use store::Db;
+use store::{AsyncDb, Db};
 use types::crypto::{Password, SeedPhrase};
-use types::Network;
+use types::ur::{MutUr, Ur};
+use types::{AccountsUpdate, AppError, Network};
 use zeroize::Zeroize;
 
 use crate::app::AppData;
-use crate::common;
+use crate::error::errorscreen::ErrorMessage;
 use crate::CREDENTIALS_STORE_NAME;
 use crate::{app::App, app::AppMessage};
+use crate::{common, task_response};
 
 use super::setup;
 
@@ -24,6 +30,12 @@ const NON_ASCII_CHARACTERS: &str = "Password contains invalid characters";
 const EMPTY_ACCOUNT_NAME: &str = "Account name can not be empty";
 const MINIMUM_PASSWORD_LENGTH: usize = 16;
 const MAXIMUM_PASSWORD_LENGTH: usize = 64;
+
+struct UnsafeNewWallet<'a>(&'a mut NewWallet);
+struct UnsafeAppData<'a>(&'a mut AppData);
+
+unsafe impl<'a> Send for UnsafeAppData<'a> {}
+unsafe impl<'a> Send for UnsafeNewWallet<'a> {}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -68,24 +80,25 @@ pub struct NewWallet {
 }
 
 impl<'a> NewWallet {
-    pub fn update(&mut self, message: Message, app_data: &'a mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(
+        &mut self,
+        message: Message,
+        app_data: &'a mut AppData,
+    ) -> Result<Task<AppMessage>, AppError> {
         match message {
             // Self::Back => Self::move_to_previous_step(new_wallet_state),
-            Message::UpdatePassword(mut input) => self.update_password_input(&mut input),
+            Message::UpdatePassword(mut input) => self.password_input(&mut input),
             Message::SubmitPassword => self.submit_password(),
-            Message::UpdateVerificationPassword(input) => {
-                self.update_verified_password_input(input)
-            }
+            Message::UpdateVerificationPassword(input) => self.verify_password_input(input),
             Message::VerifiPassword => self.verifi_password(),
             Message::UpdateAccName(input) => self.update_account_name_input(input),
             Message::SubmitAccName => self.submit_account_name(),
-            Message::SeedPhrase => self.show_seed_phrase(),
-            Message::VerifySeedPhrase => self.verify_seed_phrase(),
+            Message::SeedPhrase => self.go_to_show_seed_phrase(),
+            Message::VerifySeedPhrase => self.go_to_verify_seed_phrase(),
             Message::UpdateInputSeed((index, words)) => self.update_input_seed(index, words),
-            Message::Finalize => command = self.create_wallet(app_data),
+            Message::Finalize => return Ok(self.test_task(app_data)),
         }
-        command
+        Ok(Task::none())
     }
 
     // fn move_to_previous_step(new_wallet_state: &'a mut NewWallet) -> Command<Message> {
@@ -123,7 +136,7 @@ impl<'a> NewWallet {
     //     Command::none()
     // }
 
-    fn update_password_input(&mut self, input: &mut String) {
+    fn password_input(&mut self, input: &mut String) {
         self.password.clear();
         self.password.push_str(input.as_str());
         input.zeroize();
@@ -142,7 +155,7 @@ impl<'a> NewWallet {
         }
     }
 
-    fn update_verified_password_input(&mut self, mut input: String) {
+    fn verify_password_input(&mut self, mut input: String) {
         self.verify_password.clear();
         self.verify_password.push_str(input.as_str());
         input.zeroize();
@@ -173,12 +186,12 @@ impl<'a> NewWallet {
         }
     }
 
-    fn show_seed_phrase(&mut self) {
+    fn go_to_show_seed_phrase(&mut self) {
         self.stage = NewWalletStage::ViewSeedPhrase;
         self.notification = "";
     }
 
-    fn verify_seed_phrase(&mut self) {
+    fn go_to_verify_seed_phrase(&mut self) {
         self.stage = NewWalletStage::VerifySeedPhrase;
         self.notification = "";
     }
@@ -191,14 +204,116 @@ impl<'a> NewWallet {
         }
     }
 
-    fn create_wallet(&mut self, app_data: &'a mut AppData) -> Command<AppMessage> {
+    fn another_test(&mut self, app_data: &'a mut AppData) -> Task<AppMessage> {
+        Task::perform(
+            async move { Ok::<_, AppError>(34) },
+            |result| match result {
+                Ok(value) => AppMessage::None,
+                Err(err) => AppMessage::TaskResponse(task_response::Message::Error(err)),
+            },
+        )
+    }
+
+    fn test_task(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+        let network = appdata.settings.network.clone();
+        // let new_wallet_ptr: *mut NewWallet = self;
+        // let appdata_ptr: *mut AppData = appdata;
+        // let new_wallet = unsafe { UnsafeNewWallet(&mut *new_wallet_ptr) };
+        // let appdata = unsafe { UnsafeAppData(&mut *appdata_ptr) };
+
+        let mut new_wallet = unsafe { MutUr::new(self) };
+        let mut appdata = unsafe { MutUr::new(appdata) };
+        Task::perform(
+            async move {
+                // let mut new_wallet = new_wallet;
+                // let mut appdata = appdata;
+
+                if let None = new_wallet.mnemonic {
+                    let phrase = new_wallet.seed_phrase.phrase();
+                    let mnemonic =
+                        match Mnemonic::from_phrase(phrase.as_str(), bip39::Language::English) {
+                            Ok(mnemonic) => mnemonic,
+                            Err(_) => {
+                                new_wallet.notification = "Invalid seed phrase";
+                                return Err(AppError::NonFatal(
+                                    types::notification::Notification::None,
+                                ));
+                            }
+                        };
+                    new_wallet.mnemonic = Some(mnemonic)
+                }
+
+                let mnemonic = new_wallet.mnemonic.as_ref().unwrap_or_else(|| {
+                    unreachable!("{}:{} Mnemonic not found", module_path!(), line!())
+                });
+
+                let (key, salt) = match new_wallet.password.derive_new_db_encryption_key() {
+                    Ok((key, salt)) => (key, salt),
+                    Err(_) => {
+                        new_wallet.notification =
+                            "Unable to create random value for key derivation, please try again";
+                        return Err(AppError::NonFatal(types::notification::Notification::None));
+                    }
+                };
+
+                let db = AsyncDb::new(network, key)
+                    .await
+                    .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+                let key_hash = new_wallet
+                    .password
+                    .derive_db_encryption_key_hash_from_salt(&salt);
+
+                handles::credentials::store_db_encryption_salt(salt)
+                    .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+                db.upsert_password_hash(key_hash)
+                    .await
+                    .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+                let account = handles::wallet::create_account_from_mnemonic(
+                    mnemonic,
+                    0,
+                    0,
+                    new_wallet.account_name.clone(),
+                    Network::Mainnet,
+                );
+
+                debug_println!("Account created");
+
+                appdata
+                    .accounts
+                    .insert(account.address.clone(), account.clone());
+
+                db.upsert_account(account)
+                    .await
+                    .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+                debug_println!("Account stored in database");
+
+                EncryptedMnemonic::new(mnemonic, &new_wallet.password)
+                    .and_then(|encrypted_mnemonic| {
+                        encrypted_mnemonic.save_to_store(CREDENTIALS_STORE_NAME)
+                    })
+                    .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+                Ok(())
+            },
+            |result| match result {
+                Ok(_) => task_response::Message::WalletCreated.into(),
+                Err(err) => task_response::Message::Error(err).into(),
+            },
+        )
+    }
+
+    fn create_wallet(&mut self, app_data: &'a mut AppData) -> Result<Task<AppMessage>, AppError> {
         if let None = self.mnemonic {
             let phrase = self.seed_phrase.phrase();
             let mnemonic = match Mnemonic::from_phrase(phrase.as_str(), bip39::Language::English) {
                 Ok(mnemonic) => mnemonic,
                 Err(_) => {
                     self.notification = "Invalid seed phrase";
-                    return Command::none();
+                    return Ok(Task::none());
                 }
             };
             self.mnemonic = Some(mnemonic)
@@ -209,24 +324,25 @@ impl<'a> NewWallet {
             .as_ref()
             .unwrap_or_else(|| unreachable!("{}:{} Mnemonic not found", module_path!(), line!()));
 
-        //Encrypt and store mnemonic as credentials
-
-        let (key, _salt) = match self.password.derive_new_db_encryption_key() {
+        let (key, salt) = match self.password.derive_new_db_encryption_key() {
             Ok((key, salt)) => (key, salt),
             Err(_) => {
                 self.notification =
                     "Unable to create random value for key derivation, please try again";
-                return Command::none();
+                return Ok(Task::none());
             }
         };
 
-        let mut db = Db::new(app_data.settings.network).unwrap_or_else(|err| {
-            unreachable!(
-                "{}:{} Unable to create database: {err}",
-                module_path!(),
-                line!()
-            )
-        });
+        let mut db = Db::new(app_data.settings.network, &key)
+            .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+        let key_hash = self.password.derive_db_encryption_key_hash_from_salt(&salt);
+
+        handles::credentials::store_db_encryption_salt(salt)
+            .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+        db.upsert_password_hash(key_hash)
+            .map_err(|err| AppError::Fatal(err.to_string()))?;
 
         let account = handles::wallet::create_account_from_mnemonic(
             mnemonic,
@@ -238,43 +354,20 @@ impl<'a> NewWallet {
 
         debug_println!("Account created");
 
-        if let Err(err) = db.upsert_account(&account) {
-            debug_println!(
-                "{}:{}: Unable to write account to database, error: {}",
-                module_path!(),
-                line!(),
-                err
-            );
-            //TODO("Implement notification in app {err}")
-        } else {
-            debug_println!("Account stored in database");
-        }
+        app_data
+            .accounts
+            .insert(account.address.clone(), account.clone());
 
-        app_data.db = db;
-        // if let Err(err) = app.action_tx.send(Action::LoadDatabase(key)) {
-        //     app.state = State::Error(AppError::Fatal(Box::new(err)))
-        // }
+        db.upsert_account(&account)
+            .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-        // let mut sender_clone = app_data.backend_sender.clone();
-        // let key_clone = key.clone();
+        debug_println!("Account stored in database");
 
-        // let load_database = Command::perform(
-        //     async move { sender_clone.send(Action::LoadDatabase(key_clone)).await },
-        //     |result| {
-        //         if let Err(err) = result {
-        //             debug_println!("Unable to send command to backend: {:?}", err);
-
-        //             //todo!("implement app notification");
-        //             Message::None
-        //         } else {
-        //             Message::Common(CommonMessage::PerformLogin(key))
-        //         }
-        //     },
-        // );
+        app_data.db = Some(db);
 
         let password = self.password.clone();
         let mnemonic = self.mnemonic.take().unwrap();
-        let save_mnemonic = Command::perform(
+        let save_mnemonic = Task::perform(
             async move {
                 EncryptedMnemonic::new(&mnemonic, &password).and_then(|encrypted_mnemonic| {
                     encrypted_mnemonic.save_to_store(CREDENTIALS_STORE_NAME)
@@ -287,9 +380,23 @@ impl<'a> NewWallet {
                 }
             },
         );
-        let login = Command::perform(async {}, |_| common::Message::PerformLogin(key).into());
 
-        Command::batch([save_mnemonic, login])
+        let network = app_data.settings.network;
+        let update_account = Task::perform(
+            async move {
+                handles::radix_dlt::updates::update_accounts(
+                    network,
+                    Arc::new(HashMap::new()),
+                    vec![account],
+                )
+                .await
+            },
+            |accounts_update| task_response::Message::AccountsUpdated(accounts_update).into(),
+        );
+
+        let login = Task::perform(async {}, |_| task_response::Message::WalletCreated.into());
+
+        Ok(Task::batch([save_mnemonic, update_account, login]))
     }
 
     pub fn new_with_mnemonic() -> Self {
@@ -329,10 +436,8 @@ impl<'a> NewWallet {
         };
 
         widget::container(content)
-            .width(660)
-            .height(700)
-            .center_x()
-            .center_y()
+            .center_x(660)
+            .center_y(700)
             .into()
     }
 
@@ -526,7 +631,7 @@ impl<'a> NewWallet {
         seed.push(row)
     }
 
-    fn nav_button(text: &str) -> Button<'a, AppMessage> {
+    fn nav_button(text: &'a str) -> Button<'a, AppMessage> {
         Button::new(
             widget::text(text)
                 .size(16)
