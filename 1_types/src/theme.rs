@@ -29,6 +29,36 @@ pub enum Theme {
     Custom,
 }
 
+impl Theme {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Theme::Light => "Light",
+            Theme::Dark => "Dark",
+            Theme::Dracula => "Dracula",
+            Theme::Nord => "Nord",
+            Theme::SolarizedLight => "Solarized Light",
+            Theme::SolarizedDark => "Solarized Dark",
+            Theme::GruvboxLight => "Gruvbox Light",
+            Theme::GruvboxDark => "Gruvbox Dark",
+            Theme::CatppuccinLatte => "Catppuccin Latte",
+            Theme::CatppuccinFrappe => "Catppuccin Frappe",
+            Theme::CatppuccinMacchiato => "Catppuccin Macchiato",
+            Theme::CatppuccinMocha => "Catppuccin Mocha",
+            Theme::TokyoNight => "Tokyo Night",
+            Theme::TokyoNightStorm => "Tokyo Night Storm",
+            Theme::TokyoNightLight => "Tokyo Night Light",
+            Theme::KanagawaWave => "Kanagawa Wave",
+            Theme::KanagawaDragon => "Kanagawa Dragon",
+            Theme::KanagawaLotus => "Kanagawa Lotus",
+            Theme::Moonfly => "Moonfly",
+            Theme::Nightfly => "Nightfly",
+            Theme::Oxocarbon => "Oxocarbon",
+            Theme::Ferra => "Ferra",
+            Theme::Custom => "Custom",
+        }
+    }
+}
+
 impl Into<iced::Theme> for Theme {
     fn into(self) -> iced::Theme {
         match self {

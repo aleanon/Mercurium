@@ -1,17 +1,17 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
-    theme,
     widget::{self, button, container, row, text, Container},
-    Alignment, Command, Element, Length, Padding,
+    Alignment, Element, Length, Padding, Task,
 };
-use ravault_iced_theme::styles::{self, rule::TextInputRule};
+use ravault_iced_theme::styles;
 use types::{Account, AccountAddress, Decimal, ResourceAddress};
 
 use super::{
     add_assets::{self, AddAssets},
-    choose_recipient::{self, ChooseRecipient},
+    add_recipient::{self, AddRecipient},
 };
 
 // pub struct TransactionView {
@@ -31,7 +31,7 @@ pub enum Message {
     UpdateResourceAmount(usize, ResourceAddress, String),
     SelectRecipient(usize),
     AddRecipient,
-    ChooseRecipientMessage(choose_recipient::Message),
+    ChooseRecipientMessage(add_recipient::Message),
     ///Pass the index of the account to add assets for
     AddAssets {
         recipient_index: usize,
@@ -66,7 +66,7 @@ impl Recipient {
 pub enum View {
     Transaction,
     AddAssets(AddAssets),
-    ChooseRecipient(ChooseRecipient),
+    ChooseRecipient(AddRecipient),
 }
 
 #[derive(Debug)]
@@ -104,8 +104,8 @@ impl TransactionView {
 }
 
 impl<'a> TransactionView {
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+        let mut command = Task::none();
 
         match message {
             Message::OverView => self.view = View::Transaction,
@@ -116,7 +116,7 @@ impl<'a> TransactionView {
                 self.update_resource_amount(account_index, resource, amount)
             }
             Message::SelectRecipient(recipient_index) => {
-                self.view = View::ChooseRecipient(ChooseRecipient::new(recipient_index))
+                self.view = View::ChooseRecipient(AddRecipient::new(recipient_index))
             }
             Message::AddRecipient => self.recipients.push(Recipient::new(None)),
             Message::AddAssets {
@@ -130,8 +130,11 @@ impl<'a> TransactionView {
             }
             Message::ChooseRecipientMessage(choose_recipient_message) => {
                 if let View::ChooseRecipient(choose_recipient) = &mut self.view {
-                    command =
-                        choose_recipient.update(choose_recipient_message, &mut self.recipients);
+                    command = choose_recipient.update(
+                        choose_recipient_message,
+                        &mut self.recipients,
+                        appdata,
+                    )
                 }
             }
             Message::RemoveAsset(recipient_index, resource_address) => {
@@ -182,12 +185,11 @@ impl<'a> TransactionView {
     }
 
     fn overview(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let accounts_map = appdata.db.get_accounts().unwrap_or(BTreeMap::new());
-
-        let mut accounts = accounts_map
+        let mut accounts = appdata
+            .accounts
             .values()
-            .map(|account| account.clone())
-            .collect::<Vec<Account>>();
+            .map(|account| account)
+            .collect::<Vec<&Account>>();
 
         // The accounts are sorted by ID
         accounts.sort_unstable_by(|a, b| a.cmp(b));
@@ -236,8 +238,7 @@ impl<'a> TransactionView {
             widget::Space::new(Length::Fill, 1)
         ];
 
-        let scrollable = widget::scrollable(row)
-            .style(theme::Scrollable::custom(styles::scrollable::Scrollable));
+        let scrollable = widget::scrollable(row).style(styles::scrollable::vertical_scrollable);
 
         // let left_space = widget::Space::new(Length::Fill, Length::Fill);
         // let right_space = widget::Space::new(Length::Fill, Length::Fill);
@@ -245,8 +246,7 @@ impl<'a> TransactionView {
         // let content = widget::row![left_space, scrollable, right_space];
         widget::container(scrollable)
             .height(Length::Fill)
-            .width(Length::Fill)
-            .center_x()
+            .center_x(Length::Fill)
             .padding(Padding {
                 left: 5.,
                 right: 5.,
@@ -263,18 +263,16 @@ impl<'a> TransactionView {
             .line_height(1.5)
             .on_input(|message| Message::UpdateMessage(message).into())
             .on_paste(|message| Message::UpdateMessage(message).into())
-            .style(iced::theme::TextInput::Custom(Box::new(
-                styles::text_input::AssetAmount,
-            )));
+            .style(styles::text_input::asset_amount);
 
-        let rule = widget::Rule::horizontal(4).style(TextInputRule::style);
+        let rule = widget::Rule::horizontal(4).style(styles::rule::text_input_rule);
 
         let col = widget::column![label, text_field, rule].align_items(Alignment::Start);
 
         widget::container(col)
     }
 
-    fn from_account_field(&'a self, accounts: Vec<Account>) -> Container<'a, AppMessage> {
+    fn from_account_field(&'a self, accounts: Vec<&'a Account>) -> Container<'a, AppMessage> {
         let label = Self::field_label("From");
 
         let (_account_name, _account_address) = match self.from_account {
@@ -283,7 +281,7 @@ impl<'a> TransactionView {
         };
 
         let picklist = widget::pick_list(accounts, self.from_account.as_ref(), |account| {
-            Message::SelectAccount(account).into()
+            Message::SelectAccount(account.clone()).into()
         })
         .placeholder("Select account")
         .text_line_height(2.)
@@ -318,18 +316,15 @@ impl<'a> TransactionView {
 
                 let address = text(address).size(15).line_height(1.5).width(Length::Fill);
 
-                let mut remove_recipient_button = button(
-                    text(iced_aw::Bootstrap::XLg)
-                        .font(iced_aw::BOOTSTRAP_FONT)
-                        .line_height(1.),
-                )
-                .padding(0)
-                .style(theme::Button::custom(styles::button::ChooseAccount))
-                .on_press(Message::RemoveRecipient(recipient_index).into());
+                let mut remove_recipient_button =
+                    button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).line_height(1.))
+                        .padding(0)
+                        .style(styles::button::choose_account)
+                        .on_press(Message::RemoveRecipient(recipient_index).into());
 
                 if recipient_index == 0 {
                     if let None = &recipient.address {
-                        remove_recipient_button = button(text("")).style(theme::Button::Text);
+                        remove_recipient_button = button(text("")).style(button::text);
                     }
                 }
 
@@ -341,7 +336,7 @@ impl<'a> TransactionView {
                     .width(Length::Fill)
                     .height(50)
                     .padding(10)
-                    .style(theme::Button::custom(styles::button::ChooseAccount))
+                    .style(styles::button::choose_account)
                     .on_press(Message::SelectRecipient(recipient_index).into())
             };
 
@@ -357,16 +352,10 @@ impl<'a> TransactionView {
                             Some(widget::image(handle.clone()).width(25).height(25).into())
                         })
                         .unwrap_or(
-                            container(
-                                text(iced_aw::Bootstrap::Image)
-                                    .font(iced_aw::BOOTSTRAP_FONT)
-                                    .size(18),
-                            )
-                            .width(25)
-                            .height(25)
-                            .center_x()
-                            .center_y()
-                            .into(),
+                            container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(18))
+                                .center_x(25)
+                                .center_y(25)
+                                .into(),
                         );
 
                     let symbol = Self::resource_text_field(&symbol);
@@ -375,9 +364,7 @@ impl<'a> TransactionView {
 
                     let amount = widget::text_input("Amount", &amount)
                         .width(100)
-                        .style(theme::TextInput::Custom(Box::new(
-                            styles::text_input::AssetAmount,
-                        )))
+                        .style(styles::text_input::asset_amount)
                         .on_input(move |input| {
                             Message::UpdateResourceAmount(
                                 recipient_index,
@@ -396,13 +383,13 @@ impl<'a> TransactionView {
                         });
 
                     let remove_resource = widget::button(
-                        text(iced_aw::Bootstrap::XLg)
-                            .font(iced_aw::BOOTSTRAP_FONT)
+                        text(Bootstrap::XLg)
+                            .font(BOOTSTRAP_FONT)
                             .size(15)
                             .line_height(1.),
                     )
                     .padding(0)
-                    .style(theme::Button::Text)
+                    .style(button::text)
                     .on_press(
                         Message::RemoveAsset(recipient_index, resource_address.clone()).into(),
                     );
@@ -456,18 +443,18 @@ impl<'a> TransactionView {
         widget::container(widget::column![label, recipients])
     }
 
-    fn resource_text_field(str: &str) -> widget::Text<'a> {
+    fn resource_text_field(str: &'a str) -> widget::Text<'a> {
         text(str).size(12).width(Length::Shrink)
     }
 
-    fn header(input: &str) -> text::Text<'a> {
+    fn header(input: &'a str) -> text::Text<'a> {
         text(input)
             .horizontal_alignment(iced::alignment::Horizontal::Center)
             .width(Length::Fill)
             .size(20)
     }
 
-    fn field_label(input: &str) -> text::Text<'a> {
+    fn field_label(input: &'a str) -> text::Text<'a> {
         text(input)
             .horizontal_alignment(iced::alignment::Horizontal::Left)
             .vertical_alignment(iced::alignment::Vertical::Center)

@@ -15,14 +15,14 @@ pub fn create_new_wallet(
 ) -> Result<(), AppError> {
     let (_key, _salt) = password
         .derive_new_db_encryption_key()
-        .map_err(|err| AppError::NonFatal(Box::new(err)))?;
+        .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic, &password)
-        .map_err(|err| AppError::Fatal(Box::new(err)))?;
+        .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     encrypted_mnemonic
         .save_to_store(CREDENTIALS_STORE_NAME)
-        .map_err(|err| AppError::Fatal(Box::new(err)))?;
+        .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     let account =
         super::create_account::create_account_from_mnemonic(mnemonic, 0, 0, account_name, network);

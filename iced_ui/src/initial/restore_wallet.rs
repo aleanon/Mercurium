@@ -6,7 +6,7 @@ use super::setup::{self, Setup};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FromCloud,
+    FromBackup,
     FromFile,
 }
 
@@ -18,8 +18,8 @@ impl Into<AppMessage> for Message {
 
 #[derive(Debug)]
 pub enum RestoreWallet {
-    FromCloud,
-    FromFile,
+    FromBackup,
+    FromSeed,
 }
 
 impl<'a> RestoreWallet {

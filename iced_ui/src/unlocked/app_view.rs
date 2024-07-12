@@ -1,12 +1,13 @@
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
-    theme,
     widget::{self, button, image::Handle, row, text, Row, Text},
-    Command, Element, Length,
+    Element, Length, Task,
 };
-use ravault_iced_theme::styles::{
-    button::{MenuButton, SelectedMenuButton},
-    container::{CenterPanel, MainWindow, MenuContainer},
-};
+use ravault_iced_theme::styles;
+// use ravault_iced_theme::styles::{
+//     button::{MenuButton, SelectedMenuButton},
+//     container::{CenterPanel, MainWindow, MenuContainer},
+// };
 use std::{collections::HashMap, str::FromStr};
 use types::{Account, Decimal, RadixDecimal, ResourceAddress};
 
@@ -14,7 +15,11 @@ use crate::{app::AppData, app::AppMessage};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},
-    overlays::overlay::{self, Overlay},
+    overlays::{
+        add_account::AddAccountView,
+        overlay::{self, Overlay, SpawnOverlay},
+        receive::Receive,
+    },
     transaction::{self, transaction_view::TransactionView},
 };
 
@@ -30,7 +35,7 @@ pub enum Message {
     AccountsViewMessage(super::accounts::accounts_view::Message),
     NewTransaction(Option<Account>),
     TransactionMessage(transaction::transaction_view::Message),
-    SpawnOverlay(Overlay),
+    SpawnOverlay(SpawnOverlay),
     CloseOverlay,
     OverlayMessage(overlay::Message),
 }
@@ -73,9 +78,7 @@ impl<'a> AppView {
         }
     }
 
-    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
-
+    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
         match message {
             Message::SelectTab(tab_id) => self.select_tab(tab_id),
             // Message::AccountsOverview => {
@@ -84,25 +87,34 @@ impl<'a> AppView {
             Message::NewTransaction(from_account) => self.new_transaction(from_account, appdata),
             Message::AccountsViewMessage(accounts_message) => {
                 if let ActiveTab::Accounts(view) = &mut self.active_tab {
-                    command = view.update(accounts_message, appdata);
+                    return view.update(accounts_message, appdata);
                 }
             }
             Message::TransactionMessage(transfer_message) => {
                 if let ActiveTab::Transfer(view) = &mut self.active_tab {
-                    command = view.update(transfer_message, appdata);
+                    return view.update(transfer_message, appdata);
                 }
             }
-            Message::SpawnOverlay(overlay) => self.overlay = Some(overlay),
+            Message::SpawnOverlay(overlay_type) => match overlay_type {
+                SpawnOverlay::AddAccount => {
+                    let (add_account_view, task) = AddAccountView::new();
+                    self.overlay = Some(Overlay::AddAccount(add_account_view));
+                    return task;
+                }
+                SpawnOverlay::Receive(account_address) => {
+                    self.overlay = Some(Overlay::Receive(Receive::new(account_address)))
+                }
+            },
             Message::CloseOverlay => self.overlay = None,
             Message::OverlayMessage(overlay_message) => {
                 if let Some(overlay) = &mut self.overlay {
-                    command = overlay.update(overlay_message, appdata);
+                    return overlay.update(overlay_message, appdata);
                 }
             } // Self::CenterPanelMessage(center_panel_message) => center_panel_message.process(app),
               // Self::MenuMessage(menu_message) => menu_message.process(app),
         }
 
-        command
+        Task::none()
     }
 
     fn select_tab(&mut self, tab_id: TabId) {
@@ -155,7 +167,7 @@ impl<'a> AppView {
             }
         }
         .padding(10)
-        .style(CenterPanel::style)
+        .style(styles::container::center_panel)
         .width(Length::Fill)
         .height(Length::Fill);
 
@@ -173,42 +185,41 @@ impl<'a> AppView {
             panels = menu_center_row.into()
         }
 
-        let appview = widget::container(panels).style(MainWindow::style);
+        let appview = widget::container(panels).style(styles::container::main_window);
 
         let overlay = self
             .overlay
             .as_ref()
             .and_then(|overlay| Some(overlay.view(appdata)));
 
-        iced_aw::modal(appview, overlay)
+        ravault_widgets::Modal::new(appview, overlay)
             .on_esc(Message::CloseOverlay.into())
             .backdrop(Message::CloseOverlay.into())
             .into()
     }
 
     fn menu(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let logo = widget::image(Handle::from_memory(MENU_LOGO))
+        let logo = widget::image(Handle::from_bytes(MENU_LOGO))
             .width(100)
             .height(50);
-        let logo_container = widget::container(logo)
-            .width(Length::Fill)
-            .height(75)
-            .center_x()
-            .center_y();
+        let logo_container = widget::container(logo).center_x(Length::Fill).center_y(75);
 
-        let theme_button_text = format!("{}", appdata.settings.theme);
-        let theme_icon = text(iced_aw::Bootstrap::Palette).font(iced_aw::BOOTSTRAP_FONT);
-        let toggle_theme_button =
-            Self::menu_button(theme_icon, &theme_button_text, AppMessage::ToggleTheme);
+        // let theme_button_text = appdata.settings.theme;
+        let theme_icon = text(Bootstrap::Palette).font(BOOTSTRAP_FONT);
+        let toggle_theme_button = Self::menu_button(
+            theme_icon,
+            appdata.settings.theme.as_str(),
+            AppMessage::ToggleTheme,
+        );
 
-        let accounts_icon = text(iced_aw::Bootstrap::PersonVcard).font(iced_aw::BOOTSTRAP_FONT);
+        let accounts_icon = text(Bootstrap::PersonVcard).font(BOOTSTRAP_FONT);
         let mut accounts_button = Self::menu_button(
             accounts_icon,
             "Accounts",
             Message::SelectTab(TabId::Accounts).into(),
         );
 
-        let transaction_icon = text(iced_aw::Bootstrap::ArrowBarUp).font(iced_aw::BOOTSTRAP_FONT);
+        let transaction_icon = text(Bootstrap::ArrowBarUp).font(BOOTSTRAP_FONT);
         let message = match &self.active_tab {
             ActiveTab::Transfer(_) => {
                 Message::TransactionMessage(transaction::transaction_view::Message::OverView).into()
@@ -239,11 +250,10 @@ impl<'a> AppView {
 
         match self.active_tab {
             ActiveTab::Accounts(_) => {
-                accounts_button = accounts_button.style(theme::Button::custom(SelectedMenuButton))
+                accounts_button = accounts_button.style(styles::button::selected_menu_button)
             }
             ActiveTab::Transfer(_) => {
-                transaction_button =
-                    transaction_button.style(theme::Button::custom(SelectedMenuButton))
+                transaction_button = transaction_button.style(styles::button::selected_menu_button)
             }
         }
 
@@ -263,13 +273,13 @@ impl<'a> AppView {
         widget::container(scrollable)
             .height(Length::Fill)
             .width(200)
-            .style(MenuContainer::style)
+            .style(styles::container::menu_container)
             .into()
     }
 
     fn menu_button(
         icon: Text<'a>,
-        name: &str,
+        name: &'a str,
         message: AppMessage,
     ) -> widget::Button<'a, AppMessage> {
         let text = text(name)
@@ -285,11 +295,11 @@ impl<'a> AppView {
         button(content)
             .height(Length::Shrink)
             .width(Length::Fill)
-            .style(theme::Button::custom(MenuButton))
+            .style(styles::button::menu_button)
             .on_press(message)
     }
 
-    fn notification_widget(content: &str) -> Row<'a, AppMessage> {
+    fn notification_widget(content: &'a str) -> Row<'a, AppMessage> {
         let text = text(content).size(12).line_height(2.);
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);

@@ -1,12 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::str::FromStr;
 
 use iced::{
-    theme,
     widget::{self, button, column, container, row, text},
-    Command, Element, Length, Padding,
+    Element, Length, Padding, Task,
 };
 use ravault_iced_theme::styles;
-use types::{Account, AccountAddress};
+use types::AccountAddress;
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -28,14 +27,14 @@ impl Into<AppMessage> for Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChooseRecipient {
+pub struct AddRecipient {
     pub recipient_index: usize,
     pub recipient_input: String,
     pub selected_radio: Option<usize>,
     pub chosen_account: Option<AccountAddress>,
 }
 
-impl ChooseRecipient {
+impl AddRecipient {
     pub fn new(recipient_index: usize) -> Self {
         Self {
             recipient_index,
@@ -46,35 +45,38 @@ impl ChooseRecipient {
     }
 }
 
-impl<'a> ChooseRecipient {
+impl<'a> AddRecipient {
     pub fn update(
         &mut self,
         message: Message,
         recipients: &'a mut Vec<Recipient>,
-    ) -> Command<AppMessage> {
+        appdata: &'a mut AppData,
+    ) -> Task<AppMessage> {
         match message {
-            Message::RecipientInput(input) => self.recipient_input = input,
+            Message::RecipientInput(input) => self.recipient_input(input, appdata),
             Message::SelectRadioButton(address) => self.chosen_account = Some(address),
             Message::Submit => return self.submit(recipients),
         }
 
-        Command::none()
+        Task::none()
     }
 
-    fn submit(&mut self, recipients: &'a mut Vec<Recipient>) -> Command<AppMessage> {
+    fn recipient_input(&mut self, input: String, appdata: &'a mut AppData) {
+        if let Ok(account_address) = AccountAddress::from_str(input.as_str()) {
+            self.chosen_account = Some(account_address);
+            self.recipient_input = input;
+        } else {
+            self.chosen_account = None;
+            self.recipient_input = input;
+        }
+    }
+
+    fn submit(&mut self, recipients: &'a mut Vec<Recipient>) -> Task<AppMessage> {
         recipients[self.recipient_index].address = self.chosen_account.take();
-        Command::perform(async {}, |_| transaction_view::Message::OverView.into())
+        Task::perform(async {}, |_| transaction_view::Message::OverView.into())
     }
 
     pub fn view(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let accounts = appdata
-            .db
-            .get_accounts()
-            .unwrap_or(BTreeMap::new())
-            .into_iter()
-            .map(|(_, account)| account)
-            .collect::<BTreeSet<Account>>();
-
         let header = widget::text("Add recipient")
             .line_height(2.)
             .size(20)
@@ -94,7 +96,7 @@ impl<'a> ChooseRecipient {
 
         let mut buttons = column!();
 
-        for (i, account) in accounts.into_iter().enumerate() {
+        for (i, (_, account)) in appdata.accounts.iter().enumerate() {
             let selected = self.chosen_account.as_ref().and_then(|address| {
                 if address == &account.address {
                     Some(i)
@@ -103,7 +105,7 @@ impl<'a> ChooseRecipient {
                 }
             });
 
-            let account_name = text(account.name)
+            let account_name = text(account.name.as_str())
                 .line_height(2.)
                 .size(12)
                 .width(Length::Shrink);
@@ -122,7 +124,7 @@ impl<'a> ChooseRecipient {
                 .height(Length::Shrink);
 
             let message: Option<AppMessage> = if self.recipient_input.is_empty() {
-                Some(Message::SelectRadioButton(account.address).into())
+                Some(Message::SelectRadioButton(account.address.clone()).into())
             } else {
                 None
             };
@@ -134,6 +136,7 @@ impl<'a> ChooseRecipient {
 
             buttons = buttons.push(button)
         }
+
         buttons = buttons
             .spacing(10)
             .width(Length::Fill)
@@ -143,23 +146,20 @@ impl<'a> ChooseRecipient {
             right: 15.,
             ..Padding::ZERO
         }))
-        .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
+        .style(styles::scrollable::vertical_scrollable)
         .width(Length::Fill)
         .height(Length::Shrink);
 
         let col = column![header, space, text_input, space2, buttons].width(500);
 
-        let main_content = container(col)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x();
+        let main_content = container(col).height(Length::Fill).center_x(Length::Fill);
 
         let submit = button("Submit").on_press_maybe({
             self.chosen_account
                 .as_ref()
                 .and_then(|_| Some(Message::Submit.into()))
         });
-        let submit = container(submit).width(Length::Fill).padding(10).center_x();
+        let submit = container(submit).padding(10).center_x(Length::Fill);
 
         column!(main_content, submit)
             .height(Length::Fill)

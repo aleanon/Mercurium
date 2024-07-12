@@ -1,8 +1,8 @@
 use iced::{
     widget::{self, text::LineHeight, Button},
-    Command, Element, Length,
+    Element, Length, Task,
 };
-use types::crypto::SeedPhrase;
+use types::{crypto::SeedPhrase, AppError};
 
 use crate::{
     app::AppMessage,
@@ -44,8 +44,11 @@ impl<'a> Setup {
 }
 
 impl<'a> Setup {
-    pub fn update(&mut self, message: Message, app_data: &'a mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(
+        &mut self,
+        message: Message,
+        app_data: &'a mut AppData,
+    ) -> Result<Task<AppMessage>, AppError> {
         match message {
             Message::Back => self.back(),
             Message::NewWallet => {
@@ -56,12 +59,12 @@ impl<'a> Setup {
             Message::FromSeed => *self = Setup::NewWallet(NewWallet::new_without_mnemonic()),
             Message::NewWalletMessage(new_wallet_message) => {
                 if let Setup::NewWallet(new_wallet) = self {
-                    command = new_wallet.update(new_wallet_message, app_data);
+                    return new_wallet.update(new_wallet_message, app_data);
                 }
             }
             _ => {}
         }
-        command
+        Ok(Task::none())
     }
 
     fn back(&mut self) {
@@ -121,16 +124,14 @@ impl<'a> Setup {
         };
 
         widget::container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
             .into()
     }
 
     //todo: replace space with image from handle
     pub fn creation_button(
-        text: &str, /*handle: iced::widget::image::Handle*/
+        text: &'a str, /*handle: iced::widget::image::Handle*/
     ) -> Button<'a, AppMessage> {
         Button::new(widget::column![
             widget::text(text)

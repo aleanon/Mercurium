@@ -1,4 +1,5 @@
-use iced::{Command, Element};
+use iced::{Element, Task};
+use types::AccountAddress;
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -17,14 +18,20 @@ impl Into<AppMessage> for Message {
 }
 
 #[derive(Debug, Clone)]
+pub enum SpawnOverlay {
+    AddAccount,
+    Receive(AccountAddress),
+}
+
+#[derive(Debug, Clone)]
 pub enum Overlay {
     AddAccount(AddAccountView),
     Receive(Receive),
 }
 
 impl<'a> Overlay {
-    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
+        let mut command = Task::none();
         match message {
             Message::AddAccountMessage(message) => {
                 if let Self::AddAccount(add_account) = self {

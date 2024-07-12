@@ -1,12 +1,17 @@
 use super::db::DbError;
 use debug_print::debug_println;
-use types::{app_path::AppPath, Network};
+use types::{
+    app_path::AppPath,
+    crypto::{HexKey, Key},
+    Network,
+};
 
 use rusqlite::OpenFlags;
-// use anyhow::{Result, Context};
 
-#[cfg(windows)]
-pub fn connection_new_database(network: Network) -> Result<rusqlite::Connection, DbError> {
+pub fn connection_new_database(
+    network: Network,
+    key: &HexKey,
+) -> Result<rusqlite::Connection, DbError> {
     let app_path = AppPath::get().create_directories_if_not_exists()?;
 
     let path = app_path.db_path_ref(network);
@@ -18,15 +23,17 @@ pub fn connection_new_database(network: Network) -> Result<rusqlite::Connection,
         OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
     )?;
 
-    debug_println!("Db connection up");
+    conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str()))?;
 
-    //conn.execute_batch(&format!("PRAGMA key = '{}'", "MyPassPhrase")).unwrap();
+    debug_println!("Db connection up");
 
     Ok(conn)
 }
 
-#[cfg(windows)]
-pub fn connection_existing_database(network: Network) -> Result<rusqlite::Connection, DbError> {
+pub fn connection_existing_database(
+    network: Network,
+    key: &HexKey,
+) -> Result<rusqlite::Connection, DbError> {
     let path = AppPath::get().db_path_ref(network);
 
     debug_println!("Db path: {:?}", path);
@@ -36,18 +43,17 @@ pub fn connection_existing_database(network: Network) -> Result<rusqlite::Connec
     }
 
     let conn = rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
-    //.context("Unable to connect to database")?;
+
+    conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str()))?;
 
     debug_println!("Db connection up");
-
-    //conn.execute_batch(&format!("PRAGMA key = '{}'", "MyPassPhrase")).unwrap();
 
     Ok(conn)
 }
 
-#[cfg(windows)]
 pub async fn async_connection_new_database(
     network: Network,
+    key: HexKey,
 ) -> Result<tokio_rusqlite::Connection, DbError> {
     let app_path = AppPath::get().create_directories_if_not_exists()?;
 
@@ -61,16 +67,17 @@ pub async fn async_connection_new_database(
     )
     .await?;
 
-    debug_println!("Async Db connection up");
+    conn.call_unwrap(move |conn| conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str())))
+        .await?;
 
-    //conn.execute_batch(&format!("PRAGMA key = '{}'", "MyPassPhrase")).unwrap();
+    debug_println!("Async Db connection up");
 
     Ok(conn)
 }
 
-#[cfg(windows)]
 pub async fn async_connection_existing_database(
     network: Network,
+    key: HexKey,
 ) -> Result<tokio_rusqlite::Connection, DbError> {
     let path = AppPath::get().db_path_ref(network);
 
@@ -82,21 +89,26 @@ pub async fn async_connection_existing_database(
 
     let conn =
         tokio_rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).await?;
-    //.context("Unable to connect to database")?;
 
     debug_println!("AsyncDb connection up");
 
-    //conn.execute_batch(&format!("PRAGMA key = '{}'", "MyPassPhrase")).unwrap();
+    conn.call_unwrap(move |conn| conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str())))
+        .await?;
 
     Ok(conn)
 }
 
 pub async fn open_db_read_only_async(
     network: Network,
+    key: HexKey,
 ) -> Result<tokio_rusqlite::Connection, DbError> {
     let path = AppPath::get().db_path_ref(network);
 
-    let connection =
+    let conn =
         tokio_rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).await?;
-    Ok(connection)
+
+    conn.call_unwrap(move |conn| conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str())))
+        .await?;
+
+    Ok(conn)
 }

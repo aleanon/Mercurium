@@ -16,7 +16,7 @@ anyhow = { version = "1.0.79" }
 tokio-rusqlite = "0.5.0"
 thiserror.workspace = true
 once_cell = { workspace = true }
-
+asynciter = { workspace = true }
 
 [dev-dependencies]
 tiny-bip39.workspace = true

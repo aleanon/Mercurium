@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::{Lazy};
 use thiserror::Error;
 
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};

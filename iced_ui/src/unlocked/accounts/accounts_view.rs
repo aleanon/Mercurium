@@ -1,17 +1,18 @@
 use std::collections::{BTreeSet, HashMap};
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view};
-use iced::{
-    theme,
-    widget::{self, button, column, container, row, scrollable, text},
-    Command, Element, Length,
+use crate::{
+    app::{AppData, AppMessage},
+    unlocked::{app_view, overlays::overlay::SpawnOverlay},
 };
-use ravault_iced_theme::styles::{self, button::AccountButton};
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use iced::{
+    widget::{self, button, column, container, row, scrollable, text},
+    Element, Length, Task,
+};
+use ravault_iced_theme::styles;
 use types::{Account, AccountAddress};
 
 use super::account_view::{self, AccountView};
-
-use super::super::overlays::{add_account::AddAccountView, overlay::Overlay};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -41,8 +42,8 @@ impl<'a> AccountsView {
         Self::OverView(HashMap::new())
     }
 
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+        let mut command = Task::none();
         match message {
             Message::NewAccount => {}
             Message::Overview => {}
@@ -71,7 +72,7 @@ impl<'a> AccountsView {
         }
     }
 
-    pub fn view(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
         match self {
             Self::OverView(is_expanded) => Self::overview(is_expanded, appdata),
             Self::Account(account) => account.view(appdata),
@@ -86,17 +87,13 @@ impl<'a> AccountsView {
 
         let new_account = button(
             row![
-                text(iced_aw::Bootstrap::Plus)
-                    .font(iced_aw::BOOTSTRAP_FONT)
-                    .size(16),
+                text(Bootstrap::Plus).font(BOOTSTRAP_FONT).size(16),
                 text("Account").size(16)
             ]
             .align_items(iced::Alignment::End),
         )
-        .style(theme::Button::custom(styles::button::GeneralButton))
-        .on_press(
-            app_view::Message::SpawnOverlay(Overlay::AddAccount(AddAccountView::new())).into(),
-        );
+        .style(styles::button::general_button)
+        .on_press(app_view::Message::SpawnOverlay(SpawnOverlay::AddAccount).into());
 
         let header = row![title, widget::Space::new(Length::Fill, 1), new_account]
             .align_items(iced::Alignment::End)
@@ -129,7 +126,7 @@ impl<'a> AccountsView {
         let scrollable = scrollable::Scrollable::new(col)
             .height(Length::Fill)
             .width(Length::Fill)
-            .style(theme::Scrollable::custom(styles::scrollable::Scrollable));
+            .style(styles::scrollable::vertical_scrollable);
         // .direction(scrollable::Direction::Vertical(Properties::default()));
 
         let content = widget::column![header, scrollable]
@@ -155,7 +152,7 @@ impl<'a> AccountsView {
 
     fn view_account_summary(
         _expanded: bool,
-        account: &Account,
+        account: &'a Account,
     ) -> iced::widget::Container<'a, AppMessage> {
         // let account_name = account.;
         // let account_address = account.get_address().truncate();
@@ -180,7 +177,7 @@ impl<'a> AccountsView {
         let button = widget::button(columns)
             .height(100)
             .width(Length::Fill)
-            .style(theme::Button::custom(AccountButton))
+            .style(styles::button::account_button)
             .padding(5)
             .on_press(Message::SelectAccount(account.address.clone()).into());
 

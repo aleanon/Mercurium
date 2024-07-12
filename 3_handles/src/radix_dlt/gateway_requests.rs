@@ -1,6 +1,5 @@
-use std::{future::IntoFuture, sync::Arc};
+use std::{future::IntoFuture};
 
-use debug_print::debug_println;
 use iced::futures::future::join_all;
 use radix_gateway_sdk::{
     generated::{

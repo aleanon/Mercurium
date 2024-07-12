@@ -6,7 +6,7 @@ use std::{
 
 use scrypto::math::Decimal as RadixDecimal;
 
-///Newtype wrapper around the radix engine Decimal type
+///Newtype wrapper around the radix engine Decimal type to implement To/From sql
 #[derive(Debug, Clone)]
 pub struct Decimal(pub RadixDecimal);
 

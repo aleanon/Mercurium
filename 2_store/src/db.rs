@@ -1,8 +1,10 @@
 use anyhow::Result;
+use once_cell::sync::OnceCell;
 use thiserror::Error;
 
 use types::{
     app_path::{AppPath, AppPathError},
+    crypto::{HexKey, Key},
     Network,
 };
 
@@ -26,19 +28,22 @@ pub enum DbError {
     PathError(#[from] AppPathError),
 }
 
+pub static MAINNET_DB: OnceCell<AsyncDb> = once_cell::sync::OnceCell::new();
+pub static STOKENET_DB: OnceCell<AsyncDb> = once_cell::sync::OnceCell::new();
+
 #[derive(Debug)]
 pub struct Db {
     pub connection: rusqlite::Connection,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AsyncDb {
     pub(crate) connection: tokio_rusqlite::Connection,
 }
 
 impl Db {
-    pub fn new(network: Network) -> Result<Db, DbError> {
-        let connection = super::connection::connection_new_database(network)?;
+    pub fn new(network: Network, key: &HexKey) -> Result<Db, DbError> {
+        let connection = super::connection::connection_new_database(network, key)?;
 
         let mut db = Self { connection };
 
@@ -47,25 +52,75 @@ impl Db {
         Ok(db)
     }
 
-    pub fn new_in_memory() -> Db {
-        let connection = rusqlite::Connection::open_in_memory().unwrap();
-        Self { connection }
-    }
-
-    pub fn load(network: Network) -> Result<Self, DbError> {
-        let connection = super::connection::connection_existing_database(network)?;
+    pub fn load(network: Network, key: &HexKey) -> Result<Self, DbError> {
+        let connection = super::connection::connection_existing_database(network, key)?;
         Ok(Self { connection })
     }
 
     pub fn exists(network: Network) -> bool {
         AppPath::get().db_path_ref(network).exists()
     }
+
+    #[cfg(not(release))]
+    pub fn new_in_memory() -> Db {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        Self { connection }
+    }
 }
 
 impl AsyncDb {
-    pub async fn load(network: Network) -> Result<Self, DbError> {
-        let connection = super::connection::async_connection_existing_database(network).await?;
-        Ok(Self { connection })
+    pub async fn new(network: Network, key: HexKey) -> Result<Self, DbError> {
+        let connection = super::connection::async_connection_new_database(network, key).await?;
+        let db = Self { connection };
+        db.create_tables_if_not_exist().await?;
+
+        match network {
+            Network::Mainnet => {
+                MAINNET_DB.set(db.clone()).ok();
+            }
+            Network::Stokenet => {
+                STOKENET_DB.set(db.clone()).ok();
+            }
+        }
+        Ok(db)
+    }
+
+    pub async fn load(network: Network, key: HexKey) -> Result<Self, DbError> {
+        match network {
+            Network::Mainnet => {
+                let connection =
+                    super::connection::async_connection_existing_database(network, key).await?;
+                let db = Self { connection };
+                MAINNET_DB.set(db.clone()).ok();
+                Ok(db)
+            }
+            Network::Stokenet => {
+                let connection =
+                    super::connection::async_connection_existing_database(network, key).await?;
+                let db = Self { connection };
+                STOKENET_DB.set(db.clone()).ok();
+                Ok(db)
+            }
+        }
+    }
+
+    pub async fn get_or_init(network: Network, key: HexKey) -> Result<&'static Self, DbError> {
+        if let Some(db) = Self::get(network).await {
+            return Ok(db);
+        } else {
+            let db = Self::load(network, key).await?;
+            match network {
+                Network::Mainnet => Ok(MAINNET_DB.get_or_init(|| db)),
+                Network::Stokenet => Ok(STOKENET_DB.get_or_init(|| db)),
+            }
+        }
+    }
+
+    pub async fn get(network: Network) -> Option<&'static Self> {
+        match network {
+            Network::Mainnet => MAINNET_DB.get(),
+            Network::Stokenet => STOKENET_DB.get(),
+        }
     }
 
     pub fn exists(network: Network) -> bool {
@@ -73,13 +128,6 @@ impl AsyncDb {
     }
 
     pub async fn with_connection(connection: tokio_rusqlite::Connection) -> Self {
-        Self { connection }
-    }
-}
-
-#[cfg(test)]
-impl Db {
-    pub fn with_connection(connection: rusqlite::Connection) -> Self {
         Self { connection }
     }
 }

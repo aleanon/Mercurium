@@ -1,10 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
-use once_cell::sync::OnceCell;
-use rusqlite::{ffi::SQLITE_TESTCTRL_PARSER_COVERAGE, params, OpenFlags};
+use rusqlite::{params, OpenFlags};
 use tokio_rusqlite::Connection;
 use types::{
-    app_path::AppPath, debug_info, unwrap_unreachable::UnwrapUnreachable, Network, ResourceAddress,
+    app_path::AppPath, Network, ResourceAddress,
 };
 
 use crate::statements;

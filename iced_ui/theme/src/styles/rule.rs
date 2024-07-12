@@ -1,17 +1,14 @@
-use iced::{border::Radius, widget::rule::{self, FillMode}, Theme};
+use iced::{
+    border::Radius,
+    widget::rule::{FillMode, Style},
+    Theme,
+};
 
-
-
-pub struct TextInputRule;
-
-impl TextInputRule {
-  pub fn style(theme: &Theme) -> rule::Appearance {
-
-    rule::Appearance {
-      radius: Radius::from([0.,0.,10.,10.]),
-      fill_mode: FillMode::Full,
-      width: 4,
-      color: theme.extended_palette().primary.base.color
+pub fn text_input_rule(theme: &Theme) -> Style {
+    Style {
+        radius: Radius::from([0., 0., 10., 10.]),
+        fill_mode: FillMode::Full,
+        width: 4,
+        color: theme.extended_palette().primary.base.color,
     }
-  }
 }

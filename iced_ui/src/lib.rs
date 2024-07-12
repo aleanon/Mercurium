@@ -7,7 +7,8 @@ mod subscription;
 mod unlocked;
 // mod view;
 mod common;
-mod update;
+mod task_response;
+mod tasks;
 // mod styles;
 //mod theme;
 
@@ -15,8 +16,9 @@ use std::borrow::Cow;
 
 pub use app::App;
 use iced::{
+    advanced::Application,
     window::{self},
-    Application, Settings,
+    Settings,
 };
 const WINDOW_ICON: &'static [u8] = include_bytes!("../../icons/ravault_window_icon.png");
 const CREDENTIALS_STORE_NAME: &'static str = "ravault_secret";

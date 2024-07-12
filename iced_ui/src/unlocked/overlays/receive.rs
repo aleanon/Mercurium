@@ -1,7 +1,7 @@
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
-    theme,
     widget::{self, button, column, container, qr_code, row, text},
-    Command, Element, Length,
+    Element, Length, Task,
 };
 use ravault_iced_theme::styles;
 use types::{debug_info, unwrap_unreachable::UnwrapUnreachable, AccountAddress};
@@ -62,8 +62,8 @@ impl<'a> Receive {
         }
     }
 
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Command<AppMessage> {
-        let mut command = Command::none();
+    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+        let mut command = Task::none();
         match message {
             Message::CopyAddress(address) => {
                 self.notification =
@@ -76,13 +76,9 @@ impl<'a> Receive {
     }
 
     pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let close = button(
-            text(iced_aw::Bootstrap::XLg)
-                .font(iced_aw::BOOTSTRAP_FONT)
-                .size(18),
-        )
-        .on_press(app_view::Message::CloseOverlay.into())
-        .style(theme::Button::Text);
+        let close = button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).size(18))
+            .on_press(app_view::Message::CloseOverlay.into())
+            .style(button::text);
 
         let close = container(close)
             .width(Length::Fill)
@@ -97,54 +93,46 @@ impl<'a> Receive {
                     column!(
                         text(string),
                         widget::Space::new(Length::Fill, 1),
-                        text(iced_aw::Bootstrap::XLg).font(iced_aw::BOOTSTRAP_FONT)
+                        text(Bootstrap::XLg).font(BOOTSTRAP_FONT)
                     )
                     .padding(5),
                 )
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(50)
-                .style(styles::container::NotificationSuccess::style)
+                .center_x(Length::Fill)
+                .center_y(50)
+                .style(styles::container::notification_success)
                 .into(),
                 Notification::Error(string) => container(
                     column!(
                         text(string),
                         widget::Space::new(Length::Fill, 1),
-                        text(iced_aw::Bootstrap::XLg).font(iced_aw::BOOTSTRAP_FONT)
+                        text(Bootstrap::XLg).font(BOOTSTRAP_FONT)
                     )
                     .padding(5),
                 )
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(50)
-                .style(styles::container::NotificationError::style)
+                .center_x(Length::Fill)
+                .center_y(50)
+                .style(styles::container::notification_error)
                 .into(),
             }
         };
 
-        let address = text(&self.address.truncate_long()).size(14);
-        let copy_icon = text(iced_aw::Bootstrap::Copy)
-            .font(iced_aw::BOOTSTRAP_FONT)
-            .size(14);
+        let address = text(self.address.truncate_long()).size(14);
+        let copy_icon = text(Bootstrap::Copy).font(BOOTSTRAP_FONT).size(14);
         let address_button = button(
             row!(address, copy_icon)
                 .spacing(2)
                 .align_items(iced::Alignment::Center),
         )
         .on_press(Message::CopyAddress(self.address.to_string()).into())
-        .style(theme::Button::Text);
+        .style(button::text);
 
         let barcode_address_container = container(
             column!(barcode, address_button)
                 .align_items(iced::Alignment::Center)
                 .spacing(15),
         )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
         .padding(10);
 
         let content = column!(close, notification_box, barcode_address_container);
@@ -153,7 +141,7 @@ impl<'a> Receive {
             .width(400)
             .height(400)
             .padding(1)
-            .style(styles::container::OverlayInner::style)
+            .style(styles::container::overlay_inner)
             .into()
     }
 }

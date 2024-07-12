@@ -3,9 +3,10 @@ use std::{collections::HashMap, str::FromStr};
 use iced::{
     theme,
     widget::{self, button, checkbox, column, container, row, text, Container, TextInput},
-    Command, Element, Length, Padding,
+    Element, Length, Padding, Task,
 };
 
+use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use ravault_iced_theme::styles;
 use types::{assets::FungibleAsset, AccountAddress, ResourceAddress};
 
@@ -71,8 +72,8 @@ impl<'a> AddAssets {
         message: Message,
         recipients: &'a mut Vec<Recipient>,
         appdata: &'a mut AppData,
-    ) -> Command<AppMessage> {
-        let mut command = Command::none();
+    ) -> Task<AppMessage> {
+        let mut command = Task::none();
 
         match message {
             Message::SetTab(tab) => self.tab = tab,
@@ -168,7 +169,7 @@ impl<'a> AddAssets {
         self.selected.remove_entry(&asset_address);
     }
 
-    fn submit_selected_assets(&mut self, recipients: &mut Vec<Recipient>) -> Command<AppMessage> {
+    fn submit_selected_assets(&mut self, recipients: &mut Vec<Recipient>) -> Task<AppMessage> {
         for (resource_address, (symbol, amount)) in self.selected.drain() {
             if let Some((_, old_amount)) = recipients[self.recipient_index]
                 .resources
@@ -182,7 +183,7 @@ impl<'a> AddAssets {
             }
         }
 
-        Command::perform(async {}, |_| transaction_view::Message::OverView.into())
+        Task::perform(async {}, |_| transaction_view::Message::OverView.into())
     }
 
     pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
@@ -201,8 +202,7 @@ impl<'a> AddAssets {
             .width(250)
             .on_input(|input| Message::FilterInput(input).into());
         let search_field = container(search_field)
-            .center_x()
-            .width(Length::Fill)
+            .center_x(Length::Fill)
             .height(Length::Shrink);
 
         let space2 = widget::Space::new(1, 10);
@@ -230,7 +230,7 @@ impl<'a> AddAssets {
         let buttons = row![tokens_button, nfts_button]
             .spacing(100)
             .align_items(iced::Alignment::Center);
-        let buttons = container(buttons).center_x().width(Length::Fill);
+        let buttons = container(buttons).center_x(Length::Fill);
 
         let mut amounts_within_limits = true;
 
@@ -256,10 +256,8 @@ impl<'a> AddAssets {
         });
 
         let bottom_button_container = container(submit_button)
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(Length::Shrink);
+            .center_x(Length::Fill)
+            .center_y(Length::Shrink);
 
         column![
             header,
@@ -291,13 +289,11 @@ impl<'a> AddAssets {
             let amount = container(
                 button(text("Set max").size(12))
                     .padding(0)
-                    .style(theme::Button::Text)
+                    .style(button::text)
                     .on_press(Message::InputMaxSelected.into()),
             )
-            .width(85)
-            .height(Length::Fill)
-            .center_x()
-            .center_y();
+            .center_x(85)
+            .center_y(Length::Fill);
 
             let selected = checkbox("", self.select_all).size(12).on_toggle(|select| {
                 if select {
@@ -358,16 +354,10 @@ impl<'a> AddAssets {
                                 Some(widget::image(handle.clone()).width(40).height(40).into())
                             })
                             .unwrap_or(
-                                container(
-                                    text(iced_aw::Bootstrap::Image)
-                                        .font(iced_aw::BOOTSTRAP_FONT)
-                                        .size(30),
-                                )
-                                .width(40)
-                                .height(40)
-                                .center_x()
-                                .center_y()
-                                .into(),
+                                container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))
+                                    .center_x(40)
+                                    .center_y(40)
+                                    .into(),
                             );
 
                         let name = text(&resource.name).size(12);
@@ -378,7 +368,7 @@ impl<'a> AddAssets {
 
                         let balance =
                             button(text(format!("{} {}", &token.amount, resource.symbol)).size(12))
-                                .style(theme::Button::Text)
+                                .style(button::text)
                                 .on_press(
                                     Message::InputAmount(
                                         resource.address.clone(),
@@ -393,9 +383,7 @@ impl<'a> AddAssets {
                         let amount = TextInput::new("Amount", selected.1)
                             .size(10)
                             .width(80)
-                            .style(theme::TextInput::Custom(Box::new(
-                                styles::text_input::AssetAmount,
-                            )))
+                            .style(styles::text_input::asset_amount)
                             .on_input(move |input| {
                                 Message::InputAmount(
                                     token.resource_address.clone(),
@@ -466,7 +454,7 @@ impl<'a> AddAssets {
             right: 15.,
             ..Padding::ZERO
         }))
-        .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
+        .style(styles::scrollable::vertical_scrollable)
         .height(Length::Shrink);
 
         container(column![headers, scrollable])
@@ -490,13 +478,11 @@ impl<'a> AddAssets {
             let amount = container(
                 button(text("Set max").size(12))
                     .padding(0)
-                    .style(theme::Button::Text)
+                    .style(button::text)
                     .on_press(Message::InputMaxSelected.into()),
             )
-            .width(85)
-            .height(Length::Fill)
-            .center_x()
-            .center_y();
+            .center_x(85)
+            .center_y(Length::Fill);
 
             let selected = checkbox("", self.select_all).size(12).on_toggle(|select| {
                 if select {
@@ -660,7 +646,7 @@ impl<'a> AddAssets {
             right: 15.,
             ..Padding::ZERO
         }))
-        .style(theme::Scrollable::custom(styles::scrollable::Scrollable))
+        .style(styles::scrollable::vertical_scrollable)
         .height(Length::Shrink);
 
         container(column![headers, scrollable])

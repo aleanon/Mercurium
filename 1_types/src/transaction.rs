@@ -1,4 +1,6 @@
-use std::fmt::Display;
+use std::{collections::BTreeSet, fmt::Display};
+
+use asynciter::FromAsyncIterator;
 
 use crate::{
     address::transaction_address::TransactionAddress, debug_info,
@@ -79,6 +81,20 @@ impl Transaction {
             balance_changes,
             message,
         }
+    }
+}
+
+impl FromAsyncIterator<Transaction> for BTreeSet<Transaction> {
+    async fn from_iter<T>(mut iter: T) -> Self
+    where
+        T: asynciter::AsyncIterator<Item = Transaction>,
+    {
+        let mut map: BTreeSet<Transaction> = BTreeSet::new();
+        while let Some(value) = iter.next().await {
+            map.insert(value);
+        }
+
+        map
     }
 }
 
