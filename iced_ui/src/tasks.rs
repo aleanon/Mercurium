@@ -77,7 +77,7 @@ use std::collections::HashMap;
 use debug_print::debug_println;
 use iced::{widget::image::Handle, Task};
 use store::{AsyncDb, DbError, IconCache};
-use types::{AccountsAndResources, AppError, Network, ResourceAddress};
+use types::{AppError, AppdataFromDisk, Network, ResourceAddress};
 
 use crate::{app::AppMessage, task_response};
 
@@ -125,7 +125,7 @@ pub fn get_accounts_and_resources_from_disk(network: Network) -> Task<AppMessage
                     HashMap::new()
                 });
 
-            Ok::<_, DbError>(AccountsAndResources {
+            Ok::<_, DbError>(AppdataFromDisk {
                 accounts,
                 resources,
                 fungible_assets,

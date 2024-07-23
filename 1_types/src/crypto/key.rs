@@ -87,6 +87,7 @@ impl Key {
     }
 }
 
+/// A Hexadecimal representation of `Key` so it can be formatted as text and passed as key to the database
 #[derive(Debug, ZeroizeOnDrop)]
 pub struct HexKey([u8; Self::LENGTH]);
 
@@ -103,7 +104,8 @@ impl HexKey {
     }
 
     pub fn as_str(&self) -> &str {
-        std::str::from_utf8(&self.0).unwrap_unreachable(debug_info!("Key contained non utf8 bytes"))
+        std::str::from_utf8(&self.0)
+            .unwrap_unreachable(debug_info!("HexKey contained non utf8 bytes"))
     }
 
     fn to_hex_digit(n: u8) -> u8 {

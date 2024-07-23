@@ -33,6 +33,15 @@ impl Into<scrypto::network::NetworkDefinition> for Network {
     }
 }
 
+impl Into<radix_gateway_sdk::Network> for Network {
+    fn into(self) -> radix_gateway_sdk::Network {
+        match self {
+            Network::Mainnet => radix_gateway_sdk::Network::Mainnet,
+            Network::Stokenet => radix_gateway_sdk::Network::Stokenet,
+        }
+    }
+}
+
 impl rusqlite::types::FromSql for Network {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
@@ -54,14 +63,5 @@ impl rusqlite::types::ToSql for Network {
                 Network::Stokenet => 2,
             }),
         ))
-    }
-}
-
-impl Into<radix_gateway_sdk::Network> for Network {
-    fn into(self) -> radix_gateway_sdk::Network {
-        match self {
-            Network::Mainnet => radix_gateway_sdk::Network::Mainnet,
-            Network::Stokenet => radix_gateway_sdk::Network::Stokenet,
-        }
     }
 }

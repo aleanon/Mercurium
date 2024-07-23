@@ -7,7 +7,7 @@ use iced::Task;
 
 use store::{AsyncDb, DbError};
 use types::{
-    assets::FungibleAsset, AccountsAndResources, AccountsUpdate, AppError, ResourceAddress,
+    assets::FungibleAsset, AccountsUpdate, AppError, AppdataFromDisk, Network, ResourceAddress,
 };
 
 use crate::{
@@ -20,8 +20,8 @@ use crate::{
 #[derive(Debug, Clone)]
 pub enum Message {
     AccountsUpdated(AccountsUpdate),
-    AccountsAndResources(AccountsAndResources),
-    Icons(HashMap<ResourceAddress, Handle>),
+    AccountsAndResources(AppdataFromDisk),
+    Icons((Network, HashMap<ResourceAddress, Handle>)),
     WalletCreated,
     LoginSuccess(bool),
     Error(AppError),
@@ -39,7 +39,11 @@ impl App {
             Message::AccountsUpdated(accounts_update) => {
                 return self.process_updated_accounts_and_resources(accounts_update)
             }
-            Message::Icons(icons) => return self.store_icons_in_app_data(icons),
+            Message::Icons((network, icons)) => {
+                if network == self.app_data.settings.network {
+                    return self.store_icons_in_app_data(icons);
+                }
+            }
             Message::AccountsAndResources(accounts_and_resources) => {
                 return self.place_accounts_and_resources_in_memory(accounts_and_resources)
             }
@@ -59,83 +63,87 @@ impl App {
         &mut self,
         accounts_update: AccountsUpdate,
     ) -> Task<AppMessage> {
-        for account_update in &accounts_update.account_updates {
-            match self
-                .app_data
-                .fungibles
-                .get_mut(&account_update.account.address)
-            {
-                Some(fungibles) => {
-                    for (_, asset) in &account_update.fungibles {
-                        fungibles.replace(asset.clone());
+        if accounts_update.network == self.app_data.settings.network {
+            for account_update in &accounts_update.account_updates {
+                match self
+                    .app_data
+                    .fungibles
+                    .get_mut(&account_update.account.address)
+                {
+                    Some(fungibles) => {
+                        for (_, asset) in &account_update.fungibles {
+                            fungibles.replace(asset.clone());
+                        }
+                    }
+                    None => {
+                        let updated_fungibles = account_update
+                            .fungibles
+                            .iter()
+                            .map(|(_, asset)| asset.clone())
+                            .collect::<BTreeSet<FungibleAsset>>();
+                        self.app_data
+                            .fungibles
+                            .insert(account_update.account.address.clone(), updated_fungibles);
                     }
                 }
-                None => {
-                    let updated_fungibles = account_update
-                        .fungibles
-                        .iter()
-                        .map(|(_, asset)| asset.clone())
-                        .collect::<BTreeSet<FungibleAsset>>();
-                    self.app_data
-                        .fungibles
-                        .insert(account_update.account.address.clone(), updated_fungibles);
-                }
-            }
 
-            match self
-                .app_data
-                .non_fungibles
-                .get_mut(&account_update.account.address)
-            {
-                Some(non_fungibles) => {
-                    for (_, asset) in &account_update.non_fungibles {
-                        non_fungibles.replace(asset.clone());
+                match self
+                    .app_data
+                    .non_fungibles
+                    .get_mut(&account_update.account.address)
+                {
+                    Some(non_fungibles) => {
+                        for (_, asset) in &account_update.non_fungibles {
+                            non_fungibles.replace(asset.clone());
+                        }
+                    }
+                    None => {
+                        let updated_non_fungibles = account_update
+                            .non_fungibles
+                            .iter()
+                            .map(|(_, asset)| asset.clone())
+                            .collect::<BTreeSet<_>>();
+                        self.app_data.non_fungibles.insert(
+                            account_update.account.address.clone(),
+                            updated_non_fungibles,
+                        );
                     }
                 }
-                None => {
-                    let updated_non_fungibles = account_update
-                        .non_fungibles
-                        .iter()
-                        .map(|(_, asset)| asset.clone())
-                        .collect::<BTreeSet<_>>();
-                    self.app_data.non_fungibles.insert(
-                        account_update.account.address.clone(),
-                        updated_non_fungibles,
-                    );
-                }
-            }
 
-            match self
-                .app_data
-                .accounts
-                .get_mut(&account_update.account.address)
-            {
-                Some(account) => {
-                    account.balances_last_updated = account_update.account.balances_last_updated;
-                }
-                None => {
-                    self.app_data.accounts.insert(
-                        account_update.account.address.clone(),
-                        account_update.account.clone(),
-                    );
+                match self
+                    .app_data
+                    .accounts
+                    .get_mut(&account_update.account.address)
+                {
+                    Some(account) => {
+                        account.balances_last_updated =
+                            account_update.account.balances_last_updated;
+                    }
+                    None => {
+                        self.app_data.accounts.insert(
+                            account_update.account.address.clone(),
+                            account_update.account.clone(),
+                        );
+                    }
                 }
             }
+            self.app_data
+                .resources
+                .extend(accounts_update.new_resources.clone());
         }
-        self.app_data
-            .resources
-            .extend(accounts_update.new_resources.clone());
 
         let download_icons = {
             let icon_urls = accounts_update.icon_urls;
             let network = self.app_data.settings.network;
             Task::perform(
                 async move {
-                    handles::image::download::download_resize_and_store_resource_icons(
+                    let icons = handles::image::download::download_resize_and_store_resource_icons(
                         icon_urls, network,
                     )
-                    .await
+                    .await;
+                    (network, icons)
                 },
-                |icons| Message::Icons(icons).into(),
+                |(network, icons)| Message::Icons((network, icons)).into(),
             )
         };
 
@@ -221,7 +229,7 @@ impl App {
 
     fn place_accounts_and_resources_in_memory(
         &mut self,
-        accounts_and_resources: AccountsAndResources,
+        accounts_and_resources: AppdataFromDisk,
     ) -> Task<AppMessage> {
         self.app_data.accounts = accounts_and_resources.accounts;
         self.app_data.resources = accounts_and_resources.resources;

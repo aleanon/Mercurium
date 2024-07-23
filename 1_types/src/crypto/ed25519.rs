@@ -7,7 +7,9 @@ use scrypto::{
 use slip10_ed25519::derive_ed25519_private_key;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::Network;
+use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+
+use super::Password;
 
 const BIP32_LEAD_WORD: u32 = 44; // 0
 const BIP32_COIN_TYPE_RADIX: u32 = 1022; // 1
@@ -47,26 +49,15 @@ pub struct Ed25519KeyPair {
 }
 
 impl Ed25519KeyPair {
-    ///Generates a new mnemonic for deriving the key-pair.
     pub fn new(
-        index: u32,
-        network: Network,
-        entity: Bip32Entity,
-        key_kind: Bip32KeyKind,
-    ) -> (Self, [u32; 6]) {
-        let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-
-        Self::from_mnemonic(&mnemonic, index, network, entity, key_kind)
-    }
-
-    pub fn from_mnemonic(
         mnemonic: &Mnemonic,
+        password: Option<&str>,
         index: u32,
         network: Network,
         entity: Bip32Entity,
         key_kind: Bip32KeyKind,
     ) -> (Self, [u32; 6]) {
-        let seed = Seed::new(mnemonic, "");
+        let seed = Seed::new(mnemonic, password.unwrap_or(""));
 
         let network_id = match network {
             Network::Mainnet => BIP32_NETWORK_ID_MAINNET,
@@ -99,7 +90,8 @@ impl Ed25519KeyPair {
 
         //SecretKey::from_bytes() will only fail if the &[u8] is not of length 32 which it always will be, so unwrap is called
         let secret_key = SecretKey::from_bytes(&priv_key)
-            .unwrap_or_else(|_| unreachable!("Invalid secret key length"));
+            .unwrap_unreachable(debug_info!("Invalid secret key length"));
+
         let public_key = PublicKey::from(&secret_key);
 
         priv_key.zeroize();
@@ -150,8 +142,9 @@ mod test {
             "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis", 
             Language::English
         ).unwrap();
-        let (keypair, _) = Ed25519KeyPair::from_mnemonic(
+        let (keypair, _) = Ed25519KeyPair::new(
             &mnemonic,
+            None,
             0,
             Network::Mainnet,
             Bip32Entity::Account,
@@ -159,8 +152,9 @@ mod test {
         );
         let account_address = keypair.bech32_address();
         println!("account_address: {}", account_address);
-        let (keypair2, _) = Ed25519KeyPair::from_mnemonic(
+        let (keypair2, _) = Ed25519KeyPair::new(
             &mnemonic,
+            None,
             1,
             Network::Mainnet,
             Bip32Entity::Account,
@@ -185,8 +179,9 @@ mod test {
             "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis", 
             Language::English
         ).unwrap();
-        let (keypair, _) = Ed25519KeyPair::from_mnemonic(
+        let (keypair, _) = Ed25519KeyPair::new(
             &mnemonic,
+            None,
             0,
             Network::Stokenet,
             Bip32Entity::Account,
@@ -194,8 +189,9 @@ mod test {
         );
         let account_address = keypair.bech32_address();
         println!("account_address: {}", account_address);
-        let (keypair2, _) = Ed25519KeyPair::from_mnemonic(
+        let (keypair2, _) = Ed25519KeyPair::new(
             &mnemonic,
+            None,
             1,
             Network::Stokenet,
             Bip32Entity::Account,

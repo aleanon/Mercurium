@@ -37,7 +37,7 @@ pub async fn update_accounts(
     resources: Arc<HashMap<ResourceAddress, Resource>>,
     accounts: Vec<Account>,
 ) -> AccountsUpdate {
-    // The resources passed in are inside an Arc to make sure it is valid for the duration of this task
+    // `resources` is inside an Arc to make sure it is valid for the duration of this task
     // From this point we know that the resources will be valid until all tasks within this function are finished,
     // therefore we pass around a non reference counted unsafe reference to resources to sub tasks
     let resources = unsafe { Ur::new(&*resources) };
@@ -59,7 +59,7 @@ pub async fn update_accounts(
             join_result.ok()
         })
         .fold(
-            AccountsUpdate::new(),
+            AccountsUpdate::new(network),
             |mut acc, (accountupdate, new_resources)| {
                 new_resources
                     .into_iter()
@@ -146,19 +146,21 @@ async fn update_account(
 /// returns the updated `Resource` and the accompanying icon url
 pub async fn update_resources(
     network: Network,
-    resources: Vec<ResourceAddress>,
+    resources: Vec<&str>,
 ) -> HashMap<ResourceAddress, (Resource, String)> {
-    let tasks = resources.chunks(20).map(|chunk| {
-        let chunk = chunk.to_owned();
+    const CHUNK_SIZE: usize = 20;
+
+    let tasks = resources.chunks(CHUNK_SIZE).map(|chunk| {
+        let chunk = unsafe { Ur::new(chunk) };
+        // let chunk = chunk.to_owned();
 
         tokio::spawn(async move {
-            let addresses = chunk
-                .iter()
-                .map(|address| address.as_str())
-                .collect::<Vec<_>>();
+            // let addresses = chunk
+            //     .iter()
+            //     .map(|address| address.as_str())
+            //     .collect::<Vec<_>>();
 
-            let response =
-                gateway_requests::get_entity_details(network.into(), addresses.as_slice()).await?;
+            let response = gateway_requests::get_entity_details(network.into(), chunk).await?;
 
             let new_resources = response
                 .items

@@ -11,7 +11,7 @@ pub fn create_account_from_mnemonic(
     account_name: String,
     network: Network,
 ) -> Account {
-    let (keypair, path) = Ed25519KeyPair::from_mnemonic(
+    let (keypair, path) = Ed25519KeyPair::new(
         mnemonic,
         account_index,
         network,
