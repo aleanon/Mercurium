@@ -59,11 +59,30 @@ impl From<ResourceAddress> for Address {
 }
 
 pub enum AddressType {
-    Account,
+    Account(PubKeyType),
+    Identity(PubKeyType),
     Resource,
     InternalVault,
     Component,
     Transaction,
+}
+
+impl Into<scrypto::types::EntityType> for AddressType {
+    fn into(self) -> scrypto::types::EntityType {
+        type EntityType = scrypto::types::EntityType;
+
+        match self {
+            AddressType::Account(pub_key_type) => match pub_key_type {
+                PubKeyType::Ed25519 => EntityType::GlobalVirtualEd25519Account,
+                PubKeyType::Secp256k1 => EntityType::GlobalVirtualSecp256k1Account,
+            },
+            AddressType::Identity(pub_key_type) => match pub_key_type {
+                PubKeyType::Ed25519 => EntityType::GlobalVirtualEd25519Identity,
+                PubKeyType::Secp256k1 => EntityType::GlobalVirtualSecp256k1Identity,
+            },
+            _ => EntityType::GlobalAccessController,
+        }
+    }
 }
 
 pub enum AddressError {

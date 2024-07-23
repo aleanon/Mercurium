@@ -861,8 +861,9 @@ mod tests {
             .expect("Unable to create table 'accounts'");
 
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-        let (keypair, derivation_path) = Ed25519KeyPair::from_mnemonic(
+        let (keypair, derivation_path) = Ed25519KeyPair::new(
             &mnemonic,
+            None,
             0,
             Network::Mainnet,
             Bip32Entity::Account,

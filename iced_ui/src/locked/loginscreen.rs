@@ -7,7 +7,7 @@ use iced::{
     Element, Length, Task,
 };
 use store::{AsyncDb, DbError, IconCache};
-use types::{crypto::Password, AccountsAndResources, AppError, ResourceAddress};
+use types::{crypto::Password, AppdataFromDisk, AppError, ResourceAddress};
 use zeroize::Zeroize;
 
 use crate::{
