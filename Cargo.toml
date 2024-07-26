@@ -34,13 +34,15 @@ iced = { version = "0.13.0-dev", features = [
   "qr_code",
 ] }
 iced_aw = { version = "*", features = ["icons"] }
-tokio-rusqlite = { version = "0.5.1", features = [
+async-sqlite = { version = "0.3.1", features = [
   "bundled-sqlcipher-vendored-openssl",
 ] }
+# tokio-rusqlite = { version = "0.5.1" }
 reqwest = { version = "0.12.4", features = ["blocking", "json"] }
-rusqlite = { version = "0.31.0", features = [
+rusqlite = { version = "0.32.0", features = [
   "bundled-sqlcipher-vendored-openssl",
 ] }
+openssl-sys = { version = "0.9.100", features = ["vendored"] }
 # async-sqlite = { version = "*", features = [
 #   "bundled-sqlcipher-vendored-openssl",
 # ] }

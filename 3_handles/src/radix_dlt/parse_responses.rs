@@ -7,14 +7,14 @@ use radix_gateway_sdk::generated::model::{
     StateEntityNonFungiblesPageResponse, StateNonFungibleDataResponse,
 };
 
-use types::assets::{FungibleAsset, NonFungibleAsset};
+use types::address::{AccountAddress, ResourceAddress};
+use types::assets::{FungibleAsset, NFIDs, NonFungibleAsset, NFID};
 use types::response_models::non_fungible_id_data::NFIdData;
 use types::response_models::{
     FungibleCollectionItemGlobal, MetaDataStringArrayValue, MetaDataStringValue,
     NonFungibleCollectionItemVaultAggregated, ResourceDetails,
 };
 use types::{debug_info, Resource};
-use types::{AccountAddress, NFIDs, ResourceAddress, NFID};
 
 /// Returns two tuples, first with the resource_address and resource and the second wit the resource_address and url to the resources icon
 /// Returns None if the resource_address conversion failes.
@@ -202,10 +202,6 @@ pub fn parse_non_fungibles_data_response_for_asset(
 
 #[cfg(test)]
 mod tests {
-    
-    
-
-    
 
     // #[tokio::test]
     // async fn test_update_assets_from_account_details_response() {

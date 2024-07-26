@@ -1,4 +1,4 @@
-use std::{future::IntoFuture};
+use std::future::IntoFuture;
 
 use iced::futures::future::join_all;
 use radix_gateway_sdk::{
@@ -15,12 +15,14 @@ use radix_gateway_sdk::{
 };
 use types::Network;
 
+pub const ENTITY_DETAILS_MAX_ADDRESSES: usize = 20;
+
 /// Takes a maximum of 20 addresses, otherwise it will panic
 pub async fn get_entity_details(
     network: Network,
     addresses: &[&str],
 ) -> Result<StateEntityDetailsResponse, radix_gateway_sdk::Error> {
-    assert!(addresses.len() <= 20);
+    assert!(addresses.len() <= ENTITY_DETAILS_MAX_ADDRESSES);
 
     let opt_ins = StateEntityDetailsOptIns {
         explicit_metadata: Some(vec!["symbol".to_string()]),
@@ -58,7 +60,7 @@ pub async fn get_fungible_balances_for_entity(
     fluent_request.into_future().await
 }
 
-/// If cursor ir provided a ledger state is also required, else the cursor will do nothing
+/// If cursor is provided, a ledger state is also required, else the cursor will do nothing
 pub async fn get_non_fungible_balances_for_entity(
     network: Network,
     address: &str,
@@ -192,7 +194,10 @@ pub async fn get_transactions_for_entity_from_ledger_state_version(
 mod tests {
     use std::str::FromStr;
 
-    use types::{AccountAddress, Network, ResourceAddress};
+    use types::{
+        address::{AccountAddress, Address, ResourceAddress},
+        Network,
+    };
 
     use super::*;
 

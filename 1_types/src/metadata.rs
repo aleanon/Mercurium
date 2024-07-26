@@ -1,10 +1,7 @@
-use std::ops::{DerefMut, Deref};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::ops::{Deref, DerefMut};
 
-use super::response_models::entity_details::{ExplicitMetadata, self};
-
-
-
+use super::response_models::entity_details::{self, ExplicitMetadata};
 
 ///Collection of `MetaDataItems`
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,48 +29,28 @@ impl DerefMut for MetaData {
     }
 }
 
-
-///Key-value pair for storing meta-data
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MetaDataItem {
-    pub key: String,
-    pub value: Option<String>,
-    pub is_locked: bool,
-}
-
 impl From<ExplicitMetadata> for MetaData {
     fn from(value: ExplicitMetadata) -> Self {
-        Self(value.items.into_iter().map(| metadataitem|{ 
-            MetaDataItem {
-                key: metadataitem.key,
-                value: metadataitem.value.typed.value,
-                is_locked: metadataitem.is_locked,
-            }
-        })
-        .collect()
+        Self(
+            value
+                .items
+                .into_iter()
+                .map(|metadataitem| MetaDataItem {
+                    key: metadataitem.key,
+                    value: metadataitem.value.typed.value,
+                    is_locked: metadataitem.is_locked,
+                })
+                .collect(),
         )
-    }
-}
-
-impl From<entity_details::MetadataItem> for MetaDataItem {
-    fn from(value: entity_details::MetadataItem) -> Self {
-        MetaDataItem {
-            key: value.key,
-            value: value.value.typed.value,
-            is_locked: value.is_locked,
-        }
     }
 }
 
 impl rusqlite::types::FromSql for MetaData {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
-            rusqlite::types::ValueRef::Blob(value) => {
-                Ok(serde_json::from_slice(value)
-                    .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))?
-                )
-            }
-            _ => Err(rusqlite::types::FromSqlError::InvalidType)
+            rusqlite::types::ValueRef::Blob(value) => Ok(serde_json::from_slice(value)
+                .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))?),
+            _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }
 }
@@ -83,9 +60,25 @@ impl rusqlite::types::ToSql for MetaData {
         Ok(rusqlite::types::ToSqlOutput::Owned(
             rusqlite::types::Value::Blob(
                 serde_json::to_vec(self)
-                    .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err))
-                )?
-            )
+                    .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))?,
+            ),
         ))
+    }
+}
+
+///Key-value pair for storing meta-data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetaDataItem {
+    pub key: String,
+    pub value: Option<String>,
+    pub is_locked: bool,
+}
+impl From<entity_details::MetadataItem> for MetaDataItem {
+    fn from(value: entity_details::MetadataItem) -> Self {
+        MetaDataItem {
+            key: value.key,
+            value: value.value.typed.value,
+            is_locked: value.is_locked,
+        }
     }
 }

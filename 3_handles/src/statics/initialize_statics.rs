@@ -1,7 +1,7 @@
-use types::{app_path::AppPath, AppError, AppPathInner, Network};
+use types::{AppError, AppPath, AppPathInner, Network};
 
 pub fn initialize_statics(network: Network) -> Result<(), AppError> {
-    match AppPathInner::new() {
+    match AppPathInner::get_application_root_directory() {
         Err(err) => return Err(AppError::Fatal(err.to_string())),
         Ok(_) => AppPath::get(),
     };

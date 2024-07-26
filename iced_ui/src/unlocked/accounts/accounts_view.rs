@@ -10,7 +10,10 @@ use iced::{
     Element, Length, Task,
 };
 use ravault_iced_theme::styles;
-use types::{Account, AccountAddress};
+use types::{
+    address::{AccountAddress, Address},
+    Account,
+};
 
 use super::account_view::{self, AccountView};
 

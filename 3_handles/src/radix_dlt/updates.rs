@@ -6,10 +6,11 @@ use store::AsyncDb;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use types::{
+    address::{AccountAddress, Address, ResourceAddress},
+    assets::NFID,
     assets::{FungibleAsset, NonFungibleAsset},
-    ur::Ur,
-    Account, AccountAddress, AccountUpdate, AccountsUpdate, Network, Resource, ResourceAddress,
-    NFID,
+    collections::{AccountUpdate, AccountsUpdate},
+    Account, Network, Resource, Ur,
 };
 
 #[derive(Debug, Error)]
@@ -146,21 +147,20 @@ async fn update_account(
 /// returns the updated `Resource` and the accompanying icon url
 pub async fn update_resources(
     network: Network,
-    resources: Vec<&str>,
+    resources: Vec<ResourceAddress>,
 ) -> HashMap<ResourceAddress, (Resource, String)> {
     const CHUNK_SIZE: usize = 20;
-
+    
     let tasks = resources.chunks(CHUNK_SIZE).map(|chunk| {
-        let chunk = unsafe { Ur::new(chunk) };
-        // let chunk = chunk.to_owned();
+        let chunk = chunk.to_owned();
 
         tokio::spawn(async move {
-            // let addresses = chunk
-            //     .iter()
-            //     .map(|address| address.as_str())
-            //     .collect::<Vec<_>>();
+            let addresses = chunk
+                .iter()
+                .map(|address| address.as_str())
+                .collect::<Vec<_>>();
 
-            let response = gateway_requests::get_entity_details(network.into(), chunk).await?;
+            let response = gateway_requests::get_entity_details(network.into(), &addresses).await?;
 
             let new_resources = response
                 .items

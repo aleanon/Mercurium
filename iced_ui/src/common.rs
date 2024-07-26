@@ -10,12 +10,6 @@ pub enum Message {
     Notify(String),
 }
 
-// impl Into<Message> for CommonMessage {
-//     fn into(self) -> Message {
-//         Message::Common(self)
-//     }
-// }
-
 impl Into<AppMessage> for Message {
     fn into(self) -> AppMessage {
         AppMessage::Common(self)

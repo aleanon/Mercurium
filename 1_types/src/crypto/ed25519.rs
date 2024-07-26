@@ -9,8 +9,6 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
 
-use super::Password;
-
 const BIP32_LEAD_WORD: u32 = 44; // 0
 const BIP32_COIN_TYPE_RADIX: u32 = 1022; // 1
 const BIP32_NETWORK_ID_MAINNET: u32 = 1; //2

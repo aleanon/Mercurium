@@ -1,4 +1,3 @@
-use handles::EncryptedMnemonic;
 use iced::{
     widget::{self, button, column, row, text, text_input, Space},
     Element, Length, Task,
@@ -12,7 +11,6 @@ use crate::{
     app::{AppData, AppMessage},
     task_response,
     unlocked::app_view,
-    CREDENTIALS_STORE_NAME,
 };
 
 pub static INPUT_ACCOUNT_NAME: &'static str = "input_account_name";
@@ -116,7 +114,7 @@ impl<'a> AddAccountView {
     fn submit(&mut self, app_data: &mut AppData) -> Task<AppMessage> {
         let mut task = Task::none();
         let account =
-            EncryptedMnemonic::from_store(CREDENTIALS_STORE_NAME).and_then(|encrypted_mnemonic| {
+            handles::credentials::get_encrypted_mnemonic().and_then(|encrypted_mnemonic| {
                 encrypted_mnemonic
                     .decrypt_mnemonic(&self.password)
                     .and_then(|mnemonic| {
@@ -134,11 +132,15 @@ impl<'a> AddAccountView {
                         }
                         Ok(handles::wallet::create_account_from_mnemonic(
                             &mnemonic,
+                            None,
                             id,
                             new_account_index,
                             self.account_name.clone(),
                             app_data.settings.network,
                         ))
+                    })
+                    .map_err(|err| {
+                        types::AppError::NonFatal(types::Notification::Warn(err.to_string()))
                     })
             });
         match account {

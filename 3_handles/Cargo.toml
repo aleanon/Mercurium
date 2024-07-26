@@ -22,7 +22,6 @@ ring.workspace = true
 serde_json.workspace = true
 reqwest = { workspace = true }
 flate2 = { workspace = true }
-# radix-engine-toolkit = { workspace = true }
 bytes = { workspace = true }
 tokio = { workspace = true }
 radix-gateway-sdk = { workspace = true }

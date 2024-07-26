@@ -1,6 +1,5 @@
 use super::ENCRYPTED_MNEMONIC_TARGET_NAME;
 use super::SALT_TARGET_NAME;
-use crate::EncryptedMnemonic;
 use types::{crypto::Salt, AppError};
 
 #[cfg(windows)]
@@ -9,6 +8,7 @@ pub use mswindows::*;
 #[cfg(windows)]
 pub mod mswindows {
     use super::*;
+    use types::crypto::EncryptedMnemonic;
     use windows::{
         core::PWSTR,
         Win32::Security::Credentials::{

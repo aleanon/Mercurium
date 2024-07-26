@@ -5,7 +5,7 @@ use iced::{
     Element, Length, Padding, Task,
 };
 use ravault_iced_theme::styles;
-use types::AccountAddress;
+use types::address::{AccountAddress, Address};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -28,6 +28,7 @@ impl Into<AppMessage> for Message {
 
 #[derive(Debug, Clone)]
 pub struct AddRecipient {
+    pub from_account: Option<AccountAddress>,
     pub recipient_index: usize,
     pub recipient_input: String,
     pub selected_radio: Option<usize>,
@@ -35,8 +36,9 @@ pub struct AddRecipient {
 }
 
 impl AddRecipient {
-    pub fn new(recipient_index: usize) -> Self {
+    pub fn new(recipient_index: usize, from_account: Option<AccountAddress>) -> Self {
         Self {
+            from_account,
             recipient_index,
             recipient_input: String::new(),
             selected_radio: None,
@@ -63,7 +65,13 @@ impl<'a> AddRecipient {
 
     fn recipient_input(&mut self, input: String, appdata: &'a mut AppData) {
         if let Ok(account_address) = AccountAddress::from_str(input.as_str()) {
-            self.chosen_account = Some(account_address);
+            if let Some(address) = &self.from_account {
+                if &account_address != address {
+                    self.chosen_account = Some(account_address)
+                }
+            } else {
+                self.chosen_account = Some(account_address);
+            }
             self.recipient_input = input;
         } else {
             self.chosen_account = None;
@@ -96,7 +104,12 @@ impl<'a> AddRecipient {
 
         let mut buttons = column!();
 
-        for (i, (_, account)) in appdata.accounts.iter().enumerate() {
+        for (i, (_, account)) in appdata
+            .accounts
+            .iter()
+            .filter(|(account_address, _)| Some(*account_address) != self.from_account.as_ref())
+            .enumerate()
+        {
             let selected = self.chosen_account.as_ref().and_then(|address| {
                 if address == &account.address {
                     Some(i)

@@ -11,7 +11,7 @@ reload = []
 
 
 [dependencies]
-iced_ui ={ path = "../iced_ui"}
+iced_ui = { path = "../iced_ui" }
 
 [dev-dependencies]
-hot-lib-reloader = {workspace = true}
+hot-lib-reloader = { workspace = true }

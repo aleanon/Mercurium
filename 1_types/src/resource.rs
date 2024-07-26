@@ -1,12 +1,9 @@
-use std::{
-    ops::{Deref, DerefMut},
-    pin::Pin,
-};
+use std::ops::{Deref, DerefMut};
 
 use scrypto::prelude::HashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::ResourceAddress;
+use crate::address::ResourceAddress;
 
 #[derive(Debug, Clone)]
 pub struct Resource {

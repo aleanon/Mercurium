@@ -16,8 +16,9 @@ use iced::{
 
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use ravault_iced_theme::styles;
+use types::address::{AccountAddress, Address};
 use types::assets::FungibleAsset;
-use types::{Account, AccountAddress, Fungible};
+use types::Account;
 
 use super::accounts_view;
 use super::{fungibles, fungibles::Fungibles};
@@ -26,7 +27,7 @@ use super::{fungibles, fungibles::Fungibles};
 pub enum Message {
     FungiblesView(AccountAddress),
     NonFungiblesView(AccountAddress),
-    SelectFungible(Fungible),
+    SelectFungible,
     SelectNonFungible {
         account_id: usize,
         non_fungible_id: usize,
@@ -102,7 +103,7 @@ impl<'a> AccountView {
                 self.view = AssetView::Tokens(Fungibles::new(account_address))
             }
             Message::NonFungiblesView(account_address) => self.view = AssetView::NonFungibles,
-            Message::SelectFungible(fungible) => self.select_fungible(fungible, appdata),
+            Message::SelectFungible => self.select_fungible(appdata),
             Message::SelectNonFungible {
                 account_id,
                 non_fungible_id,
@@ -132,7 +133,7 @@ impl<'a> AccountView {
         // }
     }
 
-    fn select_fungible(&mut self, _fungible: Fungible, _appdata: &'a mut AppData) {}
+    fn select_fungible(&mut self, _appdata: &'a mut AppData) {}
 
     fn select_non_fungible(
         &mut self,

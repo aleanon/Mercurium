@@ -15,17 +15,16 @@ mod tasks;
 use std::borrow::Cow;
 
 pub use app::App;
+use font_and_icons::images::WINDOW_LOGO;
 use iced::{
     advanced::Application,
     window::{self},
     Settings,
 };
-const WINDOW_ICON: &'static [u8] = include_bytes!("../../icons/ravault_window_icon.png");
-const CREDENTIALS_STORE_NAME: &'static str = "ravault_secret";
 
 pub fn run() -> Result<(), iced::Error> {
     let icon = window::icon::from_file_data(
-        WINDOW_ICON,
+        WINDOW_LOGO,
         Some(iced::advanced::graphics::image::image_rs::ImageFormat::Png),
     )
     .unwrap();

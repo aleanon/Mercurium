@@ -1,11 +1,13 @@
 use bip39::Mnemonic;
 use types::{
+    address::AccountAddress,
     crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair},
-    Account, AccountAddress, Network,
+    Account, Network,
 };
 
 pub fn create_account_from_mnemonic(
     mnemonic: &Mnemonic,
+    password: Option<&str>,
     id: usize,
     account_index: u32,
     account_name: String,
@@ -13,6 +15,7 @@ pub fn create_account_from_mnemonic(
 ) -> Account {
     let (keypair, path) = Ed25519KeyPair::new(
         mnemonic,
+        password,
         account_index,
         network,
         Bip32Entity::Account,

@@ -1,19 +1,15 @@
-use std::collections::HashMap;
-
 use debug_print::debug_println;
 use iced::{
-    futures::TryFutureExt,
-    widget::{self, image::Handle, text::LineHeight, text_input::Id},
+    widget::{self, text::LineHeight, text_input::Id},
     Element, Length, Task,
 };
-use store::{AsyncDb, DbError, IconCache};
-use types::{crypto::Password, AppdataFromDisk, AppError, ResourceAddress};
+use store::AsyncDb;
+use types::{crypto::Password, AppError};
 use zeroize::Zeroize;
 
 use crate::{
     app::{AppData, AppMessage},
-    error::errorscreen::ErrorMessage,
-    task_response,
+    task_response, tasks,
 };
 
 #[derive(Debug, Clone)]
@@ -21,6 +17,7 @@ pub enum Message {
     TextInputChanged(String),
     Login,
     LoginFailed(String),
+    LoginSuccess,
 }
 
 impl Into<AppMessage> for Message {
@@ -58,35 +55,38 @@ impl<'a> LoginScreen {
     }
 
     pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
-        let mut command = Task::none();
-
         match message {
             Message::TextInputChanged(mut string) => {
                 self.password.clear();
                 self.password.push_str(string.as_str());
                 string.zeroize()
             }
-            Message::Login => self.status = Status::Input,
+            Message::Login => {
+                self.status = Status::LoggingIn;
+                return self.login(appdata);
+            }
             Message::LoginFailed(info) => {
                 self.status = Status::Input;
                 self.notification = info;
             }
+            Message::LoginSuccess => {
+                if self.application_is_starting {
+                    return tasks::initial_login_tasks(appdata.settings.network);
+                };
+            }
         }
-        command
+        Task::none()
     }
 
     fn login(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         self.status = Status::LoggingIn;
         let password = self.password.clone();
         self.password.clear();
-        let is_initial = self.application_is_starting;
         let network = appdata.settings.network;
         Task::perform(
             async move {
                 let salt = handles::credentials::get_db_encryption_salt()?;
                 let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
-
-                debug_println!("Initial login");
 
                 let key = password.derive_db_encryption_key_from_salt(&salt);
 
@@ -104,15 +104,16 @@ impl<'a> LoginScreen {
                     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
                 if password_hash == target_hash {
-                    return Ok(is_initial);
+                    debug_println!("Correct password");
+                    return Ok(());
                 } else {
-                    return Err(AppError::NonFatal(types::notification::Notification::Info(
+                    return Err(AppError::NonFatal(types::Notification::Info(
                         "Incorrect Password".to_string(),
                     )));
                 }
             },
             |result| match result {
-                Ok(is_initial) => task_response::Message::LoginSuccess(is_initial).into(),
+                Ok(_) => Message::LoginSuccess.into(),
                 Err(err) => match err {
                     AppError::Fatal(_) => task_response::Message::Error(err).into(),
                     AppError::NonFatal(notification) => {

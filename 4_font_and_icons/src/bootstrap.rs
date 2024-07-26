@@ -1,7 +1,5 @@
 //! This file was automatically generated
 //! by [Mamba Bronze](https://github.com/Redhawk18/mamba-bronze)
-pub const BOOTSTRAP_FONT: Font = Font::with_name("bootstrap-icons");
-pub const BOOTSTRAP_FONT_BYTES: &[u8] = include_bytes!("./../bootstrap-icons.ttf");
 
 use std::{
     fmt::{Display, Formatter, Result},
@@ -16,6 +14,9 @@ use iced::{
     },
     Font,
 };
+
+pub const BOOTSTRAP_FONT: Font = Font::with_name("bootstrap-icons");
+pub const BOOTSTRAP_FONT_BYTES: &[u8] = include_bytes!("./../font_data/bootstrap-icons.ttf");
 
 /// Holds all glyphs of the Bootstrap font
 #[derive(Debug, Clone, Copy)]

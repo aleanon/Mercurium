@@ -1,15 +1,11 @@
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{images::MENU_LOGO, Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, image::Handle, row, text, Row, Text},
     Element, Length, Task,
 };
 use ravault_iced_theme::styles;
-// use ravault_iced_theme::styles::{
-//     button::{MenuButton, SelectedMenuButton},
-//     container::{CenterPanel, MainWindow, MenuContainer},
-// };
 use std::{collections::HashMap, str::FromStr};
-use types::{Account, Decimal, RadixDecimal, ResourceAddress};
+use types::{address::ResourceAddress, Account, Decimal, RadixDecimal};
 
 use crate::{app::AppData, app::AppMessage};
 
@@ -23,15 +19,9 @@ use super::{
     transaction::{self, transaction_view::TransactionView},
 };
 
-const THEME_ICON: &'static [u8] = include_bytes!("../../../icons/theme.png");
-const ACCOUNTS_ICON: &'static [u8] = include_bytes!("../../../icons/bank-account.png");
-const TRANSACTION_ICON: &'static [u8] = include_bytes!("../../../icons/transfer.png");
-const MENU_LOGO: &'static [u8] = include_bytes!("../../../icons/menu_logo.png");
-
 #[derive(Debug, Clone)]
 pub enum Message {
     SelectTab(TabId),
-    // AccountsOverview,
     AccountsViewMessage(super::accounts::accounts_view::Message),
     NewTransaction(Option<Account>),
     TransactionMessage(transaction::transaction_view::Message),
@@ -63,8 +53,6 @@ pub struct AppView {
     pub notification: Option<String>,
     pub active_tab: ActiveTab,
     pub overlay: Option<Overlay>,
-    //pub menu: Menu,
-    //pub center_panel: CenterPanel,
 }
 
 impl<'a> AppView {
@@ -73,17 +61,12 @@ impl<'a> AppView {
             notification: None,
             active_tab: ActiveTab::Accounts(AccountsView::new()),
             overlay: None,
-            //menu: Menu::new(),
-            //center_panel: CenterPanel::new(),
         }
     }
 
     pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
         match message {
             Message::SelectTab(tab_id) => self.select_tab(tab_id),
-            // Message::AccountsOverview => {
-            //     app.appview.active_tab = ActiveTab::Accounts(AccountsView::new())
-            // }
             Message::NewTransaction(from_account) => self.new_transaction(from_account, appdata),
             Message::AccountsViewMessage(accounts_message) => {
                 if let ActiveTab::Accounts(view) = &mut self.active_tab {
@@ -110,8 +93,7 @@ impl<'a> AppView {
                 if let Some(overlay) = &mut self.overlay {
                     return overlay.update(overlay_message, appdata);
                 }
-            } // Self::CenterPanelMessage(center_panel_message) => center_panel_message.process(app),
-              // Self::MenuMessage(menu_message) => menu_message.process(app),
+            }
         }
 
         Task::none()
@@ -227,26 +209,6 @@ impl<'a> AppView {
             _ => Message::SelectTab(TabId::Transfer).into(),
         };
         let mut transaction_button = Self::menu_button(transaction_icon, "Send", message);
-
-        // let mut transaction_button = {
-        //     let icon = text(iced_aw::BootstrapIcon::ArrowBarUp).font(iced_aw::BOOTSTRAP_FONT);
-
-        //     let text = text("Send")
-        //         .size(15)
-        //         .line_height(2.)
-        //         .width(Length::Fill)
-        //         .horizontal_alignment(iced::alignment::Horizontal::Left);
-
-        //     let content = row![icon, text]
-        //         .spacing(10)
-        //         .align_items(iced::Alignment::Center);
-
-        //     button(content)
-        //         .height(Length::Shrink)
-        //         .width(Length::Fill)
-        //         .style(theme::Button::custom(MenuButton))
-        //         .on_press(AppViewMessage::SelectTab(TabId::Transfer).into())
-        // };
 
         match self.active_tab {
             ActiveTab::Accounts(_) => {

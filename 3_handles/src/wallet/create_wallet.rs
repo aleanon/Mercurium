@@ -1,31 +1,36 @@
 use bip39::Mnemonic;
 use store::Db;
-use types::{crypto::Password, AppError, Network};
-
-use crate::EncryptedMnemonic;
-
-const CREDENTIALS_STORE_NAME: &str = "Ravaultmnemonic";
+use types::{
+    crypto::{EncryptedMnemonic, Password},
+    AppError, Network,
+};
 
 pub fn create_new_wallet(
     mnemonic: &Mnemonic,
-    password: &Password,
+    seed_password: Option<&str>,
+    app_password: &Password,
     account_name: String,
     network: Network,
     db: &mut Db,
 ) -> Result<(), AppError> {
-    let (_key, _salt) = password
+    let (_key, _salt) = app_password
         .derive_new_db_encryption_key()
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic, &password)
+    let encrypted_mnemonic = EncryptedMnemonic::new(mnemonic, &app_password)
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    encrypted_mnemonic
-        .save_to_store(CREDENTIALS_STORE_NAME)
+    crate::credentials::store_encrypted_mnemonic(&encrypted_mnemonic)
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    let account =
-        super::create_account::create_account_from_mnemonic(mnemonic, 0, 0, account_name, network);
+    let account = super::create_account::create_account_from_mnemonic(
+        mnemonic,
+        seed_password,
+        0,
+        0,
+        account_name,
+        network,
+    );
 
     db.upsert_account(&account).ok();
 

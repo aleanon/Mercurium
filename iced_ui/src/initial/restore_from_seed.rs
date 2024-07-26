@@ -1,3 +1,8 @@
+use bip39::Mnemonic;
+use types::crypto::{Password, SeedPhrase};
+
+use super::new_wallet::NewWalletStage;
+
 #[derive(Debug)]
 pub struct NewWallet {
     pub(crate) stage: NewWalletStage,
