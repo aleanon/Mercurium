@@ -1,8 +1,9 @@
 use std::collections::{BTreeSet, HashMap};
 
 use crate::{
+    address::{AccountAddress, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
-    Account, AccountAddress, Resource, ResourceAddress,
+    Account, Resource,
 };
 
 #[derive(Debug, Clone)]

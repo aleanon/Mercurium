@@ -1,182 +1,129 @@
+use super::AddressValidator;
 use crate::unwrap_unreachable::UnwrapUnreachable;
-use crate::{debug_info, Address, Network};
+use crate::{debug_info, Network};
 
-use super::{AddressError, AddressTrait, AddressType, ParseAddrError};
+use super::{Address, AddressError, AddressType};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use std::str::FromStr;
 
-trait AccountAddressTrait: AddressTrait {}
+static MAINNET_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(AccountAddress::MAINNET_REGEX_PATTERN).unwrap());
 
-pub struct MainnetAccountAddress([u8; Self::LENGTH]);
+static STOKENET_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(AccountAddress::STOKENET_REGEX_PATTERN).unwrap());
 
-impl AccountAddressTrait for MainnetAccountAddress {}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum AccountAddress {
+    Mainnet([u8; Self::MAINNET_LENGTH]),
+    Stokenet([u8; Self::STOKENET_LENGTH]),
+}
 
-impl AddressTrait for MainnetAccountAddress {
+impl Address for AccountAddress {
     const ADDRESS_TYPE: AddressType = AddressType::Account;
-    const NETWORK: Network = Network::Mainnet;
-    const REGEX_PATTERN: &'static str = const_format::formatcp!(
+    const MAINNET_REGEX_PATTERN: &'static str = const_format::formatcp!(
         "^{}{}[a-z0-9]{{{}}}$",
-        MainnetAccountAddress::ADDRESS_TYPE_PREFIX,
-        MainnetAccountAddress::NETWORK_PREFIX,
-        MainnetAccountAddress::ADDRESS_LENGTH
+        AccountAddress::ADDRESS_TYPE_PREFIX,
+        AccountAddress::MAINNET_PREFIX,
+        AccountAddress::ADDRESS_LENGTH
+    );
+    const STOKENET_REGEX_PATTERN: &'static str = const_format::formatcp!(
+        "^{}{}[a-z0-9]{{{}}}$",
+        AccountAddress::ADDRESS_TYPE_PREFIX,
+        AccountAddress::STOKENET_PREFIX,
+        AccountAddress::ADDRESS_LENGTH
     );
 
-    fn from_str(s: &str) -> Result<Self, AddressError> {
-        if Self::is_valid_address(s) {
-            let mut array = [0u8; Self::LENGTH];
-            array.copy_from_slice(s.as_bytes());
-
-            Ok(Self(array))
-        } else {
-            Err(AddressError::InvalidAddress)
-        }
-    }
-
-    fn from_bytes_without_prefixes(address: &[u8]) -> Result<Self, AddressError> {
-        if address.len() != Self::ADDRESS_LENGTH {
-            return Err(AddressError::InvalidLength);
-        }
-
-        if !address.is_ascii() {
-            return Err(AddressError::InvalidUTF8);
-        }
-
-        let mut array = [0u8; Self::LENGTH];
-        array[..Self::ADDRESS_TYPE_PREFIX_LENGTH]
-            .copy_from_slice(Self::ADDRESS_TYPE_PREFIX.as_bytes());
-        array[Self::ADDRESS_TYPE_PREFIX_LENGTH..Self::ADDRESS_START_INDEX]
-            .copy_from_slice(Self::NETWORK_PREFIX.as_bytes());
-        array[Self::ADDRESS_START_INDEX..].copy_from_slice(address);
-
-        Ok(Self(array))
-    }
-
     fn as_bytes(&self) -> &[u8] {
-        &self.0
+        match self {
+            Self::Mainnet(bytes) => bytes,
+            Self::Stokenet(bytes) => bytes,
+        }
     }
 
-    fn is_valid_address(address: &str) -> bool {
-        static REGEX: Lazy<Regex> =
-            Lazy::new(|| Regex::new(MainnetAccountAddress::REGEX_PATTERN).unwrap());
-        REGEX.is_match(address)
+    fn checksum_start_index(&self) -> usize {
+        match self {
+            Self::Mainnet(_) => Self::MAINNET_CHECKSUM_START_INDEX,
+            Self::Stokenet(_) => Self::STOKENET_CHECKSUM_START_INDEX,
+        }
+    }
+
+    fn checksum_double_start_index(&self) -> usize {
+        match self {
+            Self::Mainnet(_) => Self::MAINNET_CHECKSUM_DOUBLE_START_INDEX,
+            Self::Stokenet(_) => Self::STOKENET_CHECKSUM_DOUBLE_START_INDEX,
+        }
+    }
+
+    fn address_start_index(&self) -> usize {
+        match self {
+            Self::Mainnet(_) => Self::MAINNET_ADDRESS_START_INDEX,
+            Self::Stokenet(_) => Self::STOKENET_ADDRESS_START_INDEX,
+        }
+    }
+
+    fn is_valid_address(network: Network, address: &str) -> bool {
+        AddressValidator::is_valid_account(network, address)
+    }
+
+    fn network(&self) -> Network {
+        match self {
+            Self::Mainnet(_) => Network::Mainnet,
+            Self::Stokenet(_) => Network::Stokenet,
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AccountAddress([u8; Self::LENGTH]);
-
 impl AccountAddress {
-    const PREFIX_LENGTH: usize = 8;
-    pub const LENGTH: usize = 66;
-    pub const CHECKSUM_LENGTH: usize = 6;
-    const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LENGTH;
-    const CHECKSUM_DOUBLE_START_INDEX: usize = Self::CHECKSUM_START_INDEX - Self::CHECKSUM_LENGTH;
-    const TRUNCATE_PREFIX_LEN: usize = 4;
-    const TRUNCATE_LONG_PREFIX_LEN: usize = 12;
-    const TRUNCATE_LENGTH: usize = Self::TRUNCATE_PREFIX_LEN + 3 + Self::CHECKSUM_LENGTH;
-    const PREFIX: &'static str = "account_";
-
-    pub fn empty() -> Self {
-        Self([b'0'; Self::LENGTH])
-    }
-
-    pub fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-
-    pub fn as_str(&self) -> &str {
-        std::str::from_utf8(&self.0)
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0 == [b'0'; Self::LENGTH]
-    }
-
-    pub fn truncate(&self) -> String {
-        let truncated = [
-            &self.0[..Self::TRUNCATE_PREFIX_LEN],
-            Address::TRUNCATE_DOTS.as_bytes(),
-            &self.0[Self::CHECKSUM_START_INDEX..],
-        ]
-        .concat();
-
-        String::from_utf8(truncated)
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
-    }
-
-    pub fn truncate_as_array(&self) -> [u8; Self::TRUNCATE_LENGTH] {
-        let mut truncated = [b'.'; Self::TRUNCATE_LENGTH];
-
-        truncated[..Self::TRUNCATE_PREFIX_LEN]
-            .copy_from_slice(&self.0[..Self::TRUNCATE_PREFIX_LEN]);
-        truncated[Self::TRUNCATE_LENGTH - Self::PREFIX_LENGTH..]
-            .copy_from_slice(&self.0[Self::CHECKSUM_START_INDEX..]);
-
-        truncated
-    }
-
-    pub fn truncate_long(&self) -> String {
-        let truncated = [
-            &self.0[..Self::TRUNCATE_LONG_PREFIX_LEN],
-            Address::TRUNCATE_DOTS.as_bytes(),
-            &self.0[Self::CHECKSUM_START_INDEX..],
-        ]
-        .concat();
-
-        String::from_utf8(truncated)
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
-    }
-
-    pub fn checksum(&self) -> [u8; Self::CHECKSUM_LENGTH] {
-        self.0[Self::CHECKSUM_START_INDEX..]
-            .try_into()
-            .unwrap_unreachable(debug_info!("Invalid Checksum Length"))
-    }
-
-    pub fn checksum_slice(&self) -> &[u8] {
-        &self.0[Self::CHECKSUM_START_INDEX..]
-    }
-
-    pub fn checksum_str(&self) -> &str {
-        std::str::from_utf8(&self.0[Self::CHECKSUM_START_INDEX..])
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in AccountAddress"))
-    }
-
-    pub fn checksum_double(&self) -> &[u8] {
-        &self.0[Self::CHECKSUM_DOUBLE_START_INDEX..]
+    #[cfg(test)]
+    pub fn empty(network: Network) -> Self {
+        match network {
+            Network::Mainnet => AccountAddress::Mainnet([0; Self::MAINNET_LENGTH]),
+            Network::Stokenet => AccountAddress::Stokenet([0; Self::STOKENET_LENGTH]),
+        }
     }
 }
 
 impl FromStr for AccountAddress {
-    type Err = ParseAddrError;
+    type Err = AddressError;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !s.is_ascii() {
-            return Err(ParseAddrError::NonAsciiCharacter);
+        if MAINNET_REGEX.is_match(s) {
+            if Self::is_valid_address(Network::Mainnet, s) {
+                return Ok(Self::Mainnet(
+                    s.as_bytes()
+                        .try_into()
+                        .map_err(|_| AddressError::InvalidLength)?,
+                ));
+            }
         }
-        Ok(Self(s.as_bytes().try_into()?))
-    }
-}
-
-impl TryFrom<&[u8]> for AccountAddress {
-    type Error = ParseAddrError;
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        // impl Regex check for exact characters and length at once
-        if !value.is_ascii() {
-            return Err(ParseAddrError::NonAsciiCharacter);
+        if STOKENET_REGEX.is_match(s) {
+            if Self::is_valid_address(Network::Stokenet, s) {
+                return Ok(Self::Stokenet(
+                    s.as_bytes()
+                        .try_into()
+                        .map_err(|_| AddressError::InvalidLength)?,
+                ));
+            }
         }
-
-        Ok(Self(value.try_into()?))
+        Err(AddressError::InvalidAddress)
     }
 }
 
 impl ToString for AccountAddress {
     fn to_string(&self) -> String {
-        String::from_utf8(self.0.to_vec())
+        String::from_utf8(self.as_bytes().to_vec())
             .unwrap_unreachable(debug_info!("Invalid Utf8 in AccountAddress"))
+    }
+}
+
+impl TryFrom<&[u8]> for AccountAddress {
+    type Error = AddressError;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let s = std::str::from_utf8(value).map_err(|_| AddressError::InvalidUTF8)?;
+        AccountAddress::from_str(s)
     }
 }
 
@@ -185,7 +132,20 @@ impl Serialize for AccountAddress {
     where
         S: Serializer,
     {
-        serializer.serialize_newtype_struct("ResourceAddress", &self.0[..])
+        match self {
+            AccountAddress::Mainnet(bytes) => serializer.serialize_newtype_variant(
+                "AccountAddress",
+                0,
+                "Mainnet",
+                bytes.as_slice(),
+            ),
+            AccountAddress::Stokenet(bytes) => serializer.serialize_newtype_variant(
+                "AccountAddress",
+                1,
+                "Stokenet",
+                bytes.as_slice(),
+            ),
+        }
     }
 }
 
@@ -197,19 +157,16 @@ impl<'de> Deserialize<'de> for AccountAddress {
         use serde::de::Error;
         let slice: &[u8] = Deserialize::deserialize(deserializer)?;
 
-        Ok(Self(slice.try_into().map_err(|err| Error::custom(err))?))
+        Ok(Self::try_from(slice).map_err(|err| Error::custom(err))?)
     }
 }
 
 impl rusqlite::types::FromSql for AccountAddress {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
-            rusqlite::types::ValueRef::Blob(slice) => Ok(Self(slice.try_into().map_err(|_| {
-                rusqlite::types::FromSqlError::InvalidBlobSize {
-                    expected_size: Self::LENGTH,
-                    blob_size: slice.len(),
-                }
-            })?)),
+            rusqlite::types::ValueRef::Blob(slice) => Ok(
+                Self::try_from(slice).map_err(|_| rusqlite::types::FromSqlError::InvalidType)?
+            ),
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }
@@ -218,7 +175,7 @@ impl rusqlite::types::FromSql for AccountAddress {
 impl rusqlite::types::ToSql for AccountAddress {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Borrowed(
-            rusqlite::types::ValueRef::Blob(&self.0),
+            rusqlite::types::ValueRef::Blob(&self.as_bytes()),
         ))
     }
 }

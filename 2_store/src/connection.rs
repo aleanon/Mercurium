@@ -1,16 +1,12 @@
 use super::db::DbError;
 use debug_print::debug_println;
-use types::{
-    app_path::AppPath,
-    crypto::{HexKey, Key},
-    Network,
-};
+use types::{crypto::DataBaseKey, AppPath, Network};
 
 use rusqlite::OpenFlags;
 
 pub fn connection_new_database(
     network: Network,
-    key: &HexKey,
+    key: &DataBaseKey,
 ) -> Result<rusqlite::Connection, DbError> {
     let app_path = AppPath::get().create_directories_if_not_exists()?;
 
@@ -23,7 +19,11 @@ pub fn connection_new_database(
         OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
     )?;
 
-    conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str()))?;
+    let set_key_statement = key.set_key_statement();
+    let set_key_statement_str =
+        std::str::from_utf8(&set_key_statement).map_err(|err| rusqlite::Error::Utf8Error(err))?;
+
+    conn.execute_batch(set_key_statement_str)?;
 
     debug_println!("Db connection up");
 
@@ -32,7 +32,7 @@ pub fn connection_new_database(
 
 pub fn connection_existing_database(
     network: Network,
-    key: &HexKey,
+    key: &DataBaseKey,
 ) -> Result<rusqlite::Connection, DbError> {
     let path = AppPath::get().db_path_ref(network);
 
@@ -44,7 +44,11 @@ pub fn connection_existing_database(
 
     let conn = rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
 
-    conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str()))?;
+    let set_key_statement = key.set_key_statement();
+    let set_key_statement_str =
+        std::str::from_utf8(&set_key_statement).map_err(|err| rusqlite::Error::Utf8Error(err))?;
+
+    conn.execute_batch(set_key_statement_str)?;
 
     debug_println!("Db connection up");
 
@@ -53,32 +57,38 @@ pub fn connection_existing_database(
 
 pub async fn async_connection_new_database(
     network: Network,
-    key: HexKey,
-) -> Result<tokio_rusqlite::Connection, DbError> {
+    key: DataBaseKey,
+) -> Result<async_sqlite::Client, DbError> {
     let app_path = AppPath::get().create_directories_if_not_exists()?;
 
     let path = app_path.db_path_ref(network);
 
     debug_println!("Db path: {:?}", path);
 
-    let conn = tokio_rusqlite::Connection::open_with_flags(
-        path,
-        OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE,
-    )
-    .await?;
+    let client = async_sqlite::ClientBuilder::new()
+        .path(path)
+        .flags(OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE)
+        .open()
+        .await?;
 
-    conn.call_unwrap(move |conn| conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str())))
+    client
+        .conn(move |conn| {
+            let set_key_statement = key.set_key_statement();
+            let set_key_statement_str = std::str::from_utf8(&set_key_statement)
+                .map_err(|err| rusqlite::Error::Utf8Error(err))?;
+            conn.execute_batch(set_key_statement_str)
+        })
         .await?;
 
     debug_println!("Async Db connection up");
 
-    Ok(conn)
+    Ok(client)
 }
 
 pub async fn async_connection_existing_database(
     network: Network,
-    key: HexKey,
-) -> Result<tokio_rusqlite::Connection, DbError> {
+    key: DataBaseKey,
+) -> Result<async_sqlite::Client, DbError> {
     let path = AppPath::get().db_path_ref(network);
 
     debug_println!("Db path: {:?}", path);
@@ -87,28 +97,46 @@ pub async fn async_connection_existing_database(
         return Err(DbError::DatabaseNotFound);
     }
 
-    let conn =
-        tokio_rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).await?;
+    let client = async_sqlite::ClientBuilder::new()
+        .path(path)
+        .flags(OpenFlags::SQLITE_OPEN_READ_WRITE)
+        .open()
+        .await?;
 
     debug_println!("AsyncDb connection up");
 
-    conn.call_unwrap(move |conn| conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str())))
+    client
+        .conn(move |conn| {
+            let set_key_statement = key.set_key_statement();
+            let set_key_statement_str = std::str::from_utf8(&set_key_statement)
+                .map_err(|err| rusqlite::Error::Utf8Error(err))?;
+            conn.execute_batch(set_key_statement_str)
+        })
         .await?;
 
-    Ok(conn)
+    Ok(client)
 }
 
 pub async fn open_db_read_only_async(
     network: Network,
-    key: HexKey,
-) -> Result<tokio_rusqlite::Connection, DbError> {
+    key: DataBaseKey,
+) -> Result<async_sqlite::Client, DbError> {
     let path = AppPath::get().db_path_ref(network);
 
-    let conn =
-        tokio_rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).await?;
-
-    conn.call_unwrap(move |conn| conn.execute_batch(&format!("PRAGMA key = '{}'", key.as_str())))
+    let client = async_sqlite::ClientBuilder::new()
+        .path(path)
+        .flags(OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .open()
         .await?;
 
-    Ok(conn)
+    client
+        .conn(move |conn| {
+            let set_key_statement = key.set_key_statement();
+            let set_key_statement_str = std::str::from_utf8(&set_key_statement)
+                .map_err(|err| rusqlite::Error::Utf8Error(err))?;
+            conn.execute_batch(set_key_statement_str)
+        })
+        .await?;
+
+    Ok(client)
 }

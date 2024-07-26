@@ -1,9 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::{Lazy};
+use once_cell::sync::Lazy;
 use thiserror::Error;
 
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+
+static APP_PATH: Lazy<AppPathInner> = Lazy::new(|| {
+    AppPathInner::new().unwrap_unreachable(debug_info!("Unable to establish application directory"))
+});
 
 #[derive(Error, Debug)]
 pub enum AppPathError {
@@ -25,12 +29,6 @@ pub struct AppPathInner {
     stokenet_icon_cache_path: Box<Path>,
 }
 
-// pub static APP_PATH: OnceCell<AppPathInner> = OnceCell::new();
-
-pub static APP_PATH: Lazy<AppPathInner> = Lazy::new(|| {
-    AppPathInner::new().unwrap_unreachable(debug_info!("Unable to establish application directory"))
-});
-
 impl AppPathInner {
     const APP_DIRECTORY: &'static str = "Ravault";
     const APP_SETTINGS_FILE_NAME: &'static str = "settings";
@@ -43,7 +41,6 @@ impl AppPathInner {
     const ICONCASHE_MAINNET_FILE_NAME: &'static str = "iconcash_mainnet";
     const ICONCASHE_STOKENET_FILE_NAME: &'static str = "iconcash_stokenet";
 
-    #[cfg(windows)]
     pub fn new() -> Result<Self, AppPathError> {
         let app_directory = Self::get_application_root_directory()?;
 
@@ -163,7 +160,7 @@ impl AppPathInner {
     }
 
     #[cfg(windows)]
-    fn get_application_root_directory() -> Result<PathBuf, AppPathError> {
+    pub fn get_application_root_directory() -> Result<PathBuf, AppPathError> {
         match std::env::var_os("LOCALAPPDATA") {
             Some(path) => {
                 let mut app_directory = std::path::PathBuf::from(path);

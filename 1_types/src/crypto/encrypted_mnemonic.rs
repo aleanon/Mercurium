@@ -1,18 +1,12 @@
-use std::num::NonZeroU32;
-
+use super::{Password, Salt};
 use bip39::Mnemonic;
 use ring::aead::{
     Aad, BoundKey, Nonce, NonceSequence, OpeningKey, UnboundKey, AES_256_GCM, NONCE_LEN,
 };
-use ring::pbkdf2;
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use types::crypto::{Password, Salt};
-use windows::Win32::Foundation::E_POINTER;
 use zeroize::Zeroize;
-
-const ITERATIONS: u32 = 1000000;
 
 #[derive(Error, Debug)]
 pub enum EncryptedMnemonicError {
@@ -111,7 +105,7 @@ impl EncryptedMnemonic {
         &self,
         password: &Password,
     ) -> Result<Mnemonic, EncryptedMnemonicError> {
-        let mut encryption_key = password.derive_mnemonic_encryption_key_from_salt(&self.salt);
+        let encryption_key = password.derive_mnemonic_encryption_key_from_salt(&self.salt);
         let unbound_key = UnboundKey::new(&AES_256_GCM, &encryption_key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let nonce_sequence = MnemonicNonceSequence::with_nonce(&Nonce::assume_unique_for_key(
@@ -135,146 +129,10 @@ impl EncryptedMnemonic {
 
         //Zeroize the plaintext mnemonic and encryption key before dropping it
         //Todo: Investigate zeroizing of the unbound and opening keys
-        encryption_key.zeroize();
         data.zeroize();
         phrase.zeroize();
 
         Ok(mnemonic)
-    }
-
-    fn derive_encryption_key(password: &str, salt: &[u8; 32]) -> [u8; 32] {
-        let mut encryption_key: [u8; 32] = [0; 32];
-        let iterations = unsafe { NonZeroU32::new_unchecked(ITERATIONS) };
-
-        pbkdf2::derive(
-            pbkdf2::PBKDF2_HMAC_SHA256,
-            iterations,
-            salt.as_ref(),
-            password.as_bytes(),
-            encryption_key.as_mut_slice(),
-        );
-        encryption_key
-    }
-
-    fn create_salt() -> Result<[u8; 32], EncryptedMnemonicError> {
-        let mut salt: [u8; 32] = [0; 32];
-        SystemRandom::new()
-            .fill(&mut salt)
-            .map_err(|_| EncryptedMnemonicError::FailedToCreateRandomValue)?;
-
-        Ok(salt)
-    }
-}
-
-#[cfg(windows)]
-use windows::{
-    core::{PCWSTR, PWSTR},
-    Win32::Security::{
-        Credentials::{CredDeleteW, CredFree, CredReadW, CredWriteW},
-        Credentials::{CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE, CRED_TYPE_GENERIC},
-    },
-};
-
-#[cfg(windows)]
-impl EncryptedMnemonic {
-    //Stores the mnemonic using the windows credentials manager
-    pub fn save_to_store(self, target_name: &str) -> Result<(), EncryptedMnemonicError> {
-        let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
-        target_name.push(0);
-
-        let mut blob = serde_json::to_vec(&self)
-            .map_err(|_| EncryptedMnemonicError::FailedToParseEncryptedMnemonic)?;
-
-        unsafe {
-            let credentials = CREDENTIALW {
-                Type: CRED_TYPE_GENERIC,
-                TargetName: PWSTR(target_name.as_mut_ptr()),
-                CredentialBlob: blob.as_mut_ptr(),
-                CredentialBlobSize: (blob.len() * 2) as u32,
-                Persist: CRED_PERSIST_LOCAL_MACHINE,
-                ..Default::default()
-            };
-
-            CredWriteW(&credentials, 0)
-                .map_err(|err| EncryptedMnemonicError::FailedToSaveCredentials(err.to_string()))?;
-        }
-
-        target_name.zeroize();
-        blob.zeroize();
-
-        Ok(())
-    }
-
-    ///Retrieves the EncryptedMnemonic from the Windows Credential Store.
-    pub fn from_store(target_name: &str) -> Result<Self, EncryptedMnemonicError> {
-        let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
-        target_name.push(0);
-        let mut cred_ptr: *mut CREDENTIALW = std::ptr::null_mut();
-
-        let result: Result<Self, EncryptedMnemonicError>;
-
-        unsafe {
-            match CredReadW(
-                PCWSTR(target_name.as_ptr()),
-                CRED_TYPE_GENERIC,
-                0,
-                &mut cred_ptr,
-            ) {
-                Ok(_) => {
-                    if !cred_ptr.is_null() {
-                        let cred = &*cred_ptr;
-                        let serialized = std::slice::from_raw_parts(
-                            cred.CredentialBlob,
-                            cred.CredentialBlobSize as usize / 2,
-                        );
-                        let encryptedmnemonic = serde_json::from_slice::<EncryptedMnemonic>(
-                            serialized,
-                        )
-                        .map_err(|_| EncryptedMnemonicError::FailedToParseEncryptedMnemonic)?;
-
-                        result = Ok(encryptedmnemonic);
-                        CredFree(cred_ptr as *mut _)
-                    } else {
-                        result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
-                            format!(
-                                "E_POINTER: {}, Null pointer received for credentials",
-                                E_POINTER
-                            ),
-                        ))
-                    }
-                }
-                Err(err) => {
-                    result = Err(EncryptedMnemonicError::FailedToRetrieveCredentials(
-                        err.to_string(),
-                    ))
-                }
-            }
-        }
-
-        target_name.zeroize();
-
-        result
-    }
-
-    pub fn delete_from_store(target_name: &str) -> Result<(), EncryptedMnemonicError> {
-        let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
-        target_name.push(0);
-
-        let result: Result<(), EncryptedMnemonicError>;
-        unsafe {
-            match CredDeleteW(PCWSTR(target_name.as_mut_ptr()), CRED_TYPE_GENERIC, 0) {
-                Ok(_) => result = Ok(()),
-                Err(err) => {
-                    result = Err(EncryptedMnemonicError::FailedToDeleteCredentials(
-                        err.to_string(),
-                    ))
-                }
-            }
-        }
-
-        target_name.zeroize();
-
-        result
     }
 }
 
@@ -321,30 +179,5 @@ mod test {
             .unwrap_or_else(|err| panic!("{err}"));
 
         assert_eq!(mnemonic.phrase(), decrypted.phrase())
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn test_save_read_delete_encrypted_mnemonic() {
-        let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-        let password = Password::from("password99");
-        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password)
-            .expect("Failed to create encrypted mnemonic");
-        let target_name = "Ravault mnemonic store test";
-
-        encrypted_mnemonic
-            .save_to_store(target_name)
-            .expect("Failed to save encrypted mnemonic");
-        let encrypted_mnemonic = EncryptedMnemonic::from_store(target_name)
-            .expect("Failed to retrieve encrypted mnemonic");
-        let decrypted = encrypted_mnemonic
-            .decrypt_mnemonic(&password)
-            .expect("Failed to decrypt mnemonoic");
-        assert_eq!(decrypted.phrase(), mnemonic.phrase());
-
-        EncryptedMnemonic::delete_from_store(target_name)
-            .expect("Failed to delete encrypted mnemonic from store");
-        let result = EncryptedMnemonic::from_store(target_name);
-        assert!(result.is_err())
     }
 }

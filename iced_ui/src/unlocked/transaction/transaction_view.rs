@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
@@ -7,7 +7,10 @@ use iced::{
     Alignment, Element, Length, Padding, Task,
 };
 use ravault_iced_theme::styles;
-use types::{Account, AccountAddress, Decimal, ResourceAddress};
+use types::{
+    address::{AccountAddress, Address, ResourceAddress},
+    Account, Decimal,
+};
 
 use super::{
     add_assets::{self, AddAssets},
@@ -105,8 +108,6 @@ impl TransactionView {
 
 impl<'a> TransactionView {
     pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
-        let mut command = Task::none();
-
         match message {
             Message::OverView => self.view = View::Transaction,
             Message::SelectAccount(account) => self.from_account = Some(account),
@@ -116,7 +117,11 @@ impl<'a> TransactionView {
                 self.update_resource_amount(account_index, resource, amount)
             }
             Message::SelectRecipient(recipient_index) => {
-                self.view = View::ChooseRecipient(AddRecipient::new(recipient_index))
+                let from_address = self
+                    .from_account
+                    .as_ref()
+                    .and_then(|account| Some(account.address.clone()));
+                self.view = View::ChooseRecipient(AddRecipient::new(recipient_index, from_address))
             }
             Message::AddRecipient => self.recipients.push(Recipient::new(None)),
             Message::AddAssets {
@@ -125,16 +130,16 @@ impl<'a> TransactionView {
             } => self.create_new_add_assets_view(recipient_index, from_account),
             Message::AddAssetsMessage(add_assets_message) => {
                 if let View::AddAssets(add_assets) = &mut self.view {
-                    command = add_assets.update(add_assets_message, &mut self.recipients, appdata);
+                    return add_assets.update(add_assets_message, &mut self.recipients, appdata);
                 }
             }
             Message::ChooseRecipientMessage(choose_recipient_message) => {
                 if let View::ChooseRecipient(choose_recipient) = &mut self.view {
-                    command = choose_recipient.update(
+                    return choose_recipient.update(
                         choose_recipient_message,
                         &mut self.recipients,
                         appdata,
-                    )
+                    );
                 }
             }
             Message::RemoveAsset(recipient_index, resource_address) => {
@@ -144,7 +149,7 @@ impl<'a> TransactionView {
             }
         }
 
-        command
+        Task::none()
     }
 
     fn create_new_add_assets_view(&mut self, recipient_index: usize, from_account: AccountAddress) {

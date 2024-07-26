@@ -78,8 +78,8 @@ impl Key {
         &self.0
     }
 
-    pub fn into_hex_key(self) -> HexKey {
-        HexKey::from_key(self)
+    pub fn into_hex_key(self) -> DataBaseKey {
+        DataBaseKey::from_key(self)
     }
 
     pub fn to_inner(self) -> [u8; Self::LENGTH] {
@@ -89,10 +89,17 @@ impl Key {
 
 /// A Hexadecimal representation of `Key` so it can be formatted as text and passed as key to the database
 #[derive(Debug, ZeroizeOnDrop)]
-pub struct HexKey([u8; Self::LENGTH]);
+pub struct DataBaseKey([u8; Self::LENGTH]);
 
-impl HexKey {
+impl DataBaseKey {
     const LENGTH: usize = Key::LENGTH * 2;
+    const PRAGMA_END: &'static [u8] = b"'\"";
+    const PRAGMA_KEY_START: &'static [u8] = b"PRAGMA key = \"x'";
+    const PRAGMA_REKEY_START: &'static [u8] = b"PRAGMA rekey = \"x'";
+    const PRAGMA_KEY_AND_ARGUMANT_LENGTH: usize =
+        Self::LENGTH + Self::PRAGMA_KEY_START.len() + Self::PRAGMA_END.len();
+    const PRAGMA_REKEY_AND_ARGUAMENT_LENGTH: usize =
+        Self::LENGTH + Self::PRAGMA_REKEY_START.len() + Self::PRAGMA_END.len();
 
     pub fn from_key(key: Key) -> Self {
         let mut hex_key = [0u8; Self::LENGTH];
@@ -106,6 +113,28 @@ impl HexKey {
     pub fn as_str(&self) -> &str {
         std::str::from_utf8(&self.0)
             .unwrap_unreachable(debug_info!("HexKey contained non utf8 bytes"))
+    }
+
+    pub fn set_key_statement(&self) -> [u8; Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH] {
+        let mut statement = [b' '; Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH];
+        statement[..Self::PRAGMA_KEY_START.len()].copy_from_slice(Self::PRAGMA_KEY_START);
+        statement[Self::PRAGMA_KEY_START.len()
+            ..Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH - Self::PRAGMA_END.len()]
+            .copy_from_slice(&self.0);
+        statement[Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH - Self::PRAGMA_END.len()..]
+            .copy_from_slice(Self::PRAGMA_END);
+        statement
+    }
+
+    pub fn rekey_statement(&self) -> [u8; Self::PRAGMA_REKEY_AND_ARGUAMENT_LENGTH] {
+        let mut statement = [b' '; Self::PRAGMA_REKEY_AND_ARGUAMENT_LENGTH];
+        statement[..Self::PRAGMA_REKEY_START.len()].copy_from_slice(Self::PRAGMA_REKEY_START);
+        statement[Self::PRAGMA_REKEY_START.len()
+            ..Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH - Self::PRAGMA_END.len()]
+            .copy_from_slice(&self.0);
+        statement[Self::PRAGMA_REKEY_AND_ARGUAMENT_LENGTH - Self::PRAGMA_END.len()..]
+            .copy_from_slice(Self::PRAGMA_END);
+        statement
     }
 
     fn to_hex_digit(n: u8) -> u8 {

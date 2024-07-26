@@ -6,7 +6,7 @@ use iced::{
 use ravault_iced_theme::styles;
 
 use crate::{app::AppData, app::AppMessage};
-use types::assets::FungibleAsset;
+use types::{address::Address, assets::FungibleAsset};
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
 

@@ -23,6 +23,15 @@ impl<T> Deref for Ur<T> {
 
 unsafe impl<T> Send for Ur<T> {}
 
+// impl<T> rusqlite::ToSql for Ur<T>
+// where
+//     T: rusqlite::ToSql,
+// {
+//     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+
+//     }
+// }
+
 /// `MutUr`(Mutable Unsafe Reference) wrapps a mutable raw pointer to type `T` and implements `Send`
 /// so a mutable reference can be sent across threads/async boundaries without reference counting.
 /// The user needs to make sure that the value pointed to is not dropped, not moved in memory and has no colliding reads or writes while the MutUr is in use,

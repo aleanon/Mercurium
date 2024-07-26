@@ -3,8 +3,10 @@ use std::{collections::BTreeSet, fmt::Display};
 use asynciter::FromAsyncIterator;
 
 use crate::{
-    address::transaction_address::TransactionAddress, debug_info,
-    unwrap_unreachable::UnwrapUnreachable, AccountAddress, NFIDs, ResourceAddress,
+    address::{AccountAddress, Address, ResourceAddress, TransactionAddress},
+    assets::NFIDs,
+    debug_info,
+    unwrap_unreachable::UnwrapUnreachable,
 };
 
 // use anyhow::Result;
@@ -153,14 +155,13 @@ impl TransactionId {
     const FROM_ACCOUNT_ADDRESS_LENGTH: usize = AccountAddress::CHECKSUM_LENGTH * 2;
     const LENGTH: usize =
         AccountAddress::CHECKSUM_LENGTH * 2 + TransactionAddress::CHECKSUM_LENGTH * 2;
-    const LENGTH_HALF: usize = Self::LENGTH / 2;
 
     pub fn new(account_address: &AccountAddress, tx_address: &TransactionAddress) -> Self {
         let mut transaction_id = [0u8; Self::LENGTH];
         transaction_id[..Self::FROM_ACCOUNT_ADDRESS_LENGTH]
-            .copy_from_slice(&account_address.checksum_double());
+            .copy_from_slice(account_address.checksum_double_slice());
         transaction_id[Self::FROM_ACCOUNT_ADDRESS_LENGTH..]
-            .copy_from_slice(&tx_address.checksum_double());
+            .copy_from_slice(tx_address.checksum_double_slice());
         Self(transaction_id)
     }
 
@@ -323,7 +324,7 @@ pub struct BalanceChangeId([u8; Self::LENGTH]);
 impl BalanceChangeId {
     const LENGTH: usize = TransactionId::CHECKSUM_LEN
         + AccountAddress::CHECKSUM_LENGTH
-        + ResourceAddress::CHECKSUM_LEN;
+        + ResourceAddress::CHECKSUM_LENGTH;
 
     const LAST_CHECKSUM_START: usize =
         TransactionId::CHECKSUM_LEN + AccountAddress::CHECKSUM_LENGTH;

@@ -1,15 +1,13 @@
-use std::sync::Arc;
-
 use super::{
     statements::{insert, upsert},
     AsyncDb, Db,
 };
-use anyhow::Result;
 use rusqlite::params;
 use types::{
+    address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
-    hashed_password::HashedPassword,
-    Account, AccountAddress, Resource, Transaction,
+    crypto::HashedPassword,
+    Account, Resource, Transaction,
 };
 
 impl Db {
@@ -163,9 +161,12 @@ impl Db {
 }
 
 impl AsyncDb {
-    pub async fn upsert_password_hash(&self, hash: HashedPassword) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
+    pub async fn upsert_password_hash(
+        &self,
+        hash: HashedPassword,
+    ) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn(move |conn| {
                 conn.prepare_cached(upsert::UPSERT_PASSWORD_HASH)?
                     .execute(params![1, hash])?;
                 Ok::<(), rusqlite::Error>(())
@@ -173,9 +174,9 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn upsert_account(&self, account: Account) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
+    pub async fn upsert_account(&self, account: Account) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn(move |conn| {
                 conn.prepare_cached(upsert::UPSERT_ACCOUNT)?
                     .execute(params![
                         account.address,
@@ -194,9 +195,12 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn upsert_resources(&self, resources: Vec<Resource>) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
+    pub async fn upsert_resources(
+        &self,
+        resources: Vec<Resource>,
+    ) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn_mut(move |conn| {
                 let tx = conn.transaction()?;
 
                 {
@@ -224,9 +228,9 @@ impl AsyncDb {
         &self,
         account_address: AccountAddress,
         fungibles: Vec<FungibleAsset>,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |connection| {
+    ) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn_mut(move |connection| {
                 let tx = connection.transaction()?;
 
                 {
@@ -251,9 +255,9 @@ impl AsyncDb {
         &self,
         account_address: AccountAddress,
         non_fungibles: Vec<NonFungibleAsset>,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |connection| {
+    ) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn_mut(move |connection| {
                 let tx = connection.transaction()?;
 
                 {
@@ -277,9 +281,9 @@ impl AsyncDb {
     pub async fn update_transaction_status(
         &self,
         transactions: Vec<Transaction>,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(move |conn| {
+    ) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn_mut(move |conn| {
                 let tx = conn.transaction()?;
 
                 {
@@ -303,9 +307,9 @@ impl AsyncDb {
     pub async fn insert_transactions(
         &self,
         transactions: Vec<Transaction>,
-    ) -> Result<(), rusqlite::Error> {
-        self.connection
-            .call_unwrap(|conn| {
+    ) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn_mut(|conn| {
                 let tx = conn.transaction()?;
 
                 {

@@ -4,7 +4,10 @@ use iced::{
     Element, Length, Task,
 };
 use ravault_iced_theme::styles;
-use types::{debug_info, unwrap_unreachable::UnwrapUnreachable, AccountAddress};
+use types::{
+    address::{AccountAddress, Address},
+    debug_info, UnwrapUnreachable,
+};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -63,16 +66,13 @@ impl<'a> Receive {
     }
 
     pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
-        let mut command = Task::none();
         match message {
             Message::CopyAddress(address) => {
                 self.notification =
                     Notification::Success("Address copied to clipboard".to_string());
-                command = iced::clipboard::write(address)
+                return iced::clipboard::write(address);
             }
         }
-
-        command
     }
 
     pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {

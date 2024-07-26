@@ -7,7 +7,7 @@ use debug_print::debug_println;
 use iced::{futures::future::join_all, widget::image::Handle};
 use image::DynamicImage;
 use store::IconCache;
-use types::{Network, ResourceAddress};
+use types::{address::ResourceAddress, Network};
 
 use crate::image::resize::{resize_small_dimensions, resize_standard_dimensions};
 

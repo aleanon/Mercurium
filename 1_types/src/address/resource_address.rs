@@ -1,118 +1,129 @@
-use std::ffi::OsString;
 use std::str::FromStr;
 
-// use anyhow::Result;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 
 use crate::unwrap_unreachable::UnwrapUnreachable;
-use crate::{debug_info, Address};
+use crate::{debug_info, Network};
 
-use super::ParseAddrError;
+use super::{AddressError, Address, AddressType};
 
-const RESOURCE_ADDRESS_LEN: usize = 67;
-const RES_ADDR_TRUNCATE_LEN: usize = 13;
-// #[derive(Debug, Error)]
-// pub enum ParseAddrError {
-//     InvalidLength{
-//         expected: usize,
-//         found: usize,
-//     },
-//     NonAsciiCharacter,
-// }
+static MAINNET_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(ResourceAddress::MAINNET_REGEX_PATTERN).unwrap());
 
-// impl std::fmt::Display for ParseAddrError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             ParseAddrError::NonAsciiCharacter => write!(f, "Non ASCII character"),
-//             ParseAddrError::InvalidLength { expected, found } => write!(f, "Invalid length, expected {}, found {}", expected, found),
-//         }
-//     }
-// }
+static STOKENET_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(ResourceAddress::STOKENET_REGEX_PATTERN).unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ResourceAddress([u8; RESOURCE_ADDRESS_LEN]);
+pub enum ResourceAddress {
+    Mainnet([u8; Self::MAINNET_LENGTH]),
+    Stokenet([u8; Self::STOKENET_LENGTH]),
+}
+
+impl Address for ResourceAddress {
+    const ADDRESS_TYPE: AddressType = AddressType::Resource;
+    const MAINNET_REGEX_PATTERN: &'static str = const_format::formatcp!(
+        "^{}{}[a-z0-9]{{{}}}$",
+        ResourceAddress::ADDRESS_TYPE_PREFIX,
+        ResourceAddress::MAINNET_PREFIX,
+        ResourceAddress::ADDRESS_LENGTH
+    );
+    const STOKENET_REGEX_PATTERN: &'static str = const_format::formatcp!(
+        "^{}{}[a-z0-9]{{{}}}$",
+        ResourceAddress::ADDRESS_TYPE_PREFIX,
+        ResourceAddress::STOKENET_PREFIX,
+        ResourceAddress::ADDRESS_LENGTH
+    );
+
+    fn as_bytes(&self) -> &[u8] {
+        match self {
+            Self::Mainnet(bytes) => bytes,
+            Self::Stokenet(bytes) => bytes,
+        }
+    }
+
+    fn checksum_start_index(&self) -> usize {
+        match self {
+            Self::Mainnet(_) => Self::MAINNET_CHECKSUM_START_INDEX,
+            Self::Stokenet(_) => Self::STOKENET_CHECKSUM_START_INDEX,
+        }
+    }
+
+    fn checksum_double_start_index(&self) -> usize {
+        match self {
+            Self::Mainnet(_) => Self::MAINNET_CHECKSUM_DOUBLE_START_INDEX,
+            Self::Stokenet(_) => Self::STOKENET_CHECKSUM_DOUBLE_START_INDEX,
+        }
+    }
+
+    fn address_start_index(&self) -> usize {
+        match self {
+            Self::Mainnet(_) => Self::MAINNET_ADDRESS_START_INDEX,
+            Self::Stokenet(_) => Self::STOKENET_ADDRESS_START_INDEX,
+        }
+    }
+
+    fn is_valid_address(network: Network, address: &str) -> bool {
+        match network {
+            Network::Mainnet => MAINNET_REGEX.is_match(address),
+            Network::Stokenet => STOKENET_REGEX.is_match(address),
+        }
+    }
+
+    fn network(&self) -> Network {
+        match self {
+            Self::Mainnet(_) => Network::Mainnet,
+            Self::Stokenet(_) => Network::Stokenet,
+        }
+    }
+}
 
 impl ResourceAddress {
-    pub const LENGTH: usize = 67;
-    pub const CHECKSUM_LEN: usize = 6;
-    pub const CHECKSUM_START_INDEX: usize = Self::LENGTH - Self::CHECKSUM_LEN;
-
-    pub fn empty() -> Self {
-        Self([b'0'; Self::LENGTH])
-    }
-
-    pub fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-
-    pub fn as_str(&self) -> &str {
-        std::str::from_utf8(&self.0)
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in resource address"))
-    }
-
-    pub fn truncate(&self) -> String {
-        let truncated = [
-            &self.0[..Address::TRUNCATE_PREFIX_LEN],
-            Address::TRUNCATE_DOTS.as_bytes(),
-            &self.0[Self::CHECKSUM_START_INDEX..],
-        ]
-        .concat();
-
-        String::from_utf8(truncated)
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in resource address"))
-    }
-
-    pub fn checksum(&self) -> [u8; 6] {
-        self.0[Self::CHECKSUM_START_INDEX..]
-            .try_into()
-            .unwrap_or_else(|_| unreachable!())
-    }
-
-    pub fn checksum_str(&self) -> &str {
-        std::str::from_utf8(&self.0[Self::CHECKSUM_START_INDEX..])
-            .unwrap_unreachable(debug_info!("Invalid UTF-8 in ResourceAddress"))
-    }
-
-    pub fn checksum_slice(&self) -> &[u8] {
-        &self.0[Self::CHECKSUM_START_INDEX..]
-    }
-}
-
-impl TryFrom<&[u8]> for ResourceAddress {
-    type Error = ParseAddrError;
-    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
-        if !value.is_ascii() {
-            return Err(ParseAddrError::NonAsciiCharacter);
+    #[cfg(test)]
+    pub fn empty(network: Network) -> Self {
+        match network {
+            Network::Mainnet => ResourceAddress::Mainnet([0; Self::MAINNET_LENGTH]),
+            Network::Stokenet => ResourceAddress::Stokenet([0; Self::STOKENET_LENGTH]),
         }
-
-        Ok(Self(value.try_into()?))
-    }
-}
-
-impl TryFrom<&OsString> for ResourceAddress {
-    type Error = ParseAddrError;
-
-    fn try_from(value: &OsString) -> Result<Self, Self::Error> {
-        ResourceAddress::try_from(value.as_encoded_bytes())
     }
 }
 
 impl FromStr for ResourceAddress {
-    type Err = ParseAddrError;
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        //switch to regex and check for specific constraints
-        if !s.is_ascii() {
-            return Err(ParseAddrError::NonAsciiCharacter);
-        }
+    type Err = AddressError;
 
-        Ok(Self(s.as_bytes().try_into()?))
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if MAINNET_REGEX.is_match(s) {
+            return Ok(Self::Mainnet(
+                s.as_bytes()
+                    .try_into()
+                    .map_err(|_| AddressError::InvalidLength)?,
+            ));
+        }
+        if STOKENET_REGEX.is_match(s) {
+            return Ok(Self::Stokenet(
+                s.as_bytes()
+                    .try_into()
+                    .map_err(|_| AddressError::InvalidLength)?,
+            ));
+        }
+        Err(AddressError::InvalidAddress)
     }
 }
 
 impl ToString for ResourceAddress {
     fn to_string(&self) -> String {
-        unsafe { String::from_utf8_unchecked(self.0.to_vec()) }
+        String::from_utf8(self.as_bytes().to_vec())
+            .unwrap_unreachable(debug_info!("Invalid Utf8 in AccountAddress"))
+    }
+}
+
+impl TryFrom<&[u8]> for ResourceAddress {
+    type Error = AddressError;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let s = std::str::from_utf8(value).map_err(|_| AddressError::InvalidUTF8)?;
+        ResourceAddress::from_str(s)
     }
 }
 
@@ -121,7 +132,20 @@ impl Serialize for ResourceAddress {
     where
         S: Serializer,
     {
-        serializer.serialize_newtype_struct("ResourceAddress", &self.0[..])
+        match self {
+            ResourceAddress::Mainnet(bytes) => serializer.serialize_newtype_variant(
+                "ResourceAddress",
+                0,
+                "Mainnet",
+                bytes.as_slice(),
+            ),
+            ResourceAddress::Stokenet(bytes) => serializer.serialize_newtype_variant(
+                "ResourceAddress",
+                1,
+                "Stokenet",
+                bytes.as_slice(),
+            ),
+        }
     }
 }
 
@@ -133,19 +157,16 @@ impl<'de> Deserialize<'de> for ResourceAddress {
         use serde::de::Error;
         let slice: &[u8] = Deserialize::deserialize(deserializer)?;
 
-        Ok(Self(slice.try_into().map_err(|err| Error::custom(err))?))
+        Ok(Self::try_from(slice).map_err(|err| Error::custom(err))?)
     }
 }
 
 impl rusqlite::types::FromSql for ResourceAddress {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
-            rusqlite::types::ValueRef::Blob(slice) => Ok(Self(slice.try_into().map_err(|_| {
-                rusqlite::types::FromSqlError::InvalidBlobSize {
-                    expected_size: RESOURCE_ADDRESS_LEN,
-                    blob_size: slice.len(),
-                }
-            })?)),
+            rusqlite::types::ValueRef::Blob(slice) => Ok(
+                Self::try_from(slice).map_err(|_| rusqlite::types::FromSqlError::InvalidType)?
+            ),
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }
@@ -154,7 +175,7 @@ impl rusqlite::types::FromSql for ResourceAddress {
 impl rusqlite::types::ToSql for ResourceAddress {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Borrowed(
-            rusqlite::types::ValueRef::Blob(self.0.as_ref()),
+            rusqlite::types::ValueRef::Blob(&self.as_bytes()),
         ))
     }
 }

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
 
-use types::{app_path::AppPath, notification::Notification, AppError, AppSettings};
+use types::{AppError, AppPath, AppSettings, Notification};
 
 pub fn get_app_settings() -> AppSettings {
     match File::open(AppPath::get().settings_path_ref()) {

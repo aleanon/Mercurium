@@ -1,99 +1,74 @@
+use std::ops::{Deref, DerefMut};
+
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeSet},
-    ops::{Deref, DerefMut},
+
+use crate::{
+    address::{AccountAddress, ResourceAddress},
+    response_models::{non_fungible_id_data::Field, NFTVaults},
 };
 
-use crate::response_models::{
-    entity_details::NFTVaults,
-    non_fungible_id_data::{Field},
-};
-
-use super::{MetaData, ResourceAddress};
+use super::AssetId;
 
 #[derive(Debug, Clone)]
-pub struct NonFungibles(pub BTreeSet<NonFungible>);
-
-impl NonFungibles {
-    pub fn new() -> Self {
-        Self(BTreeSet::new())
-    }
-    pub fn push(&mut self, item: NonFungible) {
-        self.0.insert(item);
-    }
-
-    // pub fn as_slice(&self) -> &[NonFungible] {
-    //     &self.0.
-    // }
-}
-
-impl From<BTreeSet<NonFungible>> for NonFungibles {
-    fn from(value: BTreeSet<NonFungible>) -> Self {
-        Self(value)
-    }
-}
-
-impl FromIterator<NonFungible> for NonFungibles {
-    fn from_iter<T: IntoIterator<Item = NonFungible>>(iter: T) -> Self {
-        Self(iter.into_iter().collect::<BTreeSet<NonFungible>>())
-    }
-}
-
-impl<'a> IntoIterator for &'a NonFungibles {
-    type Item = &'a NonFungible;
-    type IntoIter = std::collections::btree_set::Iter<'a, NonFungible>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
-    }
-}
-
-impl From<Vec<NonFungible>> for NonFungibles {
-    fn from(value: Vec<NonFungible>) -> Self {
-        value.into_iter().collect()
-    }
-}
-
-impl Deref for NonFungibles {
-    type Target = BTreeSet<NonFungible>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for NonFungibles {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct NonFungible {
-    pub name: String,
-    pub symbol: String,
-    pub description: Option<String>,
+pub struct NonFungibleAsset {
+    pub id: AssetId,
+    pub resource_address: ResourceAddress,
     pub nfids: NFIDs,
-    pub address: ResourceAddress,
-    pub last_updated_at_state_version: i64,
-    pub metadata: MetaData,
 }
 
-impl PartialEq for NonFungible {
+impl NonFungibleAsset {
+    pub fn new(
+        account_address: &AccountAddress,
+        nfids: NFIDs,
+        resource_address: ResourceAddress,
+    ) -> Self {
+        let id = AssetId::new(account_address, &resource_address);
+        Self {
+            id,
+            resource_address,
+            nfids,
+        }
+    }
+
+    pub fn take_nfids(&mut self) -> NFIDs {
+        self.nfids.drain(..).collect()
+    }
+
+    pub fn nfids_as_string(&mut self) -> Vec<String> {
+        self.nfids.drain(..).map(|nfid| nfid.get_id()).collect()
+    }
+
+    #[cfg(test)]
+    pub fn placeholder() -> Self {
+        Self {
+            id: AssetId::from_array([0; AssetId::LENGTH]),
+            resource_address: ResourceAddress::empty(crate::Network::Mainnet),
+            nfids: NFIDs::new(),
+        }
+    }
+}
+
+impl PartialEq for NonFungibleAsset {
     fn eq(&self, other: &Self) -> bool {
-        self.address == other.address
+        self.id == other.id && self.resource_address == other.resource_address
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.id != other.id || self.resource_address != other.resource_address
     }
 }
 
-impl Eq for NonFungible {}
+impl Eq for NonFungibleAsset {}
 
-impl PartialOrd for NonFungible {
+impl PartialOrd for NonFungibleAsset {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(self.resource_address.cmp(&other.resource_address))
     }
 }
 
-impl Ord for NonFungible {
+impl Ord for NonFungibleAsset {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.symbol.cmp(&other.symbol)
+        self.resource_address.cmp(&other.resource_address)
     }
 }
 
@@ -177,6 +152,27 @@ impl From<&NFTVaults> for NFIDs {
     }
 }
 
+impl rusqlite::types::FromSql for NFIDs {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        match value {
+            rusqlite::types::ValueRef::Blob(value) => Ok(serde_json::from_slice(value)
+                .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))?),
+            _ => Err(rusqlite::types::FromSqlError::InvalidType),
+        }
+    }
+}
+
+impl rusqlite::types::ToSql for NFIDs {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Owned(
+            rusqlite::types::Value::Blob(
+                serde_json::to_vec(self)
+                    .map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))?,
+            ),
+        ))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq)]
 pub struct NFID {
     id: String,
@@ -230,25 +226,4 @@ impl From<String> for NFID {
 pub struct NFData {
     key: String,
     value: String,
-}
-
-impl rusqlite::types::FromSql for NFIDs {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        match value {
-            rusqlite::types::ValueRef::Blob(value) => Ok(serde_json::from_slice(value)
-                .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))?),
-            _ => Err(rusqlite::types::FromSqlError::InvalidType),
-        }
-    }
-}
-
-impl rusqlite::types::ToSql for NFIDs {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(rusqlite::types::ToSqlOutput::Owned(
-            rusqlite::types::Value::Blob(
-                serde_json::to_vec(self)
-                    .map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))?,
-            ),
-        ))
-    }
 }

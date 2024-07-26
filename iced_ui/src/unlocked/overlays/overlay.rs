@@ -1,5 +1,5 @@
 use iced::{Element, Task};
-use types::AccountAddress;
+use types::address::AccountAddress;
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 

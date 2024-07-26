@@ -1,13 +1,11 @@
 use super::{AsyncDb, Db};
-use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator, ToAsyncIterator};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
+use std::collections::{BTreeSet, HashMap};
 use types::{
-    account::Account,
+    address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
-    hashed_password::HashedPassword,
-    resource::Resource,
-    transaction::{BalanceChange, TransactionId},
-    AccountAddress, Ed25519PublicKey, ResourceAddress, Transaction,
+    crypto::HashedPassword,
+    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
 };
 
 impl Db {
@@ -453,9 +451,9 @@ impl Db {
 }
 
 impl AsyncDb {
-    pub async fn get_db_password_hash(&self) -> Result<HashedPassword, rusqlite::Error> {
-        self.connection
-            .call_unwrap(|conn| {
+    pub async fn get_db_password_hash(&self) -> Result<HashedPassword, async_sqlite::Error> {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT password FROM password_hash WHERE id = 1")?
                     .query_row([], |row| Ok(row.get(0)?))
             })
@@ -465,9 +463,9 @@ impl AsyncDb {
     pub async fn get_account(
         &self,
         account_address: AccountAddress,
-    ) -> Result<Account, rusqlite::Error> {
-        self.connection
-            .call_unwrap(|conn| {
+    ) -> Result<Account, async_sqlite::Error> {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM accounts WHERE address = ?")?
                     .query_row([account_address], |row| {
                         Ok(Account {
@@ -487,12 +485,12 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn get_account_addresses<T>(&self) -> Result<T, rusqlite::Error>
+    pub async fn get_account_addresses<T>(&self) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<AccountAddress> + Send + 'static,
     {
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT address FROM accounts")?
                     .query_map([], |row| Ok(row.get(0)?))?
                     .collect()
@@ -500,12 +498,12 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn get_accounts<T>(&self) -> Result<T, rusqlite::Error>
+    pub async fn get_accounts<T>(&self) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<Account> + Send + 'static,
     {
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM accounts")?
                     .query_map([], |row| {
                         let account = Account {
@@ -527,15 +525,15 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn get_all_fungible_assets_per_account<T, U>(&self) -> Result<T, rusqlite::Error>
+    pub async fn get_all_fungible_assets_per_account<T, U>(&self) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<FungibleAsset> + Send + 'static,
     {
         let accounts = self.get_account_addresses::<Vec<_>>().await?;
 
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 let mut stmt =
                     conn.prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?;
 
@@ -562,13 +560,13 @@ impl AsyncDb {
     pub async fn get_fungible_assets_for_accounts<T, U>(
         &self,
         account_addresses: Vec<AccountAddress>,
-    ) -> Result<T, rusqlite::Error>
+    ) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<FungibleAsset> + Send + 'static,
     {
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 let mut stmt =
                     conn.prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?;
 
@@ -594,15 +592,17 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn get_all_non_fungible_assets_per_account<T, U>(&self) -> Result<T, rusqlite::Error>
+    pub async fn get_all_non_fungible_assets_per_account<T, U>(
+        &self,
+    ) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<NonFungibleAsset> + Send + 'static,
     {
         let accounts = self.get_account_addresses::<Vec<_>>().await?;
 
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 let mut stmt = conn.prepare_cached(
                     "SELECT * FROM non_fungible_assets WHERE account_address = ?",
                 )?;
@@ -632,13 +632,13 @@ impl AsyncDb {
     pub async fn get_non_fungible_assets_for_accounts<T, U>(
         &self,
         account_addresses: Vec<AccountAddress>,
-    ) -> Result<T, rusqlite::Error>
+    ) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<NonFungibleAsset> + Send + 'static,
     {
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 let mut stmt = conn.prepare_cached(
                     "SELECT * FROM non_fungible_assets WHERE account_address = ?",
                 )?;
@@ -666,12 +666,12 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn get_all_resources<T>(&self) -> Result<T, rusqlite::Error>
+    pub async fn get_all_resources<T>(&self) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<Resource> + Send + 'static,
     {
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM resources")?
                     .query_map([], |row| {
                         let resource = Resource {
@@ -693,18 +693,18 @@ impl AsyncDb {
     pub async fn get_last_transaction_for_account(
         &self,
         account_address: AccountAddress,
-    ) -> Result<Transaction, rusqlite::Error> {
+    ) -> Result<Transaction, async_sqlite::Error> {
         let mut transactions: BTreeSet<Transaction> =
             self.get_transactions_for_account(account_address).await?;
         transactions
             .pop_last()
-            .ok_or(rusqlite::Error::QueryReturnedNoRows)
+            .ok_or(rusqlite::Error::QueryReturnedNoRows.into())
     }
 
     pub async fn get_transactions_for_account<T>(
         &self,
         account_address: AccountAddress,
-    ) -> Result<T, rusqlite::Error>
+    ) -> Result<T, async_sqlite::Error>
     where
         T: FromAsyncIterator<Transaction> + Send + 'static,
     {
@@ -715,8 +715,8 @@ impl AsyncDb {
         let transactions: T = balance_changes
             .into_aiter()
             .afilter_map(|(transaction_id, balance_changes)| async move {
-                self.connection
-                    .call_unwrap(|conn| {
+                self.client
+                    .conn(|conn| {
                         conn.prepare_cached("SELECT * FROM transactions WHERE transaction_id = ?")?
                             .query_row([transaction_id], |row| {
                                 Ok(Transaction {
@@ -741,10 +741,10 @@ impl AsyncDb {
     pub async fn get_balance_changes_for_account(
         &self,
         account_address: AccountAddress,
-    ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, rusqlite::Error> {
+    ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, async_sqlite::Error> {
         type ReturnType = HashMap<TransactionId, Vec<BalanceChange>>;
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM balance_changes WHERE account_address = ?")?
                     .query_map([account_address], |row| {
                         let transaction_id: TransactionId = row.get(5)?;
@@ -780,13 +780,13 @@ impl AsyncDb {
             .await
     }
 
-    pub async fn get_all_transactions<T>(&self) -> Result<T, rusqlite::Error>
+    pub async fn get_all_transactions<T>(&self) -> Result<T, async_sqlite::Error>
     where
         T: FromAsyncIterator<Transaction> + Send + 'static,
     {
         let transactions: Vec<Transaction> = self
-            .connection
-            .call_unwrap(|conn| {
+            .client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM transactions")?
                     .query_map([], |row| {
                         Ok(Transaction {
@@ -821,12 +821,12 @@ impl AsyncDb {
     pub async fn get_balance_changes_for_transaction<T>(
         &self,
         transaction_id: TransactionId,
-    ) -> Result<T, rusqlite::Error>
+    ) -> Result<T, async_sqlite::Error>
     where
         T: FromIterator<BalanceChange> + Send + 'static,
     {
-        self.connection
-            .call_unwrap(|conn| {
+        self.client
+            .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM balance_changes WHERE transaction_id = ?")?
                     .query_map([transaction_id], |row| {
                         Ok(BalanceChange {

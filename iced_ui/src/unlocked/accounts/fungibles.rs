@@ -8,7 +8,7 @@ use ravault_iced_theme::styles;
 use store::IconCache;
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
-use types::{assets::FungibleAsset, AccountAddress};
+use types::{address::AccountAddress, assets::FungibleAsset};
 
 use super::{
     account_view, accounts_view,

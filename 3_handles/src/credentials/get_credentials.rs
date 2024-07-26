@@ -1,7 +1,4 @@
-use crate::{
-    credentials::{ENCRYPTED_MNEMONIC_TARGET_NAME, SALT_TARGET_NAME},
-    EncryptedMnemonic,
-};
+use crate::credentials::{ENCRYPTED_MNEMONIC_TARGET_NAME, SALT_TARGET_NAME};
 use types::{crypto::Salt, AppError};
 
 #[cfg(windows)]
@@ -10,6 +7,7 @@ pub use mswindows::*;
 #[cfg(windows)]
 mod mswindows {
     use super::*;
+    use types::crypto::EncryptedMnemonic;
     use windows::{
         core::PCWSTR,
         Win32::{
@@ -72,7 +70,6 @@ mod mswindows {
 
     #[cfg(test)]
     pub use tests::*;
-    use zeroize::Zeroize;
 
     #[cfg(test)]
     mod tests {

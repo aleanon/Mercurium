@@ -1,9 +1,15 @@
+use std::num::NonZeroU32;
+
+use ring::pbkdf2::{self, PBKDF2_HMAC_SHA512};
+use rusqlite::types::FromSql;
+use rusqlite::ToSql;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::hashed_password::HashedPassword;
+use crate::debug_info;
+use crate::unwrap_unreachable::UnwrapUnreachable;
 
-use super::{encryption_error::EncryptionError, key::Key, salt::Salt, HexKey};
+use super::{encryption_error::EncryptionError, key::Key, salt::Salt, DataBaseKey};
 
 #[derive(Debug, Error)]
 pub enum PasswordError {
@@ -59,14 +65,14 @@ impl Password {
         &self.0
     }
 
-    pub fn derive_new_db_encryption_key(&self) -> Result<(HexKey, Salt), PasswordError> {
+    pub fn derive_new_db_encryption_key(&self) -> Result<(DataBaseKey, Salt), PasswordError> {
         let salt = Salt::new()?;
         let key = Key::db_encryption_key(&salt, &self);
 
         Ok((key.into_hex_key(), salt))
     }
 
-    pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> HexKey {
+    pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> DataBaseKey {
         Key::db_encryption_key(salt, &self).into_hex_key()
     }
 
@@ -114,6 +120,50 @@ impl From<String> for Password {
             }
         }
         Self(string)
+    }
+}
+
+#[derive(PartialEq, Eq, ZeroizeOnDrop)]
+pub struct HashedPassword([u8; Self::LENGTH]);
+
+impl HashedPassword {
+    const LENGTH: usize = 64;
+    const HASH_ITERATIONS: u32 = 50000;
+
+    pub fn db_key_hash(salt: &Salt, password: &Password) -> Self {
+        let mut hash = [0u8; Self::LENGTH];
+        let iterations = NonZeroU32::new(Self::HASH_ITERATIONS)
+            .unwrap_unreachable(debug_info!("Nonzero value for password hash iterations"));
+
+        pbkdf2::derive(
+            PBKDF2_HMAC_SHA512,
+            iterations,
+            salt.as_bytes(),
+            password.as_str().as_bytes(),
+            &mut hash,
+        );
+
+        Self(hash)
+    }
+}
+
+impl ToSql for HashedPassword {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Borrowed(
+            rusqlite::types::ValueRef::Blob(&self.0),
+        ))
+    }
+}
+
+impl FromSql for HashedPassword {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        let blob = value.as_blob()?;
+        Ok(Self(blob.try_into().map_err(|_| {
+            rusqlite::types::FromSqlError::InvalidBlobSize {
+                expected_size: Self::LENGTH,
+                blob_size: blob.len(),
+            }
+        })?))
     }
 }
 

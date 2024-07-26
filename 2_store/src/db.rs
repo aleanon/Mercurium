@@ -1,11 +1,9 @@
-use anyhow::Result;
 use once_cell::sync::OnceCell;
 use thiserror::Error;
 
 use types::{
-    app_path::{AppPath, AppPathError},
-    crypto::{HexKey, Key},
-    Network,
+    crypto::DataBaseKey,
+    Network, {AppPath, AppPathError},
 };
 
 #[derive(Debug, Error)]
@@ -15,7 +13,7 @@ pub enum DbError {
     #[error("{0}")]
     RusqliteError(#[from] rusqlite::Error),
     #[error("{0}")]
-    TokioRusqliteError(#[from] tokio_rusqlite::Error),
+    AsyncSqliteError(#[from] async_sqlite::Error),
     #[error("Failed to create Db connection, source: {0}")]
     FailedToCreateConnection(#[from] std::io::Error),
     #[error("Database not initialized")]
@@ -26,6 +24,8 @@ pub enum DbError {
     UnableToEstablishPath(std::io::Error),
     #[error("Unable to establish path {0}")]
     PathError(#[from] AppPathError),
+    #[error("Invalid password")]
+    InvalidPassword,
 }
 
 pub static MAINNET_DB: OnceCell<AsyncDb> = once_cell::sync::OnceCell::new();
@@ -36,23 +36,23 @@ pub struct Db {
     pub connection: rusqlite::Connection,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AsyncDb {
-    pub(crate) connection: tokio_rusqlite::Connection,
+    pub(crate) client: async_sqlite::Client,
 }
 
 impl Db {
-    pub fn new(network: Network, key: &HexKey) -> Result<Db, DbError> {
+    pub fn new(network: Network, key: &DataBaseKey) -> Result<Db, DbError> {
         let connection = super::connection::connection_new_database(network, key)?;
 
-        let mut db = Self { connection };
+        let db = Self { connection };
 
         db.create_tables_if_not_exist()?;
 
         Ok(db)
     }
 
-    pub fn load(network: Network, key: &HexKey) -> Result<Self, DbError> {
+    pub fn load(network: Network, key: &DataBaseKey) -> Result<Self, DbError> {
         let connection = super::connection::connection_existing_database(network, key)?;
         Ok(Self { connection })
     }
@@ -69,9 +69,9 @@ impl Db {
 }
 
 impl AsyncDb {
-    pub async fn new(network: Network, key: HexKey) -> Result<Self, DbError> {
+    pub async fn new(network: Network, key: DataBaseKey) -> Result<Self, DbError> {
         let connection = super::connection::async_connection_new_database(network, key).await?;
-        let db = Self { connection };
+        let db = Self { client: connection };
         db.create_tables_if_not_exist().await?;
 
         match network {
@@ -85,38 +85,33 @@ impl AsyncDb {
         Ok(db)
     }
 
-    pub async fn load(network: Network, key: HexKey) -> Result<Self, DbError> {
+    pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         match network {
             Network::Mainnet => {
                 let connection =
                     super::connection::async_connection_existing_database(network, key).await?;
-                let db = Self { connection };
-                MAINNET_DB.set(db.clone()).ok();
+                let db = Self { client: connection };
+                let db = MAINNET_DB.get_or_init(|| db);
                 Ok(db)
             }
             Network::Stokenet => {
-                let connection =
+                let client =
                     super::connection::async_connection_existing_database(network, key).await?;
-                let db = Self { connection };
-                STOKENET_DB.set(db.clone()).ok();
+                let db = Self { client };
+                let db = STOKENET_DB.get_or_init(|| db);
                 Ok(db)
             }
         }
     }
 
-    pub async fn get_or_init(network: Network, key: HexKey) -> Result<&'static Self, DbError> {
-        if let Some(db) = Self::get(network).await {
-            return Ok(db);
-        } else {
-            let db = Self::load(network, key).await?;
-            match network {
-                Network::Mainnet => Ok(MAINNET_DB.get_or_init(|| db)),
-                Network::Stokenet => Ok(STOKENET_DB.get_or_init(|| db)),
-            }
+    pub async fn get_or_init(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
+        match Self::get(network) {
+            Some(db) => Ok(db),
+            None => Self::load(network, key).await,
         }
     }
 
-    pub async fn get(network: Network) -> Option<&'static Self> {
+    pub fn get(network: Network) -> Option<&'static Self> {
         match network {
             Network::Mainnet => MAINNET_DB.get(),
             Network::Stokenet => STOKENET_DB.get(),
@@ -127,8 +122,8 @@ impl AsyncDb {
         AppPath::get().db_path_ref(network).exists()
     }
 
-    pub async fn with_connection(connection: tokio_rusqlite::Connection) -> Self {
-        Self { connection }
+    pub fn with_connection(client: async_sqlite::Client) -> Self {
+        Self { client }
     }
 }
 

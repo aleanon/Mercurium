@@ -3,15 +3,14 @@ use std::collections::{BTreeSet, HashMap};
 use debug_print::debug_println;
 use iced::advanced::Application;
 use iced::widget::image::Handle;
-use iced::widget::{column, container, text};
-use iced::{futures::channel::mpsc::Sender as MpscSender, Task};
+use iced::widget::{container, text};
+use iced::Task;
 use iced::{Length, Renderer};
 use types::assets::{FungibleAsset, NonFungibleAsset};
-use types::crypto::Password;
-use types::notification::Notification;
+use types::Notification;
 use types::{
-    theme::Theme, Account, AccountAddress, Action, AppError, AppSettings, Network, Resource,
-    ResourceAddress,
+    address::{AccountAddress, ResourceAddress},
+    Account, AppError, AppSettings, Network, Resource, Theme,
 };
 // use iced_futures::futures::channel::mpsc::Sender as MpscSender;
 // use iced_futures::futures::SinkExt;
@@ -45,16 +44,11 @@ pub struct AppData {
     pub resources: HashMap<ResourceAddress, Resource>,
     pub resource_icons: HashMap<ResourceAddress, Handle>,
     pub settings: AppSettings,
-    // Holds the sender for cloning into async tasks, there is a subscription
-    // that listens on the receiver and produces Messages
-    pub backend_sender: MpscSender<Action>,
-    pub address_decoder: scrypto::address::AddressBech32Decoder,
     pub db: Option<Db>,
 }
 
 impl AppData {
     pub fn new(settings: AppSettings) -> Self {
-        let address_decoder = scrypto::address::AddressBech32Decoder::new(&settings.network.into());
         Self {
             accounts: HashMap::new(),
             fungibles: HashMap::new(),
@@ -62,11 +56,6 @@ impl AppData {
             resources: HashMap::new(),
             resource_icons: HashMap::new(),
             settings,
-            // Placeholder channel until the usable channel is returned from the subscription
-            backend_sender: iced::futures::channel::mpsc::channel::<Action>(0).0,
-            address_decoder,
-            // Placeholder in-memory database until the actual database is received from the subscription
-            // Placeholder in-memory database until the actual database is received from the subscription
             db: None,
         }
     }
@@ -134,10 +123,16 @@ impl Application for App {
                 }
             }
             AppMessage::Login(login_message) => match login_message {
-                loginscreen::Message::Login => match self.login() {
-                    Ok(task) => return task,
-                    Err(err) => self.handle_error(err),
-                },
+                loginscreen::Message::LoginSuccess => {
+                    let task = {
+                        let AppState::Locked(loginscreen) = &mut self.app_state else {
+                            unreachable!("Attempted to call login when not in a locked state")
+                        };
+                        loginscreen.update(login_message, &mut self.app_data)
+                    };
+                    self.app_state = AppState::Unlocked;
+                    return task;
+                }
                 _ => {
                     if let AppState::Locked(ref mut loginscreen) = &mut self.app_state {
                         return loginscreen.update(login_message, &mut self.app_data);
@@ -187,54 +182,6 @@ impl Application for App {
 }
 
 impl<'a> App {
-    pub fn login(&mut self) -> Result<Task<AppMessage>, AppError> {
-        let (is_initial, password) = match &self.app_state {
-            AppState::Locked(loginscreen) => {
-                (loginscreen.application_is_starting, &loginscreen.password)
-            }
-            _ => {
-                return Err(AppError::Fatal(
-                    "Called login when not in locked state".to_string(),
-                ))
-            }
-        };
-
-        let salt = handles::credentials::get_db_encryption_salt()?;
-        let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
-
-        debug_println!("Initial login");
-
-        let key = password.derive_db_encryption_key_from_salt(&salt);
-
-        debug_println!("Key created");
-
-        let db = Db::load(self.app_data.settings.network, &key)
-            .map_err(|err| AppError::Fatal(err.to_string()))?;
-
-        debug_println!("Database successfully loaded");
-
-        let target_hash = db
-            .get_db_password_hash()
-            .map_err(|err| AppError::Fatal(err.to_string()))?;
-
-        if password_hash == target_hash {
-            self.app_state = AppState::Unlocked;
-            if is_initial {
-                return Ok(tasks::initial_login_tasks(self.app_data.settings.network));
-            } else {
-                return Ok(Task::none());
-            }
-        } else {
-            let AppState::Locked(loginscreen) = &mut self.app_state else {
-                return Err(AppError::Fatal(
-                    "Called login when not in locked state".to_string(),
-                ));
-            };
-            loginscreen.notification = "Incorrect password".to_string();
-            return Err(AppError::NonFatal(Notification::None));
-        }
-    }
-
     pub fn handle_error(&mut self, err: AppError) {
         debug_println!("Error: {err}");
         match err {

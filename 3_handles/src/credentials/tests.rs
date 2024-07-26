@@ -1,9 +1,7 @@
 #![cfg(test)]
 
 use bip39::Mnemonic;
-use types::crypto::Password;
-
-use crate::EncryptedMnemonic;
+use types::crypto::{EncryptedMnemonic, Password};
 
 use super::{delete::*, get_credentials::*, store_credentials::*};
 

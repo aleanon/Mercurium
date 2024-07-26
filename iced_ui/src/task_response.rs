@@ -7,7 +7,10 @@ use iced::Task;
 
 use store::{AsyncDb, DbError};
 use types::{
-    assets::FungibleAsset, AccountsUpdate, AppError, AppdataFromDisk, Network, ResourceAddress,
+    address::ResourceAddress,
+    assets::FungibleAsset,
+    collections::{AccountsUpdate, AppdataFromDisk},
+    AppError, Network,
 };
 
 use crate::{
@@ -23,7 +26,6 @@ pub enum Message {
     AccountsAndResources(AppdataFromDisk),
     Icons((Network, HashMap<ResourceAddress, Handle>)),
     WalletCreated,
-    LoginSuccess(bool),
     Error(AppError),
 }
 
@@ -48,12 +50,6 @@ impl App {
                 return self.place_accounts_and_resources_in_memory(accounts_and_resources)
             }
             Message::WalletCreated => return self.wallet_created(),
-            Message::LoginSuccess(is_initial) => {
-                self.app_state = AppState::Unlocked;
-                if is_initial {
-                    return tasks::initial_login_tasks(self.app_data.settings.network);
-                }
-            }
             Message::Error(err) => self.handle_error(err),
         }
         Task::none()
@@ -157,7 +153,7 @@ impl App {
             let network = self.app_data.settings.network;
             Task::perform(
                 async move {
-                    let Some(db) = AsyncDb::get(network).await else {
+                    let Some(db) = AsyncDb::get(network) else {
                         return Err(DbError::DatabaseNotFound);
                     };
                     db.upsert_resources(new_resources).await?;
