@@ -13,7 +13,7 @@ use types::{AppError, Network};
 use zeroize::Zeroize;
 
 use crate::app::AppData;
-use crate::task_response;
+use crate::external_task_response;
 use crate::{app::App, app::AppMessage};
 
 use super::setup;
@@ -23,12 +23,6 @@ const NON_ASCII_CHARACTERS: &str = "Password contains invalid characters";
 const EMPTY_ACCOUNT_NAME: &str = "Account name can not be empty";
 const MINIMUM_PASSWORD_LENGTH: usize = 16;
 const MAXIMUM_PASSWORD_LENGTH: usize = 64;
-
-struct UnsafeNewWallet<'a>(&'a mut NewWallet);
-struct UnsafeAppData<'a>(&'a mut AppData);
-
-unsafe impl<'a> Send for UnsafeAppData<'a> {}
-unsafe impl<'a> Send for UnsafeNewWallet<'a> {}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -63,13 +57,13 @@ pub enum NewWalletStage {
 
 #[derive(Debug)]
 pub struct NewWallet {
-    pub(crate) stage: NewWalletStage,
-    pub(crate) notification: &'static str,
-    pub(crate) password: Password,
-    pub(crate) verify_password: Password,
-    pub(crate) account_name: String,
-    pub(crate) mnemonic: Option<Mnemonic>,
-    pub(crate) seed_phrase: SeedPhrase,
+    pub stage: NewWalletStage,
+    pub notification: &'static str,
+    pub password: Password,
+    pub verify_password: Password,
+    pub account_name: String,
+    pub mnemonic: Option<Mnemonic>,
+    pub seed_phrase: SeedPhrase,
 }
 
 impl<'a> NewWallet {
@@ -275,8 +269,8 @@ impl<'a> NewWallet {
                 Ok(())
             },
             |result| match result {
-                Ok(_) => task_response::Message::WalletCreated.into(),
-                Err(err) => task_response::Message::Error(err).into(),
+                Ok(_) => external_task_response::Message::WalletCreated.into(),
+                Err(err) => external_task_response::Message::Error(err).into(),
             },
         )
     }

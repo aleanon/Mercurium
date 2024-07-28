@@ -9,7 +9,7 @@ use zeroize::Zeroize;
 
 use crate::{
     app::{AppData, AppMessage},
-    task_response,
+    external_task_response,
     unlocked::app_view,
 };
 
@@ -163,9 +163,9 @@ impl<'a> AddAccountView {
                     },
                     |result| match result {
                         Ok(accounts_update) => {
-                            task_response::Message::AccountsUpdated(accounts_update).into()
+                            external_task_response::Message::AccountsUpdated(accounts_update).into()
                         }
-                        Err(err) => task_response::Message::Error(err).into(),
+                        Err(err) => external_task_response::Message::Error(err).into(),
                     },
                 )
             }

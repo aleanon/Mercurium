@@ -7,8 +7,8 @@ mod subscription;
 mod unlocked;
 // mod view;
 mod common;
-mod task_response;
-mod tasks;
+mod external_task_response;
+mod external_tasks;
 // mod styles;
 //mod theme;
 

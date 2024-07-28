@@ -1,8 +1,10 @@
+use std::str::FromStr;
+
 use bip39::Mnemonic;
 use types::{
     address::AccountAddress,
     crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair},
-    Account, Network,
+    debug_info, Account, Network, UnwrapUnreachable,
 };
 
 pub fn create_account_from_mnemonic(
@@ -24,14 +26,8 @@ pub fn create_account_from_mnemonic(
 
     let radixdlt_pub_key = keypair.radixdlt_public_key();
     let account_address = keypair.bech32_address();
-    let account_address =
-        AccountAddress::try_from(account_address.as_bytes()).unwrap_or_else(|err| {
-            unreachable!(
-                "{}:{} Invalid account address: {err}",
-                module_path!(),
-                line!()
-            )
-        });
+    let account_address = AccountAddress::from_str(account_address.as_str())
+        .unwrap_unreachable(debug_info!("Invalid account address"));
 
     let account = Account::new(
         id,

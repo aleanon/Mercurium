@@ -1,15 +1,29 @@
 use bip39::Mnemonic;
-use types::crypto::{Password, SeedPhrase};
+use types::{
+    address::AccountAddress,
+    crypto::{Password, SeedPhrase},
+    Account,
+};
 
 use super::new_wallet::NewWalletStage;
 
 #[derive(Debug)]
-pub struct NewWallet {
-    pub(crate) stage: NewWalletStage,
-    pub(crate) notification: &'static str,
-    pub(crate) password: Password,
-    pub(crate) verify_password: Password,
-    pub(crate) account_name: String,
-    pub(crate) mnemonic: Option<Mnemonic>,
-    pub(crate) seed_phrase: SeedPhrase,
+pub enum Stage {
+    EnterSeedPhrase,
+    EnterPassword,
+    ChooseAccounts,
+    NameAccounts,
+    Finalizing,
+}
+
+#[derive(Debug)]
+pub struct RestoreFromSeed {
+    pub stage: Stage,
+    pub notification: &'static str,
+    pub seed_phrase: SeedPhrase,
+    pub seed_password: Option<Password>,
+    pub mnemonic: Option<Mnemonic>,
+    pub password: Password,
+    pub verify_password: Password,
+    pub accounts: Vec<Account>,
 }

@@ -21,7 +21,7 @@ use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
 use crate::unlocked::app_view::AppView;
-use crate::{task_response, tasks};
+use crate::{external_task_response, external_tasks};
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
@@ -29,7 +29,7 @@ pub enum AppMessage {
     Login(loginscreen::Message),
     AppView(unlocked::app_view::Message),
     Error(ErrorMessage),
-    TaskResponse(task_response::Message),
+    TaskResponse(external_task_response::Message),
     Common(Message),
     ToggleTheme,
     None,

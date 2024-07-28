@@ -9,7 +9,7 @@ use zeroize::Zeroize;
 
 use crate::{
     app::{AppData, AppMessage},
-    task_response, tasks,
+    external_task_response, external_tasks,
 };
 
 #[derive(Debug, Clone)]
@@ -71,7 +71,7 @@ impl<'a> LoginScreen {
             }
             Message::LoginSuccess => {
                 if self.application_is_starting {
-                    return tasks::initial_login_tasks(appdata.settings.network);
+                    return external_tasks::initial_login_tasks(appdata.settings.network);
                 };
             }
         }
@@ -84,38 +84,11 @@ impl<'a> LoginScreen {
         self.password.clear();
         let network = appdata.settings.network;
         Task::perform(
-            async move {
-                let salt = handles::credentials::get_db_encryption_salt()?;
-                let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
-
-                let key = password.derive_db_encryption_key_from_salt(&salt);
-
-                debug_println!("Key created");
-
-                let db = AsyncDb::get_or_init(network, key)
-                    .await
-                    .map_err(|err| AppError::Fatal(err.to_string()))?;
-
-                debug_println!("Database successfully loaded");
-
-                let target_hash = db
-                    .get_db_password_hash()
-                    .await
-                    .map_err(|err| AppError::Fatal(err.to_string()))?;
-
-                if password_hash == target_hash {
-                    debug_println!("Correct password");
-                    return Ok(());
-                } else {
-                    return Err(AppError::NonFatal(types::Notification::Info(
-                        "Incorrect Password".to_string(),
-                    )));
-                }
-            },
+            async move { handles::wallet::perform_login_check(network, password).await },
             |result| match result {
                 Ok(_) => Message::LoginSuccess.into(),
                 Err(err) => match err {
-                    AppError::Fatal(_) => task_response::Message::Error(err).into(),
+                    AppError::Fatal(_) => external_task_response::Message::Error(err).into(),
                     AppError::NonFatal(notification) => {
                         Message::LoginFailed(notification.to_string()).into()
                     }

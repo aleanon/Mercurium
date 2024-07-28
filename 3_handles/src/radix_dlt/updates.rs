@@ -7,30 +7,32 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use types::{
     address::{AccountAddress, Address, ResourceAddress},
-    assets::NFID,
-    assets::{FungibleAsset, NonFungibleAsset},
+    assets::{FungibleAsset, NonFungibleAsset, NFID},
     collections::{AccountUpdate, AccountsUpdate},
-    Account, Network, Resource, Ur,
+    Account, AppError, Network, Resource, Ur,
 };
 
 #[derive(Debug, Error)]
 pub enum UpdateError {
-    #[error("Error connecting to gateway")]
+    #[error("Error connecting to gateway\n ∟{0}")]
     GatewayError(#[from] radix_gateway_sdk::Error),
     #[error("Error parsing response")]
     ResponseParseError,
-    #[error("Error pasing address")]
+    #[error("Error parsing address")]
     AddressParseError,
     #[error("No assets found")]
     EmptyResponse,
 }
 
-pub async fn update_all_accounts(network: Network, db: &AsyncDb) -> AccountsUpdate {
+pub async fn update_all_accounts(network: Network) -> Result<AccountsUpdate, AppError> {
+    let db =
+        AsyncDb::get(network).ok_or(AppError::Fatal("Database not initialized".to_string()))?;
+
     let accounts = db.get_accounts().await.unwrap_or(Vec::new());
     let resource_map = db.get_all_resources().await.unwrap_or(HashMap::new());
     let resources = Arc::new(resource_map);
 
-    update_accounts(network, resources, accounts).await
+    Ok(update_accounts(network, resources, accounts).await)
 }
 
 pub async fn update_accounts(
@@ -149,32 +151,33 @@ pub async fn update_resources(
     network: Network,
     resources: Vec<ResourceAddress>,
 ) -> HashMap<ResourceAddress, (Resource, String)> {
-    const CHUNK_SIZE: usize = 20;
-    
-    let tasks = resources.chunks(CHUNK_SIZE).map(|chunk| {
-        let chunk = chunk.to_owned();
+    let tasks = resources
+        .chunks(gateway_requests::ENTITY_DETAILS_MAX_ADDRESSES)
+        .map(|chunk| {
+            let chunk = chunk.to_owned();
 
-        tokio::spawn(async move {
-            let addresses = chunk
-                .iter()
-                .map(|address| address.as_str())
-                .collect::<Vec<_>>();
+            tokio::spawn(async move {
+                let addresses = chunk
+                    .iter()
+                    .map(|address| address.as_str())
+                    .collect::<Vec<_>>();
 
-            let response = gateway_requests::get_entity_details(network.into(), &addresses).await?;
+                let response =
+                    gateway_requests::get_entity_details(network.into(), &addresses).await?;
 
-            let new_resources = response
-                .items
-                .into_iter()
-                .filter_map(|response_item| {
-                    let (resource_address, resource_and_icon_url) =
-                        parse_responses::parse_resource_details_response(response_item)?;
-                    Some((resource_address, resource_and_icon_url))
-                })
-                .collect::<HashMap<ResourceAddress, (Resource, String)>>();
+                let new_resources = response
+                    .items
+                    .into_iter()
+                    .filter_map(|response_item| {
+                        let (resource_address, resource_and_icon_url) =
+                            parse_responses::parse_resource_details_response(response_item)?;
+                        Some((resource_address, resource_and_icon_url))
+                    })
+                    .collect::<HashMap<ResourceAddress, (Resource, String)>>();
 
-            Ok::<_, UpdateError>(new_resources)
-        })
-    });
+                Ok::<_, UpdateError>(new_resources)
+            })
+        });
 
     join_all(tasks)
         .await
