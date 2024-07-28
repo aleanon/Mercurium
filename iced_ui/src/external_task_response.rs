@@ -15,7 +15,7 @@ use types::{
 
 use crate::{
     app::{AppMessage, AppState},
-    tasks, App,
+    external_tasks, App,
 };
 
 // Uses a newtype wrapper because the Update type is used in the backend crate and has to be defined in the types crate
@@ -220,7 +220,7 @@ impl App {
     fn wallet_created(&mut self) -> Task<AppMessage> {
         self.app_state = AppState::Unlocked;
 
-        tasks::update_accounts(self.app_data.settings.network)
+        external_tasks::update_accounts(self.app_data.settings.network)
     }
 
     fn place_accounts_and_resources_in_memory(
