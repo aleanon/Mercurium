@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+
 use super::{Password, Salt};
 use bip39::Mnemonic;
 use ring::aead::{
@@ -68,7 +70,7 @@ impl NonceSequence for MnemonicNonceSequence {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedMnemonic {
-    cypher_text: Vec<u8>,
+    cipher_text: Vec<u8>,
     salt: Salt,
     nonce_bytes: [u8; NONCE_LEN],
 }
@@ -95,7 +97,7 @@ impl EncryptedMnemonic {
         key.zeroize();
 
         Ok(Self {
-            cypher_text: mnemonic,
+            cipher_text: mnemonic,
             salt: salt,
             nonce_bytes: nonce,
         })
@@ -113,7 +115,7 @@ impl EncryptedMnemonic {
         ));
         let mut opening_key = OpeningKey::new(unbound_key, nonce_sequence);
 
-        let mut data = self.cypher_text.clone();
+        let mut data = self.cipher_text.clone();
 
         let phrase = opening_key
             .open_in_place(Aad::empty(), &mut data)
@@ -142,7 +144,7 @@ mod test {
 
     impl EncryptedMnemonic {
         pub fn get_cypher_text(&self) -> Vec<u8> {
-            self.cypher_text.clone()
+            self.cipher_text.clone()
         }
     }
 
@@ -171,7 +173,7 @@ mod test {
         println!(
             "{} \n{:?}",
             mnemonic.phrase(),
-            encrypted_mnemonic.cypher_text
+            encrypted_mnemonic.cipher_text
         );
 
         let decrypted = encrypted_mnemonic

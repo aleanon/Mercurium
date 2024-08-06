@@ -7,6 +7,8 @@ use types::{
     debug_info, Account, Network, UnwrapUnreachable,
 };
 
+pub fn create_multiple_accounts(mnemonic: &Mnemonic, password: Option<&str>)
+
 pub fn create_account_from_mnemonic(
     mnemonic: &Mnemonic,
     password: Option<&str>,

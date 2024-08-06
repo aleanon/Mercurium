@@ -2,6 +2,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
 
+/// Stack allocated wrapper around [[[u8]]] that implements `ZeroizeOnDrop`
 #[derive(Debug, ZeroizeOnDrop, Zeroize)]
 pub struct SeedPhrase([[u8; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT]);
 
@@ -35,8 +36,6 @@ impl SeedPhrase {
     ///Returns a reference to the word at the given index
     pub fn reference_word(&self, index: usize) -> Option<&str> {
         if index < Self::WORD_COUNT {
-            //The SeedPhrase words can only be created from a &str, it is therefore not possible
-            //to have a non-utf8 byte slice
             let mut trimmed = self.0[index].as_slice();
 
             while let [rest @ .., last] = trimmed {
@@ -47,6 +46,8 @@ impl SeedPhrase {
                 }
             }
 
+            //The SeedPhrase words can only be created from a &str, it is therefore not possible
+            //to have a non-utf8 byte slice
             let trimmed_str = std::str::from_utf8(trimmed)
                 .unwrap_unreachable(debug_info!("Invalid utf8 in byte slice"));
 
@@ -88,7 +89,7 @@ impl SeedPhrase {
 pub struct Phrase(String);
 
 impl Phrase {
-    //The Phrase is created with mnemonic phrase max length to avoid possible re-allocations
+    //The Phrase is created with SeedPhrase max length to avoid possible re-allocations
     //as this can interfere with the ZeroizeOnDrop trait
     pub fn new() -> Self {
         Phrase(String::with_capacity(SeedPhrase::MAX_PHRASE_LENGTH))

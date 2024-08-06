@@ -30,7 +30,7 @@ pub struct AppPathInner {
 }
 
 impl AppPathInner {
-    const APP_DIRECTORY: &'static str = "Ravault";
+    pub const APP_DIRECTORY: &'static str = "Ravault";
     const APP_SETTINGS_FILE_NAME: &'static str = "settings";
     const APP_SETTINGS_EXTENSION: &'static str = "json";
     const STORE_DIRECTORY: &'static str = "database";
@@ -177,7 +177,7 @@ impl AppPathInner {
     }
 }
 
-// The use of this type required the PATH static to be set at program startup and never Uninitialized.
+// // The use of this type required the PATH static to be set at program startup and never Uninitialized.
 pub struct AppPath;
 
 impl AppPath {

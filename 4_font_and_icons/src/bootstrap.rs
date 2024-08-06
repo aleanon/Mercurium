@@ -6200,7 +6200,7 @@ impl From<Bootstrap> for String {
 
 impl<'a> IntoFragment<'a> for Bootstrap {
     fn into_fragment(self) -> text::Fragment<'a> {
-        Fragment::Owned(self.to_string())
+        Fragment::Owned(icon_to_string(self))
     }
 }
 

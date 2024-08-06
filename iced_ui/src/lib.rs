@@ -1,21 +1,18 @@
 mod app;
-mod error;
-mod initial;
-mod locked;
-// mod message;
-mod subscription;
-mod unlocked;
-// mod view;
 mod common;
+mod error;
 mod external_task_response;
 mod external_tasks;
-// mod styles;
-//mod theme;
+mod initial;
+mod locked;
+mod reusable_elements;
+mod subscription;
+mod unlocked;
 
 use std::borrow::Cow;
 
 pub use app::App;
-use font_and_icons::images::WINDOW_LOGO;
+use font_and_icons::{images::WINDOW_LOGO, BOOTSTRAP_FONT_BYTES};
 use iced::{
     advanced::Application,
     window::{self},
@@ -44,9 +41,7 @@ pub fn run() -> Result<(), iced::Error> {
         id: Some(String::from("ravault")),
         ..Default::default()
     };
-    settings
-        .fonts
-        .push(Cow::Borrowed(iced_aw::BOOTSTRAP_FONT_BYTES));
+    settings.fonts.push(Cow::Borrowed(BOOTSTRAP_FONT_BYTES));
 
     App::run(settings)?;
     Ok(())

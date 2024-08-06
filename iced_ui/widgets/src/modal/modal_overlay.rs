@@ -1,7 +1,7 @@
 //! A modal for showing elements as an overlay on top of another.
 //!
 //! *This API requires the following crate features to be activated: modal*
-use crate::style::StyleSheet;
+use super::style::StyleSheet;
 use iced::{
     advanced::{
         layout::{Limits, Node},

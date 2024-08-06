@@ -25,7 +25,8 @@ flate2 = { workspace = true }
 bytes = { workspace = true }
 tokio = { workspace = true }
 radix-gateway-sdk = { workspace = true }
-chrono = { workspace = true }
+# chrono = { workspace = true }
+once_cell = { workspace = true }
 
 #test
 iced = { workspace = true, features = ["image"] }

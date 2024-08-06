@@ -1,15 +1,14 @@
 use bip39::Mnemonic;
 use store::Db;
 use types::{
-    crypto::{EncryptedMnemonic, Password},
-    AppError, Network,
+    crypto::{EncryptedMnemonic, Password}, Account, AppError, Network
 };
 
-pub fn create_new_wallet(
+pub fn create_new_wallet_with_accounts(
     mnemonic: &Mnemonic,
     seed_password: Option<&str>,
     app_password: &Password,
-    account_name: String,
+    accounts: Vec<Account>,
     network: Network,
     db: &mut Db,
 ) -> Result<(), AppError> {
@@ -32,6 +31,7 @@ pub fn create_new_wallet(
         network,
     );
 
+    db.ups
     db.upsert_account(&account).ok();
 
     Ok(())
