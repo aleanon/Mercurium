@@ -35,7 +35,8 @@ pub enum Message {
     SubmitAccName,
     SeedPhrase,
     VerifySeedPhrase,
-    UpdateInputSeed((usize, Vec<String>)),
+    InputSeedWord((usize, String)),
+    PasteInputSeed((usize, Vec<String>)),
     Finalize,
 }
 
@@ -77,12 +78,13 @@ impl<'a> NewWallet {
             Message::UpdatePassword(mut input) => self.password_input(&mut input),
             Message::SubmitPassword => self.submit_password(),
             Message::UpdateVerificationPassword(input) => self.verify_password_input(input),
-            Message::VerifiPassword => self.verifi_password(),
+            Message::VerifiPassword => self.verify_password(),
             Message::UpdateAccName(input) => self.update_account_name_input(input),
             Message::SubmitAccName => self.submit_account_name(),
             Message::SeedPhrase => self.go_to_show_seed_phrase(),
             Message::VerifySeedPhrase => self.go_to_verify_seed_phrase(),
-            Message::UpdateInputSeed((index, words)) => self.update_input_seed(index, words),
+            Message::InputSeedWord((word_index, input)) => self.input_seed_word(word_index, input),
+            Message::PasteInputSeed((index, words)) => self.paste_input_seed(index, words),
             Message::Finalize => return Ok(self.create_wallet(app_data)),
         }
         Ok(Task::none())
@@ -148,7 +150,7 @@ impl<'a> NewWallet {
         input.zeroize();
     }
 
-    fn verifi_password(&mut self) {
+    fn verify_password(&mut self) {
         if self.verify_password.as_str() == self.password.as_str() {
             self.stage = NewWalletStage::EnterAccountName;
             self.notification = "";
@@ -183,7 +185,12 @@ impl<'a> NewWallet {
         self.notification = "";
     }
 
-    fn update_input_seed(&mut self, mut index: usize, words: Vec<String>) {
+    fn input_seed_word(&mut self, word_index: usize, mut input: String) {
+        self.seed_phrase.update_word(word_index, input.as_str());
+        input.zeroize()
+    }
+
+    fn paste_input_seed(&mut self, mut index: usize, words: Vec<String>) {
         for mut word in words {
             self.seed_phrase.update_word(index, &word);
             word.zeroize();
@@ -487,11 +494,7 @@ impl<'a> NewWallet {
 
             let text_field = Self::seed_word_field(&format!("Word {}", i + 1), word)
                 .id(Id::new(format!("{i}")))
-                .on_input(move |string| {
-                    let i = i;
-                    let input = vec![string];
-                    Message::UpdateInputSeed((i, input)).into()
-                })
+                .on_input(move |input| Message::InputSeedWord((i, input)).into())
                 .on_paste(move |mut string| {
                     let i = i;
                     let input = string
@@ -499,7 +502,7 @@ impl<'a> NewWallet {
                         .map(|s| String::from(s))
                         .collect::<Vec<String>>();
                     string.zeroize();
-                    Message::UpdateInputSeed((i, input)).into()
+                    Message::PasteInputSeed((i, input)).into()
                 });
 
             row = row.push(text_field);

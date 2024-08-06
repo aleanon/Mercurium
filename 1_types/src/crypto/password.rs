@@ -41,11 +41,20 @@ impl Password {
         self.0.pop()
     }
 
+    /// Replaces the current password with the supplied [&str]
+    pub fn replace_str(&mut self, s: &str) {
+        if s.len() <= Self::MAX_LEN {
+            self.0.replace_range(0..s.len(), s)
+        } else {
+            self.0.replace_range(0..Self::MAX_LEN, &s[..Self::MAX_LEN])
+        }
+    }
+
     pub fn push_str(&mut self, s: &str) {
         let len = self.0.len();
         if len < Self::MAX_LEN {
             let max_len = Self::MAX_LEN - len;
-            if s.len() <= max_len {
+            if len <= max_len {
                 self.0.push_str(s);
             } else {
                 self.0.push_str(&s[..max_len]);
@@ -69,11 +78,11 @@ impl Password {
         let salt = Salt::new()?;
         let key = Key::db_encryption_key(&salt, &self);
 
-        Ok((key.into_hex_key(), salt))
+        Ok((key.into_database_key(), salt))
     }
 
     pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> DataBaseKey {
-        Key::db_encryption_key(salt, &self).into_hex_key()
+        Key::db_encryption_key(salt, &self).into_database_key()
     }
 
     pub fn derive_db_encryption_key_hash_from_salt(&self, salt: &Salt) -> HashedPassword {

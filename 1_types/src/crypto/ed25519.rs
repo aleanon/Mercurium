@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use bip39::{Mnemonic, Seed};
 use ed25519_dalek_fiat::{PublicKey, SecretKey};
 use scrypto::{
@@ -33,7 +35,7 @@ pub enum Bip32KeyKind {
 }
 
 ///A key-pair from the dalek_ed25519_fiat crate.
-#[derive(Debug, ZeroizeOnDrop)]
+#[derive(ZeroizeOnDrop)]
 pub struct Ed25519KeyPair {
     secret_key: SecretKey,
     #[zeroize(skip)]
@@ -126,6 +128,19 @@ impl Ed25519KeyPair {
             .expect("Unreachable error, invalid Bech32 address");
 
         address
+    }
+}
+
+impl Debug for Ed25519KeyPair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Ed25519KeyPair {{ secret_key: *, public_key: {:?}, network: {:?}, entity: {:?}, key_kind: {:?} }}",
+            self.public_key,
+            self.network,
+            self.entity,
+            self.key_kind
+        )
     }
 }
 

@@ -78,7 +78,7 @@ impl Key {
         &self.0
     }
 
-    pub fn into_hex_key(self) -> DataBaseKey {
+    pub fn into_database_key(self) -> DataBaseKey {
         DataBaseKey::from_key(self)
     }
 
@@ -96,9 +96,9 @@ impl DataBaseKey {
     const PRAGMA_END: &'static [u8] = b"'\"";
     const PRAGMA_KEY_START: &'static [u8] = b"PRAGMA key = \"x'";
     const PRAGMA_REKEY_START: &'static [u8] = b"PRAGMA rekey = \"x'";
-    const PRAGMA_KEY_AND_ARGUMANT_LENGTH: usize =
+    const PRAGMA_KEY_AND_ARGUMENT_LENGTH: usize =
         Self::LENGTH + Self::PRAGMA_KEY_START.len() + Self::PRAGMA_END.len();
-    const PRAGMA_REKEY_AND_ARGUAMENT_LENGTH: usize =
+    const PRAGMA_REKEY_AND_ARGUMENT_LENGTH: usize =
         Self::LENGTH + Self::PRAGMA_REKEY_START.len() + Self::PRAGMA_END.len();
 
     pub fn from_key(key: Key) -> Self {
@@ -115,24 +115,24 @@ impl DataBaseKey {
             .unwrap_unreachable(debug_info!("HexKey contained non utf8 bytes"))
     }
 
-    pub fn set_key_statement(&self) -> [u8; Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH] {
-        let mut statement = [b' '; Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH];
+    pub fn set_key_statement(&self) -> [u8; Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH] {
+        let mut statement = [b' '; Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH];
         statement[..Self::PRAGMA_KEY_START.len()].copy_from_slice(Self::PRAGMA_KEY_START);
         statement[Self::PRAGMA_KEY_START.len()
-            ..Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH - Self::PRAGMA_END.len()]
+            ..Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()]
             .copy_from_slice(&self.0);
-        statement[Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH - Self::PRAGMA_END.len()..]
+        statement[Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()..]
             .copy_from_slice(Self::PRAGMA_END);
         statement
     }
 
-    pub fn rekey_statement(&self) -> [u8; Self::PRAGMA_REKEY_AND_ARGUAMENT_LENGTH] {
-        let mut statement = [b' '; Self::PRAGMA_REKEY_AND_ARGUAMENT_LENGTH];
+    pub fn rekey_statement(&self) -> [u8; Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH] {
+        let mut statement = [b' '; Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH];
         statement[..Self::PRAGMA_REKEY_START.len()].copy_from_slice(Self::PRAGMA_REKEY_START);
         statement[Self::PRAGMA_REKEY_START.len()
-            ..Self::PRAGMA_KEY_AND_ARGUMANT_LENGTH - Self::PRAGMA_END.len()]
+            ..Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()]
             .copy_from_slice(&self.0);
-        statement[Self::PRAGMA_REKEY_AND_ARGUAMENT_LENGTH - Self::PRAGMA_END.len()..]
+        statement[Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()..]
             .copy_from_slice(Self::PRAGMA_END);
         statement
     }

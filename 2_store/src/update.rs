@@ -7,7 +7,7 @@ use types::{
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, Resource, Transaction,
+    Account, Resource, Transaction, USr, Ur,
 };
 
 impl Db {
@@ -36,6 +36,14 @@ impl Db {
             ])?;
 
         Ok(())
+    }
+
+    pub fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), rusqlite::Error> {
+        let tx = self.connection.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(upsert::UPSERT_ACCOUNT)?;
+        }
     }
 
     pub fn upsert_resources(&mut self, resources: &[Resource]) -> Result<(), rusqlite::Error> {
@@ -254,8 +262,9 @@ impl AsyncDb {
     pub async fn upsert_non_fungible_assets_for_account(
         &self,
         account_address: AccountAddress,
-        non_fungibles: Vec<NonFungibleAsset>,
+        non_fungibles: &[NonFungibleAsset],
     ) -> Result<(), async_sqlite::Error> {
+        let non_fungibles = unsafe { USr::new(non_fungibles) };
         self.client
             .conn_mut(move |connection| {
                 let tx = connection.transaction()?;
@@ -263,7 +272,7 @@ impl AsyncDb {
                 {
                     let mut stmt = tx.prepare_cached(upsert::UPSERT_NON_FUNGIBLE_ASSET)?;
 
-                    for non_fungible_asset in non_fungibles {
+                    for non_fungible_asset in non_fungibles.iter() {
                         stmt.execute(params![
                             non_fungible_asset.id,
                             non_fungible_asset.resource_address,

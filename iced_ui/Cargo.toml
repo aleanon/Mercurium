@@ -23,7 +23,7 @@ font_and_icons = { path = "../4_font_and_icons" }
 ravault_iced_theme = { path = "./theme" }
 ravault_widgets = { path = "./widgets" }
 iced = { workspace = true }
-iced_aw = { workspace = true, features = ["icons"] }
+# iced_aw = { workspace = true, features = ["icons"] }
 zeroize = { workspace = true }
 thiserror = { workspace = true }
 tiny-bip39 = { workspace = true }

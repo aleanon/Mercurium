@@ -1,8 +1,10 @@
 //! A modal for showing elements as an overlay on top of another.
 //!
 //! *This API requires the following crate features to be activated: modal*
+mod modal_overlay;
+mod style;
 
-use super::modal_overlay::ModalOverlay;
+use modal_overlay::ModalOverlay;
 
 use iced::{
     advanced::{
@@ -17,7 +19,7 @@ use iced::{
     Element, Event, Length, Rectangle, Size, Vector,
 };
 
-pub use crate::style::StyleSheet;
+pub use style::StyleSheet;
 
 /// A modal content as an overlay.
 ///
