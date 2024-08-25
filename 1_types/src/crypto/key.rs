@@ -34,13 +34,8 @@ impl Key {
 
     pub fn db_encryption_key(salt: &Salt, password: &Password) -> Self {
         let mut key = [0u8; Self::LENGTH];
-        let iterations = NonZeroU32::new(Self::DB_KEY_ITERATIONS).unwrap_or_else(|| {
-            unreachable!(
-                "{}:{} Attempted to create NonZeroU32 from a 0 value",
-                module_path!(),
-                line!()
-            )
-        });
+        let iterations = NonZeroU32::new(Self::DB_KEY_ITERATIONS)
+            .unwrap_unreachable(debug_info!("Attempted to create NonZeroU32 from a 0 value"));
 
         pbkdf2::derive(
             PBKDF2_HMAC_SHA256,
@@ -55,13 +50,8 @@ impl Key {
 
     pub fn mnemonic_encryption_key(salt: &Salt, password: &Password) -> Self {
         let mut key = [0u8; Self::LENGTH];
-        let iterations = NonZeroU32::new(Self::MNEMONIC_KEY_ITERATIONS).unwrap_or_else(|| {
-            unreachable!(
-                "{}:{} Attempted to create NonZeroU32 from a 0 value",
-                module_path!(),
-                line!()
-            )
-        });
+        let iterations = NonZeroU32::new(Self::MNEMONIC_KEY_ITERATIONS)
+            .unwrap_unreachable(debug_info!("Attempted to create NonZeroU32 from a 0 value"));
 
         pbkdf2::derive(
             PBKDF2_HMAC_SHA256,
