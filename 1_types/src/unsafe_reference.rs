@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-/// `Ur`(Unsafe Reference) wrapps an immutable raw pointer to type `T` and implements `Send`
+/// [Ur](Unsafe Reference) wrapps an immutable raw pointer to type `T` and implements [Send]
 /// so a reference can be sent across threads/async boundaries without reference counting.
-/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated while the Ur is in use.
+/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated.
 #[derive(Clone)]
 pub struct Ur<T>(*const T);
 
@@ -22,12 +22,16 @@ impl<T> Deref for Ur<T> {
 
 unsafe impl<T> Send for Ur<T> {}
 
-pub struct USr<T> {
+/// [Us] (Unsafe Slice) wrapps an immutable raw pointer to type `[T]` and implements [Send]
+/// so the slice can be sent across threads/async boundaries without reference counting.
+/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated.
+#[derive(Clone)]
+pub struct Us<T> {
     ptr: *const T,
     len: usize,
 }
 
-impl<T> USr<T> {
+impl<T> Us<T> {
     pub unsafe fn new(value: &[T]) -> Self {
         Self {
             ptr: value.as_ptr(),
@@ -36,16 +40,16 @@ impl<T> USr<T> {
     }
 }
 
-impl<T> Deref for USr<T> {
+impl<T> Deref for Us<T> {
     type Target = [T];
     fn deref(&self) -> &Self::Target {
         unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 }
 
-unsafe impl<T> Send for USr<T> {}
+unsafe impl<T> Send for Us<T> {}
 
-/// `MutUr`(Mutable Unsafe Reference) wrapps a mutable raw pointer to type `T` and implements `Send`
+/// [MutUr] (Mutable Unsafe Reference) wrapps a mutable raw pointer to type `T` and implements [Send]
 /// so a mutable reference can be sent across threads/async boundaries without reference counting.
 /// The user needs to make sure that the value pointed to is not dropped, not moved in memory and has no colliding reads or writes while the MutUr is in use,
 pub struct MutUr<T>(*mut T);

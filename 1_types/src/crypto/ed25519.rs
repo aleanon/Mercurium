@@ -121,6 +121,7 @@ impl Ed25519KeyPair {
         let virtual_account_address =
             ComponentAddress::virtual_account_from_public_key(&self.radixdlt_public_key());
 
+        // TODO! Lag en lazy static for address encoder
         let encoder = AddressBech32Encoder::new(&network_definition);
         //We know the data we pass to encode is of type ComponentAddress, this will always be a valid Bech32 address so we call unwrap
         let address = encoder
