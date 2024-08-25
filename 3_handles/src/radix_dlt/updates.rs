@@ -1,6 +1,6 @@
 use super::*;
 use debug_print::debug_println;
-use iced::futures::future::join_all;
+use futures::future::join_all;
 use std::{collections::HashMap, sync::Arc};
 use store::AsyncDb;
 use thiserror::Error;

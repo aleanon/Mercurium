@@ -1,7 +1,8 @@
 use bip39::Mnemonic;
 use store::Db;
 use types::{
-    crypto::{EncryptedMnemonic, Password}, Account, AppError, Network
+    crypto::{EncryptedMnemonic, Password},
+    Account, AppError, Network,
 };
 
 pub fn create_new_wallet_with_accounts(
@@ -22,17 +23,7 @@ pub fn create_new_wallet_with_accounts(
     crate::credentials::store_encrypted_mnemonic(&encrypted_mnemonic)
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    let account = super::create_account::create_account_from_mnemonic(
-        mnemonic,
-        seed_password,
-        0,
-        0,
-        account_name,
-        network,
-    );
-
-    db.ups
-    db.upsert_account(&account).ok();
+    db.upsert_accounts(&accounts).ok();
 
     Ok(())
 }

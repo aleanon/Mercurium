@@ -7,7 +7,32 @@ use types::{
     debug_info, Account, Network, UnwrapUnreachable,
 };
 
-pub fn create_multiple_accounts(mnemonic: &Mnemonic, password: Option<&str>)
+pub fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(
+    mnemonic: &Mnemonic,
+    password: Option<&str>,
+    mut start_id: usize,
+    account_index: u32,
+    number_of_accounts: u32,
+    network: Network,
+) -> T {
+    let end_index = account_index + number_of_accounts;
+
+    (account_index..end_index)
+        .into_iter()
+        .map(|i| {
+            let account = create_account_from_mnemonic(
+                mnemonic,
+                password,
+                start_id,
+                i,
+                String::new(),
+                network,
+            );
+            start_id += 1;
+            account
+        })
+        .collect()
+}
 
 pub fn create_account_from_mnemonic(
     mnemonic: &Mnemonic,

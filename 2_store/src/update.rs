@@ -7,11 +7,11 @@ use types::{
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, Resource, Transaction, USr, Ur,
+    Account, Resource, Transaction, Ur, Us,
 };
 
 impl Db {
-    pub fn upsert_password_hash(&mut self, hash: HashedPassword) -> Result<(), rusqlite::Error> {
+    pub fn upsert_password_hash(&self, hash: HashedPassword) -> Result<(), rusqlite::Error> {
         self.connection
             .prepare_cached(upsert::UPSERT_PASSWORD_HASH)?
             .execute(params![1, hash])?;
@@ -19,7 +19,7 @@ impl Db {
         Ok(())
     }
 
-    pub fn upsert_account(&mut self, account: &Account) -> Result<(), rusqlite::Error> {
+    pub fn upsert_account(&self, account: &Account) -> Result<(), rusqlite::Error> {
         self.connection
             .prepare_cached(upsert::UPSERT_ACCOUNT)?
             .execute(params![
@@ -38,12 +38,29 @@ impl Db {
         Ok(())
     }
 
-    pub fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), rusqlite::Error> {
+    pub fn upsert_accounts(&mut self, accounts: &[Account]) -> Result<(), rusqlite::Error> {
         let tx = self.connection.transaction()?;
 
         {
             let mut stmt = tx.prepare_cached(upsert::UPSERT_ACCOUNT)?;
+
+            for account in accounts {
+                stmt.execute(params![
+                    account.address,
+                    account.id as i64,
+                    account.name,
+                    account.network,
+                    account.derivation_path,
+                    account.public_key.0,
+                    account.hidden,
+                    account.settings,
+                    account.balances_last_updated,
+                    account.transactions_last_updated,
+                ])?;
+            }
         }
+
+        tx.commit()
     }
 
     pub fn upsert_resources(&mut self, resources: &[Resource]) -> Result<(), rusqlite::Error> {
@@ -203,6 +220,36 @@ impl AsyncDb {
             .await
     }
 
+    pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), async_sqlite::Error> {
+        let accounts = unsafe { Us::new(accounts) };
+
+        self.client
+            .conn_mut(move |conn| {
+                let tx = conn.transaction()?;
+                {
+                    let mut stmt = tx.prepare_cached(upsert::UPSERT_ACCOUNT)?;
+
+                    for account in accounts.iter() {
+                        stmt.execute(params![
+                            account.address,
+                            account.id as i64,
+                            account.name,
+                            account.network,
+                            account.derivation_path,
+                            account.public_key.0,
+                            account.hidden,
+                            account.settings,
+                            account.balances_last_updated,
+                            account.transactions_last_updated,
+                        ])?;
+                    }
+                }
+
+                tx.commit()
+            })
+            .await
+    }
+
     pub async fn upsert_resources(
         &self,
         resources: Vec<Resource>,
@@ -264,7 +311,7 @@ impl AsyncDb {
         account_address: AccountAddress,
         non_fungibles: &[NonFungibleAsset],
     ) -> Result<(), async_sqlite::Error> {
-        let non_fungibles = unsafe { USr::new(non_fungibles) };
+        let non_fungibles = unsafe { Us::new(non_fungibles) };
         self.client
             .conn_mut(move |connection| {
                 let tx = connection.transaction()?;
