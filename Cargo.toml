@@ -5,7 +5,7 @@ members = [
   "3_handles",
   "4_font_and_icons",
   "iced_ui",
-  "ravault",
+  "mercurium",
 ]
 resolver = "2"
 
