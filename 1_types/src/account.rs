@@ -8,8 +8,6 @@ use super::{
 };
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
 
-pub struct AccountCollection(pub Vec<Account>);
-
 #[derive(Debug, Clone, Eq)]
 pub struct Account {
     pub address: AccountAddress,
