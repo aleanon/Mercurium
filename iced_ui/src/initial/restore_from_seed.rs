@@ -1,8 +1,8 @@
-use bip39::{Mnemonic, Seed};
+use bip39::Mnemonic;
 use iced::Task;
 use types::{
     crypto::{Password, SeedPhrase},
-    Account, AppError, Ur,
+    Account, AppError,
 };
 use zeroize::Zeroize;
 
@@ -101,7 +101,8 @@ impl<'a> RestoreFromSeed {
             }
             Message::InputSeedPassword(mut input) => {
                 self.seed_password
-                    .and_then(|mut password| Some(password.replace_str(input.as_str())));
+                    .as_mut()
+                    .and_then(|password| Some(password.replace_str(input.as_str())));
 
                 input.zeroize();
             }
@@ -125,6 +126,8 @@ impl<'a> RestoreFromSeed {
                     account.name = account_name
                 }
             }
+            Message::Next => return Ok(self.next(appdata)),
+            Message::Back => self.back(appdata),
         }
 
         Ok(Task::none())
@@ -156,5 +159,15 @@ impl<'a> RestoreFromSeed {
         }
 
         Task::none()
+    }
+
+    fn back(&mut self, appdata: &'a mut AppData) {
+        match self.stage {
+            Stage::EnterSeedPhrase => {}
+            Stage::EnterPassword => self.stage = Stage::EnterSeedPhrase,
+            Stage::ChooseAccounts => self.stage = Stage::EnterPassword,
+            Stage::NameAccounts => self.stage = Stage::ChooseAccounts,
+            Stage::Finalizing => self.stage = Stage::NameAccounts,
+        }
     }
 }
