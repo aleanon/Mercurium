@@ -18,8 +18,6 @@ use crate::{
     external_tasks, App,
 };
 
-// Uses a newtype wrapper because the Update type is used in the backend crate and has to be defined in the types crate
-
 #[derive(Debug, Clone)]
 pub enum Message {
     AccountsUpdated(AccountsUpdate),
@@ -185,7 +183,7 @@ impl App {
                             .collect::<Vec<_>>();
                         db.upsert_non_fungible_assets_for_account(
                             account_update.account.address.clone(),
-                            non_fungibles,
+                            &non_fungibles,
                         )
                         .await?;
 
