@@ -122,7 +122,7 @@ pub fn parse_fungible_balances_response(
         .collect()
 }
 
-/// Returns a `HashMap` with a typle value of String that represents the vault address
+/// Returns a `HashMap` with a tuple value `(String, NonFungibleAsset)`, the `String` represents the vault address
 /// to later be able to get the nfids of the returned asset
 pub fn parse_non_fungible_balances_response_without_nfids(
     response: StateEntityNonFungiblesPageResponse,
