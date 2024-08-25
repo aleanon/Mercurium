@@ -21,15 +21,13 @@ serde.workspace = true
 ring.workspace = true
 serde_json.workspace = true
 reqwest = { workspace = true }
-flate2 = { workspace = true }
 bytes = { workspace = true }
 tokio = { workspace = true }
 radix-gateway-sdk = { workspace = true }
-# chrono = { workspace = true }
 once_cell = { workspace = true }
-
-#test
 iced = { workspace = true, features = ["image"] }
+futures = "=0.3.30"
+
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["winuser"] }
