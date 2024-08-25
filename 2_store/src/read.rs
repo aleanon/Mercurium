@@ -856,7 +856,7 @@ mod tests {
 
     #[test]
     fn get_accounts() {
-        let mut db = Db::new_in_memory();
+        let db = Db::new_in_memory();
         db.create_table_accounts()
             .expect("Unable to create table 'accounts'");
 
