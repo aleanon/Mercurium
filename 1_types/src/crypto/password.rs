@@ -141,8 +141,9 @@ impl HashedPassword {
 
     pub fn db_key_hash(salt: &Salt, password: &Password) -> Self {
         let mut hash = [0u8; Self::LENGTH];
-        let iterations = NonZeroU32::new(Self::HASH_ITERATIONS)
-            .unwrap_unreachable(debug_info!("Nonzero value for password hash iterations"));
+        let iterations = NonZeroU32::new(Self::HASH_ITERATIONS).unwrap_unreachable(debug_info!(
+            "Zero value supplied for password hash iterations"
+        ));
 
         pbkdf2::derive(
             PBKDF2_HMAC_SHA512,
