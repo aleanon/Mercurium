@@ -1,24 +1,35 @@
 use bip39::Mnemonic;
-use iced::Task;
+use iced::{widget::column, Element, Task};
 use types::{
     crypto::{Password, SeedPhrase},
-    Account, AppError,
+    Account, AppError, Ur,
 };
 use zeroize::Zeroize;
 
-use crate::app::{AppData, AppMessage};
+use crate::{
+    app::{AppData, AppMessage},
+    App,
+};
 
+#[derive(Debug, Clone)]
 pub enum Message {
     InputSeedWord((usize, String)),
     PasteSeedPhrase((usize, Vec<String>)),
     ToggleSeedPassword,
     InputSeedPassword(String),
+    AccountsReceived(Vec<Account>),
     InputPassword(String),
     InputVerifyPassword(String),
     ToggleAccountSelection((usize, usize)),
     InputAccountName((usize, String)),
     Next,
     Back,
+}
+
+impl Into<AppMessage> for Message {
+    fn into(self) -> AppMessage {
+        AppMessage::Setup(super::setup::Message::RestoreFromSeedMessage(self))
+    }
 }
 
 #[derive(Debug)]
@@ -106,6 +117,13 @@ impl<'a> RestoreFromSeed {
 
                 input.zeroize();
             }
+            Message::AccountsReceived(accounts) => {
+                match self.stage {
+                    Stage::EnterSeedPhrase => { /*If the user has gone back we want to drop this value*/
+                    }
+                    _ => { /*Create task to get account summary from radix gateway */ }
+                }
+            }
             Message::InputPassword(mut input) => {
                 self.password.replace_str(input.as_str());
                 input.zeroize()
@@ -136,25 +154,32 @@ impl<'a> RestoreFromSeed {
     fn next(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         match self.stage {
             Stage::EnterSeedPhrase => {
+                let Some(mnemonic) = &self.mnemonic else {
+                    self.notification = "Error mnemonic phrase, try entering again";
+                    self.mnemonic = None;
+                    return Task::none();
+                };
                 self.stage = Stage::EnterPassword;
-                if let Some(mnemonic) = &self.mnemonic {
-                    let mnemonic = mnemonic.clone();
-                    let password = self.seed_password.clone();
-                    let network = appdata.settings.network;
-                    Task::perform(
-                        async move {
-                            handles::wallet::create_account_from_mnemonic(
-                                &mnemonic,
-                                password.and_then(|password| Some(password.as_str())),
-                                id,
-                                account_index,
-                                account_name,
-                                network,
-                            )
-                        },
-                        f,
-                    )
-                }
+
+                let mnemonic = mnemonic.clone();
+                let password = self.seed_password.clone();
+                let network = appdata.settings.network;
+
+                return Task::perform(
+                    async move {
+                        handles::wallet::create_multiple_accounts_from_mnemonic::<Vec<_>>(
+                            &mnemonic,
+                            password
+                                .as_ref()
+                                .and_then(|password| Some(password.as_str())),
+                            0,
+                            0,
+                            60,
+                            network,
+                        )
+                    },
+                    |accounts| Message::AccountsReceived(accounts).into(),
+                );
             }
         }
 
@@ -169,5 +194,9 @@ impl<'a> RestoreFromSeed {
             Stage::NameAccounts => self.stage = Stage::ChooseAccounts,
             Stage::Finalizing => self.stage = Stage::NameAccounts,
         }
+    }
+
+    pub fn view(&self, appdata: &'a App) -> Element<'a, AppMessage> {
+        column!().into()
     }
 }
