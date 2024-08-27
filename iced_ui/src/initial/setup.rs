@@ -11,6 +11,7 @@ use crate::{
 
 use super::{
     new_wallet::{self, NewWallet, NewWalletStage},
+    restore_from_seed::{self, RestoreFromSeed},
     restore_wallet::{self, RestoreWallet},
 };
 
@@ -21,6 +22,7 @@ pub enum Message {
     FromSeed,
     NewWallet,
     NewWalletMessage(new_wallet::Message),
+    RestoreFromSeedMessage(restore_from_seed::Message),
     RestoreWalletMessage(restore_wallet::Message),
 }
 
@@ -34,6 +36,7 @@ impl Into<AppMessage> for Message {
 pub enum Setup {
     SelectCreation,
     RestoreWallet(RestoreWallet),
+    RestoreFromSeed(RestoreFromSeed),
     NewWallet(NewWallet),
 }
 
@@ -60,6 +63,11 @@ impl<'a> Setup {
             Message::NewWalletMessage(new_wallet_message) => {
                 if let Setup::NewWallet(new_wallet) = self {
                     return new_wallet.update(new_wallet_message, app_data);
+                }
+            }
+            Message::RestoreFromSeedMessage(message) => {
+                if let Setup::RestoreFromSeed(restore_from_seed) = self {
+                    return restore_from_seed.update(message, app_data);
                 }
             }
             _ => {}
@@ -121,6 +129,7 @@ impl<'a> Setup {
             }
             Self::RestoreWallet(restore) => restore.view(app),
             Self::NewWallet(new_wallet) => new_wallet.view(app),
+            Self::RestoreFromSeed(restore_from_seed) => restore_from_seed.view(app),
         };
 
         widget::container(content)
