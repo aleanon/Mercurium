@@ -1,9 +1,7 @@
-use debug_print::debug_println;
 use iced::{
     widget::{self, text::LineHeight, text_input::Id},
     Element, Length, Task,
 };
-use store::AsyncDb;
 use types::{crypto::Password, AppError};
 use zeroize::Zeroize;
 
