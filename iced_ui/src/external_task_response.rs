@@ -33,7 +33,7 @@ impl Into<AppMessage> for Message {
     }
 }
 
-impl App {
+impl<'a> App<'a> {
     pub fn process_task_response(&mut self, message: Message) -> Task<AppMessage> {
         match message {
             Message::AccountsUpdated(accounts_update) => {

@@ -78,7 +78,7 @@ impl Key {
 }
 
 /// A Hexadecimal representation of `Key` so it can be formatted as text and passed as key to the database
-#[derive(Debug, ZeroizeOnDrop)]
+#[derive(Debug, ZeroizeOnDrop, Clone)]
 pub struct DataBaseKey([u8; Self::LENGTH]);
 
 impl DataBaseKey {

@@ -25,6 +25,7 @@ pub struct Password(String);
 
 impl Password {
     pub const MAX_LEN: usize = 64;
+    pub const MIN_LEN: usize = 16;
 
     pub fn new() -> Self {
         Self(String::with_capacity(Self::MAX_LEN))
@@ -64,6 +65,10 @@ impl Password {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
     pub fn clear(&mut self) {

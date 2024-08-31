@@ -1,15 +1,18 @@
 use bip39::Mnemonic;
 use iced::{widget::column, Element, Task};
 use types::{
-    crypto::{Password, SeedPhrase},
-    Account, AppError, Ur,
+    crypto::{DataBaseKey, Key, Password, PasswordError, Salt, SeedPhrase},
+    Account, AppError,
 };
 use zeroize::Zeroize;
 
 use crate::{
     app::{AppData, AppMessage},
+    error::errorscreen::ErrorMessage,
     App,
 };
+
+use super::setup::Setup;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -20,6 +23,7 @@ pub enum Message {
     AccountsReceived(Vec<Account>),
     InputPassword(String),
     InputVerifyPassword(String),
+    DbAndMnemonicKeySaltReceived((DataBaseKey, Salt), (Key, Salt)),
     ToggleAccountSelection((usize, usize)),
     InputAccountName((usize, String)),
     Next,
@@ -41,11 +45,14 @@ pub enum Stage {
     Finalizing,
 }
 
-#[derive(Debug)]
-pub struct AccountSummary {}
+#[derive(Debug, Clone)]
+pub struct AccountSummary {
+    nr_of_fungibles: usize,
+    nr_of_non_fungibles: usize,
+}
 
 #[derive(Debug)]
-pub struct RestoreFromSeed {
+pub struct RestoreFromSeed<'a> {
     pub stage: Stage,
     pub notification: &'static str,
     pub seed_phrase: SeedPhrase,
@@ -53,11 +60,13 @@ pub struct RestoreFromSeed {
     pub mnemonic: Option<Mnemonic>,
     pub password: Password,
     pub verify_password: Password,
+    pub db_key_salt: Option<(DataBaseKey, Salt)>,
+    pub mnemonic_key_salt: Option<(Key, Salt)>,
     pub accounts: Vec<Vec<(Account, bool, AccountSummary)>>,
-    pub selected_accounts: Vec<Account>,
+    pub selected_accounts: Vec<&'a mut Account>,
 }
 
-impl<'a> RestoreFromSeed {
+impl<'a> RestoreFromSeed<'a> {
     pub fn new() -> Self {
         Self {
             stage: Stage::EnterSeedPhrase,
@@ -67,7 +76,9 @@ impl<'a> RestoreFromSeed {
             mnemonic: None,
             password: Password::new(),
             verify_password: Password::new(),
-            accounts: Vec::new(),
+            db_key_salt: None,
+            mnemonic_key_salt: None,
+            accounts: vec![Vec::with_capacity(20); 20],
             selected_accounts: Vec::new(),
         }
     }
@@ -76,18 +87,12 @@ impl<'a> RestoreFromSeed {
         &mut self,
         message: Message,
         appdata: &'a mut AppData,
+        setup: &'a mut Setup,
     ) -> Result<Task<AppMessage>, AppError> {
         match message {
             Message::InputSeedWord((word_index, mut word)) => {
                 self.seed_phrase.update_word(word_index, word.as_str());
                 word.zeroize();
-
-                if let Ok(mnemonic) = Mnemonic::from_phrase(
-                    self.seed_phrase.phrase().as_str(),
-                    bip39::Language::English,
-                ) {
-                    self.mnemonic = Some(mnemonic);
-                }
             }
             Message::PasteSeedPhrase((mut index, words)) => {
                 for mut word in words {
@@ -132,9 +137,18 @@ impl<'a> RestoreFromSeed {
                 self.verify_password.replace_str(input.as_str());
                 input.zeroize()
             }
+            Message::DbAndMnemonicKeySaltReceived(db_key_salt, mnemonic_key_salt) => {
+                match self.stage {
+                    Stage::ChooseAccounts | Stage::NameAccounts => {
+                        self.db_key_salt = Some(db_key_salt);
+                        self.mnemonic_key_salt = Some(mnemonic_key_salt);
+                    }
+                    _ => {}
+                }
+            }
             Message::ToggleAccountSelection((chunk_index, account_index)) => {
                 if let Some(chunk) = self.accounts.get_mut(chunk_index) {
-                    if let Some((account, is_selected, summary)) = chunk.get_mut(account_index) {
+                    if let Some((_, is_selected, _)) = chunk.get_mut(account_index) {
                         *is_selected = !*is_selected
                     }
                 }
@@ -145,7 +159,7 @@ impl<'a> RestoreFromSeed {
                 }
             }
             Message::Next => return Ok(self.next(appdata)),
-            Message::Back => self.back(appdata),
+            Message::Back => self.back(setup),
         }
 
         Ok(Task::none())
@@ -154,24 +168,29 @@ impl<'a> RestoreFromSeed {
     fn next(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         match self.stage {
             Stage::EnterSeedPhrase => {
-                let Some(mnemonic) = &self.mnemonic else {
-                    self.notification = "Error mnemonic phrase, try entering again";
-                    self.mnemonic = None;
+                let mnemonic = Mnemonic::from_phrase(
+                    self.seed_phrase.phrase().as_str(),
+                    bip39::Language::English,
+                );
+                let Ok(mnemonic) = mnemonic else {
+                    self.notification = "Invalid Mnemonic seed phrase, please try again";
                     return Task::none();
                 };
+
+                self.mnemonic = Some(mnemonic.clone());
                 self.stage = Stage::EnterPassword;
 
-                let mnemonic = mnemonic.clone();
                 let password = self.seed_password.clone();
                 let network = appdata.settings.network;
 
                 return Task::perform(
                     async move {
+                        let password_as_str = password
+                            .as_ref()
+                            .and_then(|password| Some(password.as_str()));
                         handles::wallet::create_multiple_accounts_from_mnemonic::<Vec<_>>(
                             &mnemonic,
-                            password
-                                .as_ref()
-                                .and_then(|password| Some(password.as_str())),
+                            password_as_str,
                             0,
                             0,
                             60,
@@ -181,18 +200,67 @@ impl<'a> RestoreFromSeed {
                     |accounts| Message::AccountsReceived(accounts).into(),
                 );
             }
+            Stage::EnterPassword => {
+                if self.password.len() > Password::MIN_LEN && self.password == self.verify_password
+                {
+                    self.stage = Stage::ChooseAccounts;
+
+                    let password = self.password.clone();
+                    return Task::perform(
+                        async move {
+                            let db_key_salt = password.derive_new_db_encryption_key()?;
+                            let mnemonic_key_salt =
+                                password.derive_new_mnemonic_encryption_key()?;
+
+                            Ok::<_, PasswordError>((db_key_salt, mnemonic_key_salt))
+                        },
+                        |db_and_mnemonic_key_salt| match db_and_mnemonic_key_salt {
+                            Ok(db_and_mnemonic_key_salt) => Message::DbAndMnemonicKeySaltReceived(
+                                db_and_mnemonic_key_salt.0,
+                                db_and_mnemonic_key_salt.1,
+                            )
+                            .into(),
+                            Err(err) => AppMessage::Error(ErrorMessage::Fatal(err.to_string())),
+                        },
+                    );
+                }
+            }
+            Stage::ChooseAccounts => {
+                self.selected_accounts = self
+                    .accounts
+                    .iter_mut()
+                    .flatten()
+                    .filter_map(|(account, selected, _)| selected.then_some(account))
+                    .collect();
+            }
         }
 
         Task::none()
     }
 
-    fn back(&mut self, appdata: &'a mut AppData) {
+    fn back(&mut self, setup: &mut Setup) {
         match self.stage {
-            Stage::EnterSeedPhrase => {}
-            Stage::EnterPassword => self.stage = Stage::EnterSeedPhrase,
-            Stage::ChooseAccounts => self.stage = Stage::EnterPassword,
-            Stage::NameAccounts => self.stage = Stage::ChooseAccounts,
-            Stage::Finalizing => self.stage = Stage::NameAccounts,
+            Stage::EnterSeedPhrase => *setup = Setup::SelectCreation,
+            Stage::EnterPassword => {
+                self.notification = "";
+                self.mnemonic = None;
+                for chunk in &mut self.accounts {
+                    chunk.clear()
+                }
+                self.stage = Stage::EnterSeedPhrase
+            }
+            Stage::ChooseAccounts => {
+                self.notification = "";
+                self.db_key_salt = None;
+                self.mnemonic_key_salt = None;
+                self.stage = Stage::EnterPassword
+            }
+            Stage::NameAccounts => {
+                self.notification = "";
+                self.selected_accounts.clear();
+                self.stage = Stage::ChooseAccounts
+            }
+            Stage::Finalizing => { /*No back button at this stage*/ }
         }
     }
 
