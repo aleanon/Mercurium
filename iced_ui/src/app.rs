@@ -62,23 +62,23 @@ impl AppData {
 }
 
 #[derive(Debug)]
-pub enum AppState {
-    Initial(Setup),
+pub enum AppState<'a> {
+    Initial(Setup<'a>),
     Locked(LoginScreen),
     Unlocked,
     Error(String),
 }
 
-pub struct App {
+pub struct App<'a> {
     version: [u8; 3],
-    pub app_state: AppState,
+    pub app_state: AppState<'a>,
     pub app_data: AppData,
     // Holds the gui unlocked state, not held in the AppState enum because we want to be able to return to last state on login
     pub appview: AppView,
     pub notification: Notification,
 }
 
-impl Application for App {
+impl<'a> Application for App<'a> {
     type Renderer = Renderer;
     type Message = AppMessage;
     type Executor = iced::executor::Default;
@@ -181,7 +181,7 @@ impl Application for App {
     }
 }
 
-impl<'a> App {
+impl<'a> App<'a> {
     pub fn handle_error(&mut self, err: AppError) {
         debug_println!("Error: {err}");
         match err {

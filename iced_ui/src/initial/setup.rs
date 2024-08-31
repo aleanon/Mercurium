@@ -33,20 +33,18 @@ impl Into<AppMessage> for Message {
 }
 
 #[derive(Debug)]
-pub enum Setup {
+pub enum Setup<'a> {
     SelectCreation,
     RestoreWallet(RestoreWallet),
-    RestoreFromSeed(RestoreFromSeed),
+    RestoreFromSeed(RestoreFromSeed<'a>),
     NewWallet(NewWallet),
 }
 
-impl<'a> Setup {
+impl<'a> Setup<'a> {
     pub fn new() -> Self {
         Self::SelectCreation
     }
-}
 
-impl<'a> Setup {
     pub fn update(
         &mut self,
         message: Message,
@@ -67,7 +65,7 @@ impl<'a> Setup {
             }
             Message::RestoreFromSeedMessage(message) => {
                 if let Setup::RestoreFromSeed(restore_from_seed) = self {
-                    return restore_from_seed.update(message, app_data);
+                    return restore_from_seed.update(message, app_data, self);
                 }
             }
             _ => {}
