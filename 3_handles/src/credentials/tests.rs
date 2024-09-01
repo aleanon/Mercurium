@@ -38,12 +38,12 @@ fn test_store_get_delete_encrypted_mnemonic() {
         let password = Password::from(TEST_PASSWORDS[i]);
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let encrypted_mnemonic =
-            EncryptedMnemonic::new(&mnemonic, &password).expect("Unable to encrypt mnemonic");
+            EncryptedMnemonic::new(&mnemonic, "", &password).expect("Unable to encrypt mnemonic");
         store_encrypted_mnemonic(&encrypted_mnemonic).expect("Failed to store encrypted mnemonic");
 
         let encrypted_mnemonic =
             get_encrypted_mnemonic().expect("Failed when retrieving encrypted mnemonic");
-        let retrieved_mnemonic = encrypted_mnemonic
+        let (retrieved_mnemonic, _seed_password) = encrypted_mnemonic
             .decrypt_mnemonic(&password)
             .expect("Failed when decrypting mnemonic");
         assert!(
