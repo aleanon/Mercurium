@@ -1,6 +1,6 @@
 use core::str;
 
-use super::{Password, Salt};
+use super::{Key, Password, Salt};
 use bip39::Mnemonic;
 use ring::aead::{
     Aad, BoundKey, Nonce, NonceSequence, OpeningKey, UnboundKey, AES_256_GCM, NONCE_LEN,
@@ -105,6 +105,41 @@ impl EncryptedMnemonic {
 
         //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
         key.zeroize();
+
+        Ok(Self {
+            cipher_text: mnemonic_encrypted,
+            seed_password: seed_password_encrypted,
+            salt: salt,
+            nonce_bytes: nonce,
+        })
+    }
+
+    pub fn new_with_key_and_salt(
+        mnemonic: &Mnemonic,
+        seed_password: &str,
+        mut encryption_key: Key,
+        salt: Salt,
+    ) -> Result<Self, EncryptedMnemonicError> {
+        let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
+        let mut seed_password_encrypted: Vec<u8> = seed_password.into();
+
+        let nonce_sequence = MnemonicNonceSequence::new()?;
+        let nonce = nonce_sequence.get_current_as_bytes();
+
+        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key.as_bytes())
+            .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
+        let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
+
+        sealing_key
+            .seal_in_place_append_tag(Aad::empty(), &mut mnemonic_encrypted)
+            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
+
+        sealing_key
+            .seal_in_place_append_tag(Aad::empty(), &mut seed_password_encrypted)
+            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
+
+        //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
+        encryption_key.zeroize();
 
         Ok(Self {
             cipher_text: mnemonic_encrypted,

@@ -1,8 +1,9 @@
-use bip39::Mnemonic;
+use bip39::{Mnemonic, Seed};
 use iced::{widget::column, Element, Task};
+use store::AsyncDb;
 use types::{
     crypto::{DataBaseKey, Key, Password, PasswordError, Salt, SeedPhrase},
-    Account, AppError,
+    Account, AppError, Ur,
 };
 use zeroize::Zeroize;
 
@@ -66,7 +67,7 @@ pub struct RestoreFromSeed<'a> {
     pub selected_accounts: Vec<&'a mut Account>,
 }
 
-impl<'a> RestoreFromSeed<'a> {
+impl<'a, 'b> RestoreFromSeed<'a> {
     pub fn new() -> Self {
         Self {
             stage: Stage::EnterSeedPhrase,
@@ -86,8 +87,7 @@ impl<'a> RestoreFromSeed<'a> {
     pub fn update(
         &mut self,
         message: Message,
-        appdata: &'a mut AppData,
-        setup: &'a mut Setup,
+        appdata: &'b mut AppData,
     ) -> Result<Task<AppMessage>, AppError> {
         match message {
             Message::InputSeedWord((word_index, mut word)) => {
@@ -159,13 +159,13 @@ impl<'a> RestoreFromSeed<'a> {
                 }
             }
             Message::Next => return Ok(self.next(appdata)),
-            Message::Back => self.back(setup),
+            Message::Back => self.back(),
         }
 
         Ok(Task::none())
     }
 
-    fn next(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+    fn next(&mut self, appdata: &'b mut AppData) -> Task<AppMessage> {
         match self.stage {
             Stage::EnterSeedPhrase => {
                 let mnemonic = Mnemonic::from_phrase(
@@ -232,15 +232,17 @@ impl<'a> RestoreFromSeed<'a> {
                     .flatten()
                     .filter_map(|(account, selected, _)| selected.then_some(account))
                     .collect();
+                self.stage = Stage::NameAccounts;
             }
+            Stage::NameAccounts => {}
         }
 
         Task::none()
     }
 
-    fn back(&mut self, setup: &mut Setup) {
+    fn back(&mut self) {
         match self.stage {
-            Stage::EnterSeedPhrase => *setup = Setup::SelectCreation,
+            Stage::EnterSeedPhrase => {}
             Stage::EnterPassword => {
                 self.notification = "";
                 self.mnemonic = None;
@@ -262,6 +264,57 @@ impl<'a> RestoreFromSeed<'a> {
             }
             Stage::Finalizing => { /*No back button at this stage*/ }
         }
+    }
+
+    fn finalize_setup(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+        self.stage = Stage::Finalizing;
+        let network = appdata.settings.network;
+        let setup_data = unsafe { Ur::new(self) };
+        Task::perform(
+            async move {
+                let (db_key, salt) = match setup_data.db_key_salt {
+                    Some(key_and_salt) => key_and_salt,
+                    None => setup_data.password.derive_new_db_encryption_key()?,
+                };
+
+                let (mnemonic_key, salt) = match setup_data.mnemonic_key_salt {
+                    Some(key_and_salt) => key_and_salt,
+                    None => setup_data.password.derive_new_mnemonic_encryption_key()?,
+                };
+
+                let mnemonic = match setup_data.mnemonic {
+                    Some(mnemonic) => mnemonic,
+                    None => Mnemonic::from_phrase(
+                        setup_data.seed_phrase.phrase().as_str(),
+                        bip39::Language::English,
+                    )
+                    .map_err(|err| AppError::Fatal(err.to_string()))?,
+                };
+
+                let accounts: Vec<Account> = setup_data
+                    .selected_accounts
+                    .iter()
+                    .map(|&account| account.clone())
+                    .collect();
+
+                let seed_pw_as_str = setup_data
+                    .seed_password
+                    .as_ref()
+                    .and_then(|pw| Some(pw.as_str()));
+
+                handles::wallet::create_new_wallet_with_accounts(
+                    &mnemonic,
+                    seed_pw_as_str,
+                    db_key,
+                    (mnemonic_key, salt),
+                    &accounts,
+                    network,
+                )
+                .await?;
+                Ok::<_, AppError>(())
+            },
+            f,
+        )
     }
 
     pub fn view(&self, appdata: &'a App) -> Element<'a, AppMessage> {

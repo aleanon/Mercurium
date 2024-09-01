@@ -2,7 +2,7 @@ use iced::{
     widget::{self, text::LineHeight, Button},
     Element, Length, Task,
 };
-use types::{crypto::SeedPhrase, AppError};
+use types::{crypto::SeedPhrase, AppError, MutUr};
 
 use crate::{
     app::AppMessage,
@@ -40,7 +40,7 @@ pub enum Setup<'a> {
     NewWallet(NewWallet),
 }
 
-impl<'a> Setup<'a> {
+impl<'a, 'b> Setup<'a> {
     pub fn new() -> Self {
         Self::SelectCreation
     }
@@ -48,7 +48,7 @@ impl<'a> Setup<'a> {
     pub fn update(
         &mut self,
         message: Message,
-        app_data: &'a mut AppData,
+        app_data: &'b mut AppData,
     ) -> Result<Task<AppMessage>, AppError> {
         match message {
             Message::Back => self.back(),
@@ -65,7 +65,7 @@ impl<'a> Setup<'a> {
             }
             Message::RestoreFromSeedMessage(message) => {
                 if let Setup::RestoreFromSeed(restore_from_seed) = self {
-                    return restore_from_seed.update(message, app_data, self);
+                    return restore_from_seed.update(message, app_data);
                 }
             }
             _ => {}
@@ -103,6 +103,7 @@ impl<'a> Setup<'a> {
                     new_wallet_state.seed_phrase = SeedPhrase::new();
                 }
             },
+            Setup::RestoreFromSeed(_) => *self = Self::SelectCreation,
             _ => {}
         };
     }

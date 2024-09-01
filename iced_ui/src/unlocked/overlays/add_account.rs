@@ -117,7 +117,7 @@ impl<'a> AddAccountView {
             handles::credentials::get_encrypted_mnemonic().and_then(|encrypted_mnemonic| {
                 encrypted_mnemonic
                     .decrypt_mnemonic(&self.password)
-                    .and_then(|mnemonic| {
+                    .and_then(|(mnemonic, password)| {
                         let mut id = 0;
                         let mut new_account_index = 0;
 
@@ -130,14 +130,15 @@ impl<'a> AddAccountView {
                                 new_account_index = account_index + 1
                             };
                         }
-                        Ok(handles::wallet::create_account_from_mnemonic(
+                        let account = handles::wallet::create_account_from_mnemonic(
                             &mnemonic,
-                            None,
+                            Some(password.as_str()),
                             id,
                             new_account_index,
                             self.account_name.clone(),
                             app_data.settings.network,
-                        ))
+                        );
+                        Ok(account)
                     })
                     .map_err(|err| {
                         types::AppError::NonFatal(types::Notification::Warn(err.to_string()))
@@ -175,7 +176,7 @@ impl<'a> AddAccountView {
         task
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self) -> Element<'a, AppMessage> {
         let content = match self.view {
             View::InputAccountName => self.input_account_name(),
             View::InputPassword => self.input_password(),

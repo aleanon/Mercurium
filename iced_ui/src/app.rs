@@ -17,11 +17,11 @@ use types::{
 
 use crate::common::Message;
 use crate::error::errorscreen::ErrorMessage;
+use crate::external_task_response;
 use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
 use crate::unlocked::app_view::AppView;
-use crate::{external_task_response, external_tasks};
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
@@ -47,7 +47,7 @@ pub struct AppData {
     pub db: Option<Db>,
 }
 
-impl AppData {
+impl<'a> AppData {
     pub fn new(settings: AppSettings) -> Self {
         Self {
             accounts: HashMap::new(),
