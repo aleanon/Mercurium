@@ -1,4 +1,4 @@
-use std::borrow::BorrowMut;
+use core::str;
 
 use super::{Password, Salt};
 use bip39::Mnemonic;
@@ -17,11 +17,11 @@ pub enum EncryptedMnemonicError {
     #[error("Failed to create unbound key")]
     FailedToCreateUnboundKey,
     #[error("Failed to encrypt mnemonic")]
-    FailedToEncryptMnemonic,
+    FailedToEncryptData,
     #[error("Failed to decrypt mnemonic")]
-    FailedToDecryptMnemonic,
+    FailedToDecryptData,
     #[error("Failed to parse, invalid utf-8")]
-    FailedToParseInvalidUtf8,
+    InvalidUtf8,
     #[error("Failed to parse EncryptedMnemonic")]
     FailedToParseEncryptedMnemonic,
     #[error("Failed to save mnemonic, {0}")]
@@ -71,13 +71,19 @@ impl NonceSequence for MnemonicNonceSequence {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedMnemonic {
     cipher_text: Vec<u8>,
+    seed_password: Vec<u8>,
     salt: Salt,
     nonce_bytes: [u8; NONCE_LEN],
 }
 
 impl EncryptedMnemonic {
-    pub fn new(mnemonic: &Mnemonic, password: &Password) -> Result<Self, EncryptedMnemonicError> {
-        let mut mnemonic: Vec<u8> = mnemonic.phrase().into();
+    pub fn new(
+        mnemonic: &Mnemonic,
+        seed_password: &str,
+        password: &Password,
+    ) -> Result<Self, EncryptedMnemonicError> {
+        let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
+        let mut seed_password_encrypted: Vec<u8> = seed_password.into();
         let (mut key, salt) = password
             .derive_new_mnemonic_encryption_key()
             .map_err(|_err| EncryptedMnemonicError::FailedToCreateRandomValue)?;
@@ -90,14 +96,19 @@ impl EncryptedMnemonic {
         let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
 
         sealing_key
-            .seal_in_place_append_tag(Aad::empty(), &mut mnemonic)
-            .map_err(|_| EncryptedMnemonicError::FailedToEncryptMnemonic)?;
+            .seal_in_place_append_tag(Aad::empty(), &mut mnemonic_encrypted)
+            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
+
+        sealing_key
+            .seal_in_place_append_tag(Aad::empty(), &mut seed_password_encrypted)
+            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
 
         //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
         key.zeroize();
 
         Ok(Self {
-            cipher_text: mnemonic,
+            cipher_text: mnemonic_encrypted,
+            seed_password: seed_password_encrypted,
             salt: salt,
             nonce_bytes: nonce,
         })
@@ -106,7 +117,7 @@ impl EncryptedMnemonic {
     pub fn decrypt_mnemonic(
         &self,
         password: &Password,
-    ) -> Result<Mnemonic, EncryptedMnemonicError> {
+    ) -> Result<(Mnemonic, Password), EncryptedMnemonicError> {
         let encryption_key = password.derive_mnemonic_encryption_key_from_salt(&self.salt);
         let unbound_key = UnboundKey::new(&AES_256_GCM, &encryption_key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
@@ -115,26 +126,36 @@ impl EncryptedMnemonic {
         ));
         let mut opening_key = OpeningKey::new(unbound_key, nonce_sequence);
 
-        let mut data = self.cipher_text.clone();
+        let mut mnemonic_encrypted = self.cipher_text.clone();
 
         let phrase = opening_key
-            .open_in_place(Aad::empty(), &mut data)
-            .map_err(|_| EncryptedMnemonicError::FailedToDecryptMnemonic)?;
+            .open_in_place(Aad::empty(), &mut mnemonic_encrypted)
+            .map_err(|_| EncryptedMnemonicError::FailedToDecryptData)?;
 
-        let mut phrase = String::from_utf8(phrase.to_vec())
-            .map_err(|_| EncryptedMnemonicError::FailedToParseInvalidUtf8)?;
+        let mut phrase =
+            String::from_utf8(phrase.to_vec()).map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
 
-        //The validity check will have to be passed when the mnemonic first was passed to create the encrypted mnemonic,
-        //so the decrypted phrase will always be a valid mnemonic.
         let mnemonic = Mnemonic::from_phrase(&phrase, bip39::Language::English)
             .map_err(|_| EncryptedMnemonicError::FailedToConstructMnemonic)?;
 
+        let mut seed_password_encrypted = self.seed_password.clone();
+
+        let seed_password_slice = opening_key
+            .open_in_place(Aad::empty(), &mut seed_password_encrypted)
+            .map_err(|_| EncryptedMnemonicError::FailedToDecryptData)?;
+
+        let seed_pw_as_str = std::str::from_utf8(&seed_password_slice)
+            .map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
+
+        let seed_password = Password::from(seed_pw_as_str);
+
         //Zeroize the plaintext mnemonic and encryption key before dropping it
         //Todo: Investigate zeroizing of the unbound and opening keys
-        data.zeroize();
+        mnemonic_encrypted.zeroize();
+        seed_password_encrypted.zeroize();
         phrase.zeroize();
 
-        Ok(mnemonic)
+        Ok((mnemonic, seed_password))
     }
 }
 
@@ -152,7 +173,7 @@ mod test {
     fn test_create_encrypted_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = Password::from("password99");
-        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password)
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), "", &password)
             .unwrap_or_else(|err| panic!("{err}"));
 
         println!("{:?}\n{:?}", mnemonic, encrypted_mnemonic.get_cypher_text());
@@ -167,8 +188,10 @@ mod test {
     fn test_decrypting_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = Password::from("password99");
-        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), &password)
-            .unwrap_or_else(|err| panic!("{err}"));
+        let seed_password = "SomePasswordfor74s33dphrases";
+        let encrypted_mnemonic =
+            EncryptedMnemonic::new(&mnemonic.clone(), &seed_password, &password)
+                .unwrap_or_else(|err| panic!("{err}"));
 
         println!(
             "{} \n{:?}",
@@ -176,10 +199,11 @@ mod test {
             encrypted_mnemonic.cipher_text
         );
 
-        let decrypted = encrypted_mnemonic
+        let (decrypted_mnemonic, decrypted_password) = encrypted_mnemonic
             .decrypt_mnemonic(&password)
             .unwrap_or_else(|err| panic!("{err}"));
 
-        assert_eq!(mnemonic.phrase(), decrypted.phrase())
+        assert_eq!(mnemonic.phrase(), decrypted_mnemonic.phrase());
+        assert_eq!(seed_password, decrypted_password.as_str());
     }
 }
