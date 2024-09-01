@@ -49,7 +49,7 @@ impl<'a> Overlay {
 
     pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
         match self {
-            Self::AddAccount(add_account_view) => add_account_view.view(appdata),
+            Self::AddAccount(add_account_view) => add_account_view.view(),
             Self::Receive(receive) => receive.view(appdata),
         }
     }
