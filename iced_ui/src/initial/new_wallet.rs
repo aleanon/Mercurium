@@ -267,7 +267,7 @@ impl<'a> NewWallet {
 
                 debug_println!("Account stored in database");
 
-                EncryptedMnemonic::new(mnemonic, &new_wallet.password)
+                EncryptedMnemonic::new(mnemonic, "", &new_wallet.password)
                     .map_err(|err| AppError::Fatal(err.to_string()))
                     .and_then(|encrypted_mnemonic| {
                         handles::credentials::store_encrypted_mnemonic(&encrypted_mnemonic)
