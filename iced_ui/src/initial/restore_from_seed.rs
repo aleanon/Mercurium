@@ -1,7 +1,10 @@
+use std::{collections::HashMap, sync::Arc};
+
 use bip39::{Mnemonic, Seed};
 use iced::{widget::column, Element, Task};
 use store::AsyncDb;
 use types::{
+    collections::AccountsUpdate,
     crypto::{DataBaseKey, Key, Password, PasswordError, Salt, SeedPhrase},
     Account, AppError, Ur,
 };
@@ -21,12 +24,13 @@ pub enum Message {
     PasteSeedPhrase((usize, Vec<String>)),
     ToggleSeedPassword,
     InputSeedPassword(String),
-    AccountsReceived(Vec<Account>),
+    AccountsCreated(Vec<Account>),
     InputPassword(String),
     InputVerifyPassword(String),
     DbAndMnemonicKeySaltReceived((DataBaseKey, Salt), (Key, Salt)),
     ToggleAccountSelection((usize, usize)),
     InputAccountName((usize, String)),
+    AccountsUpdated(AccountsUpdate),
     Next,
     Back,
 }
@@ -53,7 +57,7 @@ pub struct AccountSummary {
 }
 
 #[derive(Debug)]
-pub struct RestoreFromSeed<'a> {
+pub struct RestoreFromSeed {
     pub stage: Stage,
     pub notification: &'static str,
     pub seed_phrase: SeedPhrase,
@@ -64,10 +68,10 @@ pub struct RestoreFromSeed<'a> {
     pub db_key_salt: Option<(DataBaseKey, Salt)>,
     pub mnemonic_key_salt: Option<(Key, Salt)>,
     pub accounts: Vec<Vec<(Account, bool, AccountSummary)>>,
-    pub selected_accounts: Vec<&'a mut Account>,
+    pub selected_accounts: Vec<Account>,
 }
 
-impl<'a, 'b> RestoreFromSeed<'a> {
+impl<'a, 'b> RestoreFromSeed {
     pub fn new() -> Self {
         Self {
             stage: Stage::EnterSeedPhrase,
@@ -122,11 +126,39 @@ impl<'a, 'b> RestoreFromSeed<'a> {
 
                 input.zeroize();
             }
-            Message::AccountsReceived(accounts) => {
+            Message::AccountsCreated(accounts) => {
                 match self.stage {
                     Stage::EnterSeedPhrase => { /*If the user has gone back we want to drop this value*/
                     }
-                    _ => { /*Create task to get account summary from radix gateway */ }
+                    _ => {
+                        let network = appdata.settings.network;
+                        return Ok(Task::perform(
+                            async move {
+                                handles::radix_dlt::updates::update_accounts(
+                                    network,
+                                    Arc::new(HashMap::new()),
+                                    accounts,
+                                )
+                                .await
+                            },
+                            |accounts_update| Message::AccountsUpdated(accounts_update).into(),
+                        ));
+                    }
+                }
+            }
+            Message::AccountsUpdated(accounts_update) => {
+                for account_update in accounts_update.account_updates {
+                    let fungible_btree_map = account_update.fungibles.into_values().collect();
+
+                    appdata.fungibles.insert(account_update.account.address.clone(), fungible_btree_map);
+
+                    let non_fungible_btree_map = account_update.non_fungibles.into_values().collect();
+                    appdata.non_fungibles.insert(account_update.account.address.clone(), non_fungible_btree_map);
+
+                    appdata.accounts.insert(
+                        account_update.account.address.clone(),
+                        account_update.account
+                    );
                 }
             }
             Message::InputPassword(mut input) => {
@@ -197,7 +229,7 @@ impl<'a, 'b> RestoreFromSeed<'a> {
                             network,
                         )
                     },
-                    |accounts| Message::AccountsReceived(accounts).into(),
+                    |accounts| Message::AccountsCreated(accounts).into(),
                 );
             }
             Stage::EnterPassword => {
@@ -228,13 +260,14 @@ impl<'a, 'b> RestoreFromSeed<'a> {
             Stage::ChooseAccounts => {
                 self.selected_accounts = self
                     .accounts
-                    .iter_mut()
+                    .iter()
                     .flatten()
-                    .filter_map(|(account, selected, _)| selected.then_some(account))
+                    .filter_map(|(account, selected, _)| selected.then_some(account.clone()))
                     .collect();
                 self.stage = Stage::NameAccounts;
             }
             Stage::NameAccounts => {}
+            Stage::Finalizing => {}
         }
 
         Task::none()
@@ -266,7 +299,7 @@ impl<'a, 'b> RestoreFromSeed<'a> {
         }
     }
 
-    fn finalize_setup(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+    fn finalize_setup(&mut self, appdata: &'b mut AppData) -> Task<AppMessage> {
         self.stage = Stage::Finalizing;
         let network = appdata.settings.network;
         let setup_data = unsafe { Ur::new(self) };
@@ -274,12 +307,18 @@ impl<'a, 'b> RestoreFromSeed<'a> {
             async move {
                 let (db_key, salt) = match setup_data.db_key_salt {
                     Some(key_and_salt) => key_and_salt,
-                    None => setup_data.password.derive_new_db_encryption_key()?,
+                    None => setup_data
+                        .password
+                        .derive_new_db_encryption_key()
+                        .map_err(|err| AppError::Fatal(err.to_string()))?,
                 };
 
                 let (mnemonic_key, salt) = match setup_data.mnemonic_key_salt {
                     Some(key_and_salt) => key_and_salt,
-                    None => setup_data.password.derive_new_mnemonic_encryption_key()?,
+                    None => setup_data
+                        .password
+                        .derive_new_mnemonic_encryption_key()
+                        .map_err(|err| AppError::Fatal(err.to_string()))?,
                 };
 
                 let mnemonic = match setup_data.mnemonic {
@@ -291,12 +330,6 @@ impl<'a, 'b> RestoreFromSeed<'a> {
                     .map_err(|err| AppError::Fatal(err.to_string()))?,
                 };
 
-                let accounts: Vec<Account> = setup_data
-                    .selected_accounts
-                    .iter()
-                    .map(|&account| account.clone())
-                    .collect();
-
                 let seed_pw_as_str = setup_data
                     .seed_password
                     .as_ref()
@@ -307,17 +340,17 @@ impl<'a, 'b> RestoreFromSeed<'a> {
                     seed_pw_as_str,
                     db_key,
                     (mnemonic_key, salt),
-                    &accounts,
+                    &setup_data.selected_accounts,
                     network,
                 )
                 .await?;
                 Ok::<_, AppError>(())
             },
-            f,
+            |result|,
         )
     }
 
-    pub fn view(&self, appdata: &'a App) -> Element<'a, AppMessage> {
+    pub fn view(&self, app: &'b App) -> Element<'a, AppMessage> {
         column!().into()
     }
 }
