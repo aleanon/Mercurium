@@ -33,14 +33,14 @@ impl Into<AppMessage> for Message {
 }
 
 #[derive(Debug)]
-pub enum Setup<'a> {
+pub enum Setup {
     SelectCreation,
     RestoreWallet(RestoreWallet),
-    RestoreFromSeed(RestoreFromSeed<'a>),
+    RestoreFromSeed(RestoreFromSeed),
     NewWallet(NewWallet),
 }
 
-impl<'a, 'b> Setup<'a> {
+impl<'a, 'b> Setup {
     pub fn new() -> Self {
         Self::SelectCreation
     }

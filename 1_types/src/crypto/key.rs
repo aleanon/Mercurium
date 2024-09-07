@@ -13,10 +13,7 @@ impl Key {
     pub const LENGTH: usize = 32;
     //Iteration counts needs to be > 0 else the program will panic
     const DB_KEY_ITERATIONS: u32 = 200000;
-    #[cfg(not(debug_assertions))]
     const MNEMONIC_KEY_ITERATIONS: u32 = 2000000;
-    #[cfg(debug_assertions)]
-    const MNEMONIC_KEY_ITERATIONS: u32 = 10000;
 
     pub fn new(password: &str, salt: &Salt, iterations: NonZeroU32) -> Self {
         let mut key = [0u8; Self::LENGTH];
