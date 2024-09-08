@@ -40,7 +40,7 @@ pub enum Setup {
     NewWallet(NewWallet),
 }
 
-impl<'a, 'b> Setup {
+impl<'a> Setup {
     pub fn new() -> Self {
         Self::SelectCreation
     }
@@ -48,7 +48,7 @@ impl<'a, 'b> Setup {
     pub fn update(
         &mut self,
         message: Message,
-        app_data: &'b mut AppData,
+        app_data: &'a mut AppData,
     ) -> Result<Task<AppMessage>, AppError> {
         match message {
             Message::Back => self.back(),
