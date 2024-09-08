@@ -1,12 +1,19 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::Arc,
+};
 
-use bip39::{Mnemonic, Seed};
-use iced::{widget::column, Element, Task};
+use bip39::Mnemonic;
+use iced::{
+    widget::{column, image::Handle},
+    Element, Task,
+};
 use store::AsyncDb;
 use types::{
+    address::ResourceAddress,
     collections::AccountsUpdate,
     crypto::{DataBaseKey, Key, Password, PasswordError, Salt, SeedPhrase},
-    Account, AppError, Ur,
+    Account, AppError, MutUr, Network, Ur,
 };
 use zeroize::Zeroize;
 
@@ -15,8 +22,6 @@ use crate::{
     error::errorscreen::ErrorMessage,
     App,
 };
-
-use super::setup::Setup;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -31,6 +36,8 @@ pub enum Message {
     ToggleAccountSelection((usize, usize)),
     InputAccountName((usize, String)),
     AccountsUpdated(AccountsUpdate),
+    IconsReceived(HashMap<ResourceAddress, Handle>),
+    Complete,
     Next,
     Back,
 }
@@ -68,11 +75,13 @@ pub struct RestoreFromSeed {
     pub db_key_salt: Option<(DataBaseKey, Salt)>,
     pub mnemonic_key_salt: Option<(Key, Salt)>,
     pub accounts: Vec<Vec<(Account, bool, AccountSummary)>>,
+    pub accounts_update: AccountsUpdate,
+    pub icons: HashMap<ResourceAddress, Handle>,
     pub selected_accounts: Vec<Account>,
 }
 
-impl<'a, 'b> RestoreFromSeed {
-    pub fn new() -> Self {
+impl<'a> RestoreFromSeed {
+    pub fn new(network: Network) -> Self {
         Self {
             stage: Stage::EnterSeedPhrase,
             notification: "",
@@ -84,6 +93,8 @@ impl<'a, 'b> RestoreFromSeed {
             db_key_salt: None,
             mnemonic_key_salt: None,
             accounts: vec![Vec::with_capacity(20); 20],
+            accounts_update: AccountsUpdate::new(network),
+            icons: HashMap::new(),
             selected_accounts: Vec::new(),
         }
     }
@@ -91,7 +102,7 @@ impl<'a, 'b> RestoreFromSeed {
     pub fn update(
         &mut self,
         message: Message,
-        appdata: &'b mut AppData,
+        appdata: &'a mut AppData,
     ) -> Result<Task<AppMessage>, AppError> {
         match message {
             Message::InputSeedWord((word_index, mut word)) => {
@@ -146,21 +157,6 @@ impl<'a, 'b> RestoreFromSeed {
                     }
                 }
             }
-            Message::AccountsUpdated(accounts_update) => {
-                for account_update in accounts_update.account_updates {
-                    let fungible_btree_map = account_update.fungibles.into_values().collect();
-
-                    appdata.fungibles.insert(account_update.account.address.clone(), fungible_btree_map);
-
-                    let non_fungible_btree_map = account_update.non_fungibles.into_values().collect();
-                    appdata.non_fungibles.insert(account_update.account.address.clone(), non_fungible_btree_map);
-
-                    appdata.accounts.insert(
-                        account_update.account.address.clone(),
-                        account_update.account
-                    );
-                }
-            }
             Message::InputPassword(mut input) => {
                 self.password.replace_str(input.as_str());
                 input.zeroize()
@@ -185,11 +181,29 @@ impl<'a, 'b> RestoreFromSeed {
                     }
                 }
             }
+            Message::AccountsUpdated(accounts_update) => {
+                self.accounts_update = accounts_update;
+
+                let icons_urls = self.accounts_update.icon_urls;
+                let network = appdata.settings.network;
+
+                return Ok(Task::perform(
+                    async move {
+                        handles::image::download::download_resize_and_store_resource_icons(
+                            icons_urls, network,
+                        )
+                        .await
+                    },
+                    |icons| Message::IconsReceived(icons).into(),
+                ));
+            }
+            Message::IconsReceived(icons) => self.icons = icons,
             Message::InputAccountName((index, account_name)) => {
                 if let Some(account) = self.selected_accounts.get_mut(index) {
                     account.name = account_name
                 }
             }
+            Message::Complete => {}
             Message::Next => return Ok(self.next(appdata)),
             Message::Back => self.back(),
         }
@@ -197,7 +211,7 @@ impl<'a, 'b> RestoreFromSeed {
         Ok(Task::none())
     }
 
-    fn next(&mut self, appdata: &'b mut AppData) -> Task<AppMessage> {
+    fn next(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         match self.stage {
             Stage::EnterSeedPhrase => {
                 let mnemonic = Mnemonic::from_phrase(
@@ -266,7 +280,7 @@ impl<'a, 'b> RestoreFromSeed {
                     .collect();
                 self.stage = Stage::NameAccounts;
             }
-            Stage::NameAccounts => {}
+            Stage::NameAccounts => return self.finalize_setup(appdata),
             Stage::Finalizing => {}
         }
 
@@ -299,31 +313,32 @@ impl<'a, 'b> RestoreFromSeed {
         }
     }
 
-    fn finalize_setup(&mut self, appdata: &'b mut AppData) -> Task<AppMessage> {
+    fn finalize_setup(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         self.stage = Stage::Finalizing;
         let network = appdata.settings.network;
         let setup_data = unsafe { Ur::new(self) };
-        Task::perform(
+
+        let create_wallet = Task::perform(
             async move {
-                let (db_key, salt) = match setup_data.db_key_salt {
-                    Some(key_and_salt) => key_and_salt,
+                let (db_key, salt) = match &setup_data.db_key_salt {
+                    Some(key_and_salt) => key_and_salt.clone(),
                     None => setup_data
                         .password
                         .derive_new_db_encryption_key()
                         .map_err(|err| AppError::Fatal(err.to_string()))?,
                 };
 
-                let (mnemonic_key, salt) = match setup_data.mnemonic_key_salt {
-                    Some(key_and_salt) => key_and_salt,
+                let (mnemonic_key, salt) = match &setup_data.mnemonic_key_salt {
+                    Some(key_and_salt) => key_and_salt.clone(),
                     None => setup_data
                         .password
                         .derive_new_mnemonic_encryption_key()
                         .map_err(|err| AppError::Fatal(err.to_string()))?,
                 };
 
-                let mnemonic = match setup_data.mnemonic {
+                let mnemonic = match &setup_data.mnemonic {
                     Some(mnemonic) => mnemonic,
-                    None => Mnemonic::from_phrase(
+                    None => &Mnemonic::from_phrase(
                         setup_data.seed_phrase.phrase().as_str(),
                         bip39::Language::English,
                     )
@@ -336,7 +351,7 @@ impl<'a, 'b> RestoreFromSeed {
                     .and_then(|pw| Some(pw.as_str()));
 
                 handles::wallet::create_new_wallet_with_accounts(
-                    &mnemonic,
+                    mnemonic,
                     seed_pw_as_str,
                     db_key,
                     (mnemonic_key, salt),
@@ -346,11 +361,45 @@ impl<'a, 'b> RestoreFromSeed {
                 .await?;
                 Ok::<_, AppError>(())
             },
-            |result|,
-        )
+            |result| match result {
+                Ok(_) => Message::Complete.into(),
+                Err(err) => AppMessage::Error(ErrorMessage::Fatal(err.to_string())).into(),
+            },
+        );
+
+        let accounts_update =
+            std::mem::replace(&mut self.accounts_update, AccountsUpdate::new(network));
+        let icons = std::mem::take(&mut self.icons);
+        let mut appdata = unsafe { MutUr::new(appdata) };
+        let move_accounts_and_resources_to_appdata = Task::perform(
+            async move {
+                for account_update in accounts_update.account_updates {
+                    let fungibles = account_update.fungibles.into_values().collect();
+                    appdata
+                        .fungibles
+                        .insert(account_update.account.address.clone(), fungibles);
+
+                    let non_fungibles = account_update.non_fungibles.into_values().collect();
+                    appdata
+                        .non_fungibles
+                        .insert(account_update.account.address.clone(), non_fungibles);
+
+                    appdata.accounts.insert(
+                        account_update.account.address.clone(),
+                        account_update.account,
+                    );
+                }
+
+                appdata.resources = accounts_update.new_resources;
+                appdata.resource_icons = icons;
+            },
+            |_| AppMessage::None,
+        );
+
+        Task::batch([create_wallet, move_accounts_and_resources_to_appdata])
     }
 
-    pub fn view(&self, app: &'b App) -> Element<'a, AppMessage> {
+    pub fn view(&self, app: &'a App) -> Element<'a, AppMessage> {
         column!().into()
     }
 }
