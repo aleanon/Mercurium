@@ -55,7 +55,7 @@ pub fn connection_existing_database(
     Ok(conn)
 }
 
-pub async fn async_connection_new_database(
+pub async fn async_connection(
     network: Network,
     key: DataBaseKey,
 ) -> Result<async_sqlite::Client, DbError> {
@@ -80,63 +80,39 @@ pub async fn async_connection_new_database(
         })
         .await?;
 
-    debug_println!("Async Db connection up");
-
-    Ok(client)
-}
-
-pub async fn async_connection_existing_database(
-    network: Network,
-    key: DataBaseKey,
-) -> Result<async_sqlite::Client, DbError> {
-    let path = AppPath::get().db_path_ref(network);
-
-    debug_println!("Db path: {:?}", path);
-
-    if !path.exists() {
-        return Err(DbError::DatabaseNotFound);
-    }
-
-    let client = async_sqlite::ClientBuilder::new()
-        .path(path)
-        .flags(OpenFlags::SQLITE_OPEN_READ_WRITE)
-        .open()
-        .await?;
-
     debug_println!("AsyncDb connection up");
 
-    client
-        .conn(move |conn| {
-            let set_key_statement = key.set_key_statement();
-            let set_key_statement_str = std::str::from_utf8(&set_key_statement)
-                .map_err(|err| rusqlite::Error::Utf8Error(err))?;
-            conn.execute_batch(set_key_statement_str)
-        })
-        .await?;
-
     Ok(client)
 }
 
-pub async fn open_db_read_only_async(
-    network: Network,
-    key: DataBaseKey,
-) -> Result<async_sqlite::Client, DbError> {
-    let path = AppPath::get().db_path_ref(network);
+// pub async fn async_connection_existing_database(
+//     network: Network,
+//     key: DataBaseKey,
+// ) -> Result<async_sqlite::Client, DbError> {
+//     let path = AppPath::get().db_path_ref(network);
 
-    let client = async_sqlite::ClientBuilder::new()
-        .path(path)
-        .flags(OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .open()
-        .await?;
+//     debug_println!("Db path: {:?}", path);
 
-    client
-        .conn(move |conn| {
-            let set_key_statement = key.set_key_statement();
-            let set_key_statement_str = std::str::from_utf8(&set_key_statement)
-                .map_err(|err| rusqlite::Error::Utf8Error(err))?;
-            conn.execute_batch(set_key_statement_str)
-        })
-        .await?;
+//     if !path.exists() {
+//         return Err(DbError::DatabaseNotFound);
+//     }
 
-    Ok(client)
-}
+//     let client = async_sqlite::ClientBuilder::new()
+//         .path(path)
+//         .flags(OpenFlags::SQLITE_OPEN_READ_WRITE)
+//         .open()
+//         .await?;
+
+//     debug_println!("AsyncDb connection up");
+
+//     client
+//         .conn(move |conn| {
+//             let set_key_statement = key.set_key_statement();
+//             let set_key_statement_str = std::str::from_utf8(&set_key_statement)
+//                 .map_err(|err| rusqlite::Error::Utf8Error(err))?;
+//             conn.execute_batch(set_key_statement_str)
+//         })
+//         .await?;
+
+//     Ok(client)
+// }
