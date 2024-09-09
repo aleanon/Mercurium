@@ -41,7 +41,7 @@ impl App {
             }
             Message::Icons((network, icons)) => {
                 if network == self.app_data.settings.network {
-                    return self.store_icons_in_app_data(icons);
+                    self.store_icons_in_app_data(icons);
                 }
             }
             Message::AccountsAndResources(accounts_and_resources) => {
@@ -204,15 +204,10 @@ impl App {
         Task::batch([download_icons, save_accounts_and_resources_to_disk])
     }
 
-    fn store_icons_in_app_data(
-        &mut self,
-        icons: HashMap<ResourceAddress, Handle>,
-    ) -> Task<AppMessage> {
+    fn store_icons_in_app_data(&mut self, icons: HashMap<ResourceAddress, Handle>) {
         for (resource_address, icon) in icons {
             self.app_data.resource_icons.insert(resource_address, icon);
         }
-
-        Task::none()
     }
 
     fn wallet_created(&mut self) -> Task<AppMessage> {
