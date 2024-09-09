@@ -1,14 +1,10 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use bip39::Mnemonic;
 use iced::{
-    widget::{column, image::Handle},
-    Element, Task,
+    widget::{self, column, image::Handle, text::LineHeight, text_input::Id, Button, Column, Row},
+    Element, Length, Task,
 };
-use store::AsyncDb;
 use types::{
     address::ResourceAddress,
     collections::AccountsUpdate,
@@ -184,7 +180,7 @@ impl<'a> RestoreFromSeed {
             Message::AccountsUpdated(accounts_update) => {
                 self.accounts_update = accounts_update;
 
-                let icons_urls = self.accounts_update.icon_urls;
+                let icons_urls = std::mem::take(&mut self.accounts_update.icon_urls);
                 let network = appdata.settings.network;
 
                 return Ok(Task::perform(
@@ -320,7 +316,7 @@ impl<'a> RestoreFromSeed {
 
         let create_wallet = Task::perform(
             async move {
-                let (db_key, salt) = match &setup_data.db_key_salt {
+                let (db_key, db_salt) = match &setup_data.db_key_salt {
                     Some(key_and_salt) => key_and_salt.clone(),
                     None => setup_data
                         .password
@@ -328,7 +324,7 @@ impl<'a> RestoreFromSeed {
                         .map_err(|err| AppError::Fatal(err.to_string()))?,
                 };
 
-                let (mnemonic_key, salt) = match &setup_data.mnemonic_key_salt {
+                let (mnemonic_key, mnemonic_salt) = match &setup_data.mnemonic_key_salt {
                     Some(key_and_salt) => key_and_salt.clone(),
                     None => setup_data
                         .password
@@ -353,8 +349,8 @@ impl<'a> RestoreFromSeed {
                 handles::wallet::create_new_wallet_with_accounts(
                     mnemonic,
                     seed_pw_as_str,
-                    db_key,
-                    (mnemonic_key, salt),
+                    (db_key, db_salt),
+                    (mnemonic_key, mnemonic_salt),
                     &setup_data.selected_accounts,
                     network,
                 )
@@ -399,7 +395,139 @@ impl<'a> RestoreFromSeed {
         Task::batch([create_wallet, move_accounts_and_resources_to_appdata])
     }
 
-    pub fn view(&self, app: &'a App) -> Element<'a, AppMessage> {
-        column!().into()
+    pub fn view(&self, _app: &'a App) -> Element<'a, AppMessage> {
+        let content = match self.stage {
+            Stage::EnterSeedPhrase => self.enter_seed_phrase_view(),
+            Stage::EnterPassword => self.enter_password_view(),
+            Stage::ChooseAccounts => column!().into(),
+            Stage::NameAccounts => column!().into(),
+            Stage::Finalizing => column!().into(),
+        };
+
+        widget::container(content)
+            .center_x(660)
+            .center_y(700)
+            .into()
+    }
+
+    fn enter_seed_phrase_view(&self) -> Column<'a, AppMessage> {
+        let input_seed = self.input_seed();
+
+        let nav = Self::nav_row(
+            Self::nav_button("Back").on_press(Message::Back.into()),
+            Self::nav_button("Next").on_press(Message::Next.into()),
+        );
+
+        widget::column![input_seed, nav]
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .align_items(iced::Alignment::Center)
+            .spacing(50)
+    }
+
+    fn enter_password_view(&self) -> Column<'a, AppMessage> {
+        let password_notification = Self::notification_field(self.notification);
+
+        let password_input = Self::text_input_field("Enter Password", &self.password.as_str())
+            .on_paste(|input| Message::InputPassword(input).into())
+            .on_input(|input| Message::InputPassword(input).into())
+            .secure(true);
+
+        let verify_pw_input =
+            Self::text_input_field("Verify Password", &self.verify_password.as_str())
+                .on_submit(Message::Next.into())
+                .on_paste(|input| Message::InputVerifyPassword(input).into())
+                .on_input(|input| Message::InputVerifyPassword(input).into())
+                .secure(true);
+
+        let nav = Self::nav_row(
+            Self::nav_button("Back").on_press(Message::Back.into()),
+            Self::nav_button("Next").on_press(Message::Next.into()),
+        );
+
+        widget::column![password_notification, password_input, verify_pw_input, nav]
+            .align_items(iced::Alignment::Center)
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .spacing(50)
+    }
+
+    fn notification_field(text: &str) -> widget::Text {
+        widget::text(text).size(16).width(250)
+    }
+
+    fn text_input_field(placeholder: &str, input: &str) -> widget::TextInput<'a, AppMessage> {
+        widget::text_input(placeholder, input)
+            .size(16)
+            .width(250)
+            .line_height(LineHeight::Relative(1.5))
+    }
+
+    fn seed_word_field(placeholder: &str, input: &str) -> widget::TextInput<'a, AppMessage> {
+        widget::text_input(placeholder, input)
+            .size(16)
+            .width(100)
+            .line_height(LineHeight::Relative(2.))
+    }
+
+    fn input_seed(&self) -> Column<'a, AppMessage> {
+        let mut seed = widget::column![]
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .spacing(20);
+        let mut row = widget::row![]
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .spacing(20);
+
+        for i in 0..24 {
+            if i % 4 == 0 && i != 0 {
+                seed = seed.push(row);
+                row = widget::row![]
+                    .width(Length::Shrink)
+                    .height(Length::Shrink)
+                    .spacing(20);
+            }
+            let mut word = "";
+
+            if let Some(s) = self.seed_phrase.reference_word(i) {
+                word = s
+            }
+
+            let text_field = Self::seed_word_field(&format!("Word {}", i + 1), word)
+                .id(Id::new(format!("{i}")))
+                .on_input(move |input| Message::InputSeedWord((i, input)).into())
+                .on_paste(move |mut string| {
+                    let input = string
+                        .split_ascii_whitespace()
+                        .map(|s| String::from(s))
+                        .collect::<Vec<String>>();
+                    string.zeroize();
+                    Message::PasteSeedPhrase((i, input)).into()
+                });
+
+            row = row.push(text_field);
+        }
+        seed.push(row)
+    }
+
+    fn nav_button(text: &'a str) -> Button<'a, AppMessage> {
+        Button::new(
+            widget::text(text)
+                .size(16)
+                .width(50)
+                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                .vertical_alignment(iced::alignment::Vertical::Center),
+        )
+    }
+
+    pub fn nav_row(
+        back: Button<'a, AppMessage>,
+        next: Button<'a, AppMessage>,
+    ) -> Row<'a, AppMessage> {
+        let space = widget::Space::with_width(Length::Fill);
+        widget::row![back, space, next]
+            .width(Length::Fill)
+            .align_items(iced::Alignment::Start)
     }
 }
