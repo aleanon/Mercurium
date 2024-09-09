@@ -69,35 +69,35 @@ impl Db {
 }
 
 impl AsyncDb {
-    pub async fn new(network: Network, key: DataBaseKey) -> Result<Self, DbError> {
-        let connection = super::connection::async_connection_new_database(network, key).await?;
-        let db = Self { client: connection };
-        db.create_tables_if_not_exist().await?;
+    // pub async fn new(network: Network, key: DataBaseKey) -> Result<Self, DbError> {
+    //     let connection = super::connection::async_connection(network, key).await?;
+    //     let db = Self { client: connection };
+    //     db.create_tables_if_not_exist().await?;
 
-        match network {
-            Network::Mainnet => {
-                MAINNET_DB.set(db.clone()).ok();
-            }
-            Network::Stokenet => {
-                STOKENET_DB.set(db.clone()).ok();
-            }
-        }
-        Ok(db)
-    }
+    //     match network {
+    //         Network::Mainnet => {
+    //             MAINNET_DB.set(db.clone()).ok();
+    //         }
+    //         Network::Stokenet => {
+    //             STOKENET_DB.set(db.clone()).ok();
+    //         }
+    //     }
+    //     Ok(db)
+    // }
 
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         match network {
             Network::Mainnet => {
-                let connection =
-                    super::connection::async_connection_existing_database(network, key).await?;
+                let connection = super::connection::async_connection(network, key).await?;
                 let db = Self { client: connection };
+                db.create_tables_if_not_exist();
                 let db = MAINNET_DB.get_or_init(|| db);
                 Ok(db)
             }
             Network::Stokenet => {
-                let client =
-                    super::connection::async_connection_existing_database(network, key).await?;
+                let client = super::connection::async_connection(network, key).await?;
                 let db = Self { client };
+                db.create_tables_if_not_exist();
                 let db = STOKENET_DB.get_or_init(|| db);
                 Ok(db)
             }
