@@ -231,7 +231,7 @@ impl<'a> NewWallet {
                     }
                 };
 
-                let db = AsyncDb::new(network, key)
+                let db = AsyncDb::load(network, key)
                     .await
                     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
