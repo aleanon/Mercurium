@@ -10,7 +10,7 @@ use types::{
 pub async fn create_new_wallet_with_accounts(
     mnemonic: &Mnemonic,
     seed_password: Option<&str>,
-    db_key: DataBaseKey,
+    db_key_salt: (DataBaseKey, Salt),
     mnemonic_key_salt: (Key, Salt),
     accounts: &[Account],
     network: Network,
@@ -26,7 +26,9 @@ pub async fn create_new_wallet_with_accounts(
     crate::credentials::store_encrypted_mnemonic(&encrypted_mnemonic)
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    let db = AsyncDb::new(network, db_key)
+    crate::credentials::store_db_encryption_salt(db_key_salt.1)?;
+
+    let db = AsyncDb::load(network, db_key_salt.0)
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
