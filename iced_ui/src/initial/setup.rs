@@ -18,7 +18,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub enum Message {
     Back,
-    Restore,
+    FromBackup,
     FromSeed,
     NewWallet,
     NewWalletMessage(new_wallet::Message),
@@ -57,7 +57,9 @@ impl<'a> Setup {
                     *self = Setup::NewWallet(NewWallet::new_with_mnemonic())
                 }
             }
-            Message::FromSeed => *self = Setup::NewWallet(NewWallet::new_without_mnemonic()),
+            Message::FromSeed => {
+                *self = Setup::RestoreFromSeed(RestoreFromSeed::new(app_data.settings.network))
+            }
             Message::NewWalletMessage(new_wallet_message) => {
                 if let Setup::NewWallet(new_wallet) = self {
                     return new_wallet.update(new_wallet_message, app_data);
@@ -111,8 +113,8 @@ impl<'a> Setup {
     pub fn view(&self, app: &'a App) -> Element<'a, AppMessage> {
         let content: Element<'a, AppMessage> = match self {
             Self::SelectCreation => {
-                let restore_from_backup =
-                    Self::creation_button("Restore from backup").on_press(Message::Restore.into());
+                let restore_from_backup = Self::creation_button("Restore from backup")
+                    .on_press(Message::FromBackup.into());
 
                 let restore_from_seed =
                     Self::creation_button("Restore from seed").on_press(Message::FromSeed.into());
