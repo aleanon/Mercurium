@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::Arc,
+};
 
 use bip39::Mnemonic;
 use iced::{
@@ -6,10 +9,11 @@ use iced::{
     Element, Length, Task,
 };
 use types::{
-    address::ResourceAddress,
+    address::{AccountAddress, ResourceAddress},
+    assets::FungibleAsset,
     collections::AccountsUpdate,
     crypto::{DataBaseKey, Key, Password, PasswordError, Salt, SeedPhrase},
-    Account, AppError, MutUr, Network, Ur,
+    Account, AppError, AppSettings, MutUr, Network, Ur,
 };
 use zeroize::Zeroize;
 
@@ -141,12 +145,53 @@ impl<'a> RestoreFromSeed {
                         let network = appdata.settings.network;
                         return Ok(Task::perform(
                             async move {
-                                handles::radix_dlt::updates::update_accounts(
+                                let accounts_update = handles::radix_dlt::updates::update_accounts(
                                     network,
                                     Arc::new(HashMap::new()),
                                     accounts,
                                 )
-                                .await
+                                .await;
+
+                                let mut accounts: HashMap<AccountAddress, Account> = HashMap::new();
+                                let mut fungible_tokens: HashMap<
+                                    AccountAddress,
+                                    BTreeSet<FungibleAsset>,
+                                > = HashMap::new();
+                                let mut non_fungible_tokens: HashMap<
+                                    AccountAddress,
+                                    BTreeSet<NonFungibleAsset>,
+                                > = HashMap::new();
+
+                                for account_update in accounts_update.account_updates {
+                                    let fungibles =
+                                        account_update.fungibles.into_values().collect();
+                                    fungible_tokens
+                                        .insert(account_update.account.address.clone(), fungibles);
+
+                                    let non_fungibles =
+                                        account_update.non_fungibles.into_values().collect();
+                                    non_fungible_tokens.insert(
+                                        account_update.account.address.clone(),
+                                        non_fungibles,
+                                    );
+
+                                    accounts.insert(
+                                        account_update.account.address.clone(),
+                                        account_update.account,
+                                    );
+                                }
+
+                                let appdata = AppData {
+                                    accounts,
+                                    fungibles: fungible_tokens,
+                                    non_fungibles: non_fungible_tokens,
+                                    resources: accounts_update.new_resources,
+                                    db: None,
+                                    resource_icons: HashMap::new(),
+                                    settings: AppSettings::new(),
+                                };
+
+                                (appdata, accounts_update.icon_urls)
                             },
                             |accounts_update| Message::AccountsUpdated(accounts_update).into(),
                         ));
@@ -178,9 +223,7 @@ impl<'a> RestoreFromSeed {
                 }
             }
             Message::AccountsUpdated(accounts_update) => {
-                self.accounts_update = accounts_update;
-
-                let icons_urls = std::mem::take(&mut self.accounts_update.icon_urls);
+                let icons_urls = accounts_update.icon_urls;
                 let network = appdata.settings.network;
 
                 return Ok(Task::perform(
@@ -193,7 +236,7 @@ impl<'a> RestoreFromSeed {
                     |icons| Message::IconsReceived(icons).into(),
                 ));
             }
-            Message::IconsReceived(icons) => self.icons = icons,
+            Message::IconsReceived(icons) => appdata.resource_icons = icons,
             Message::InputAccountName((index, account_name)) => {
                 if let Some(account) = self.selected_accounts.get_mut(index) {
                     account.name = account_name
@@ -313,6 +356,10 @@ impl<'a> RestoreFromSeed {
         self.stage = Stage::Finalizing;
         let network = appdata.settings.network;
         let setup_data = unsafe { Ur::new(self) };
+        let accounts_update =
+            std::mem::replace(&mut self.accounts_update, AccountsUpdate::new(network));
+        let icons = std::mem::take(&mut self.icons);
+        let mut appdata = unsafe { MutUr::new(appdata) };
 
         let create_wallet = Task::perform(
             async move {
@@ -355,20 +402,7 @@ impl<'a> RestoreFromSeed {
                     network,
                 )
                 .await?;
-                Ok::<_, AppError>(())
-            },
-            |result| match result {
-                Ok(_) => Message::Complete.into(),
-                Err(err) => AppMessage::Error(ErrorMessage::Fatal(err.to_string())).into(),
-            },
-        );
 
-        let accounts_update =
-            std::mem::replace(&mut self.accounts_update, AccountsUpdate::new(network));
-        let icons = std::mem::take(&mut self.icons);
-        let mut appdata = unsafe { MutUr::new(appdata) };
-        let move_accounts_and_resources_to_appdata = Task::perform(
-            async move {
                 for account_update in accounts_update.account_updates {
                     let fungibles = account_update.fungibles.into_values().collect();
                     appdata
@@ -389,8 +423,14 @@ impl<'a> RestoreFromSeed {
                 appdata.resources = accounts_update.new_resources;
                 appdata.resource_icons = icons;
             },
-            |_| AppMessage::None,
+            |result| match result {
+                Ok(_) => Message::Complete.into(),
+                Err(err) => AppMessage::Error(ErrorMessage::Fatal(err.to_string())).into(),
+            },
         );
+
+        let move_accounts_and_resources_to_appdata =
+            Task::perform(async move {}, |_| Message::Complete.into());
 
         Task::batch([create_wallet, move_accounts_and_resources_to_appdata])
     }
