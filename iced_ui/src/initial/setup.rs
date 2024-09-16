@@ -2,7 +2,7 @@ use iced::{
     widget::{self, text::LineHeight, Button},
     Element, Length, Task,
 };
-use types::{crypto::SeedPhrase, AppError, MutUr};
+use types::{crypto::SeedPhrase, AppError};
 
 use crate::{
     app::AppMessage,
@@ -110,7 +110,7 @@ impl<'a> Setup {
         };
     }
 
-    pub fn view(&self, app: &'a App) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, app: &'a App) -> Element<'a, AppMessage> {
         let content: Element<'a, AppMessage> = match self {
             Self::SelectCreation => {
                 let restore_from_backup = Self::creation_button("Restore from backup")
