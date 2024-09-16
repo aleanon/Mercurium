@@ -37,6 +37,7 @@ pub enum AppMessage {
 
 use store::Db;
 
+#[derive(Debug, Clone)]
 pub struct AppData {
     pub accounts: HashMap<AccountAddress, Account>,
     pub fungibles: HashMap<AccountAddress, BTreeSet<FungibleAsset>>,
@@ -44,7 +45,6 @@ pub struct AppData {
     pub resources: HashMap<ResourceAddress, Resource>,
     pub resource_icons: HashMap<ResourceAddress, Handle>,
     pub settings: AppSettings,
-    pub db: Option<Db>,
 }
 
 impl<'a> AppData {
@@ -56,7 +56,6 @@ impl<'a> AppData {
             resources: HashMap::new(),
             resource_icons: HashMap::new(),
             settings,
-            db: None,
         }
     }
 }
