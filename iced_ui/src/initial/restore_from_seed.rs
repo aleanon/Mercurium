@@ -1,16 +1,19 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
+    fmt::Display,
     sync::Arc,
 };
 
 use bip39::Mnemonic;
 use iced::{
-    widget::{self, column, image::Handle, text::LineHeight, text_input::Id, Button, Column, Row},
+    widget::{
+        self, column, image::Handle, row, text::LineHeight, text_input::Id, Button, Column, Row,
+    },
     Element, Length, Task,
 };
 use types::{
-    address::{AccountAddress, ResourceAddress},
-    assets::FungibleAsset,
+    address::{AccountAddress, Address, ResourceAddress},
+    assets::{FungibleAsset, NonFungibleAsset},
     collections::AccountsUpdate,
     crypto::{DataBaseKey, Key, Password, PasswordError, Salt, SeedPhrase},
     Account, AppError, AppSettings, MutUr, Network, Ur,
@@ -35,8 +38,9 @@ pub enum Message {
     DbAndMnemonicKeySaltReceived((DataBaseKey, Salt), (Key, Salt)),
     ToggleAccountSelection((usize, usize)),
     InputAccountName((usize, String)),
-    AccountsUpdated(AccountsUpdate),
+    AccountsUpdated((AppData, BTreeMap<ResourceAddress, String>)),
     IconsReceived(HashMap<ResourceAddress, Handle>),
+    NewPage(usize),
     Complete,
     Next,
     Back,
@@ -58,9 +62,30 @@ pub enum Stage {
 }
 
 #[derive(Debug, Clone)]
-pub struct AccountSummary {
-    nr_of_fungibles: usize,
-    nr_of_non_fungibles: usize,
+pub enum AccountSummary {
+    NoUpdateReceived,
+    NoLedgerPresense,
+    Summary {
+        nr_of_fungibles: usize,
+        nr_of_non_fungibles: usize,
+    },
+}
+
+impl Display for AccountSummary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoUpdateReceived => write!(f, "No update"),
+            Self::NoLedgerPresense => write!(f, "None"),
+            Self::Summary {
+                nr_of_fungibles,
+                nr_of_non_fungibles,
+            } => write!(
+                f,
+                "{} Fungibles, {} NFTs",
+                nr_of_fungibles, nr_of_non_fungibles
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -75,6 +100,7 @@ pub struct RestoreFromSeed {
     pub db_key_salt: Option<(DataBaseKey, Salt)>,
     pub mnemonic_key_salt: Option<(Key, Salt)>,
     pub accounts: Vec<Vec<(Account, bool, AccountSummary)>>,
+    pub page_index: usize,
     pub accounts_update: AccountsUpdate,
     pub icons: HashMap<ResourceAddress, Handle>,
     pub selected_accounts: Vec<Account>,
@@ -93,6 +119,7 @@ impl<'a> RestoreFromSeed {
             db_key_salt: None,
             mnemonic_key_salt: None,
             accounts: vec![Vec::with_capacity(20); 20],
+            page_index: 0,
             accounts_update: AccountsUpdate::new(network),
             icons: HashMap::new(),
             selected_accounts: Vec::new(),
@@ -142,6 +169,18 @@ impl<'a> RestoreFromSeed {
                     Stage::EnterSeedPhrase => { /*If the user has gone back we want to drop this value*/
                     }
                     _ => {
+                        self.accounts = accounts
+                            .chunks(20)
+                            .map(|chunk| {
+                                chunk
+                                    .iter()
+                                    .map(|account| {
+                                        (account.clone(), false, AccountSummary::NoUpdateReceived)
+                                    })
+                                    .collect()
+                            })
+                            .collect();
+
                         let network = appdata.settings.network;
                         return Ok(Task::perform(
                             async move {
@@ -165,11 +204,13 @@ impl<'a> RestoreFromSeed {
                                 for account_update in accounts_update.account_updates {
                                     let fungibles =
                                         account_update.fungibles.into_values().collect();
+
                                     fungible_tokens
                                         .insert(account_update.account.address.clone(), fungibles);
 
                                     let non_fungibles =
                                         account_update.non_fungibles.into_values().collect();
+
                                     non_fungible_tokens.insert(
                                         account_update.account.address.clone(),
                                         non_fungibles,
@@ -186,7 +227,6 @@ impl<'a> RestoreFromSeed {
                                     fungibles: fungible_tokens,
                                     non_fungibles: non_fungible_tokens,
                                     resources: accounts_update.new_resources,
-                                    db: None,
                                     resource_icons: HashMap::new(),
                                     settings: AppSettings::new(),
                                 };
@@ -199,12 +239,16 @@ impl<'a> RestoreFromSeed {
                 }
             }
             Message::InputPassword(mut input) => {
-                self.password.replace_str(input.as_str());
-                input.zeroize()
+                self.password.clear();
+                self.password.push_str(input.as_str());
+                input.zeroize();
+                self.notification = "";
             }
             Message::InputVerifyPassword(mut input) => {
-                self.verify_password.replace_str(input.as_str());
-                input.zeroize()
+                self.verify_password.clear();
+                self.verify_password.push_str(input.as_str());
+                input.zeroize();
+                self.notification = "";
             }
             Message::DbAndMnemonicKeySaltReceived(db_key_salt, mnemonic_key_salt) => {
                 match self.stage {
@@ -222,14 +266,45 @@ impl<'a> RestoreFromSeed {
                     }
                 }
             }
-            Message::AccountsUpdated(accounts_update) => {
-                let icons_urls = accounts_update.icon_urls;
-                let network = appdata.settings.network;
+            Message::AccountsUpdated((new_appdata, icon_urls)) => {
+                appdata.accounts = new_appdata.accounts;
+                appdata.fungibles = new_appdata.fungibles;
+                appdata.non_fungibles = new_appdata.non_fungibles;
+                appdata.resources = new_appdata.resources;
 
+                for chunk in self.accounts.iter_mut() {
+                    for (account, _, account_summary) in chunk {
+                        let mut account_sum = AccountSummary::NoLedgerPresense;
+                        if let Some(fungibles) = appdata.fungibles.get(&account.address) {
+                            account_sum = AccountSummary::Summary {
+                                nr_of_fungibles: fungibles.len(),
+                                nr_of_non_fungibles: 0,
+                            };
+                        }
+                        if let Some(non_fungibles) = appdata.non_fungibles.get(&account.address) {
+                            match &mut account_sum {
+                                AccountSummary::Summary {
+                                    nr_of_non_fungibles,
+                                    ..
+                                } => *nr_of_non_fungibles = non_fungibles.len(),
+                                AccountSummary::NoLedgerPresense => {
+                                    account_sum = AccountSummary::Summary {
+                                        nr_of_fungibles: 0,
+                                        nr_of_non_fungibles: non_fungibles.len(),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        *account_summary = account_sum;
+                    }
+                }
+
+                let network = appdata.settings.network;
                 return Ok(Task::perform(
                     async move {
                         handles::image::download::download_resize_and_store_resource_icons(
-                            icons_urls, network,
+                            icon_urls, network,
                         )
                         .await
                     },
@@ -242,6 +317,7 @@ impl<'a> RestoreFromSeed {
                     account.name = account_name
                 }
             }
+            Message::NewPage(page_index) => self.page_index = page_index,
             Message::Complete => {}
             Message::Next => return Ok(self.next(appdata)),
             Message::Back => self.back(),
@@ -273,6 +349,7 @@ impl<'a> RestoreFromSeed {
                         let password_as_str = password
                             .as_ref()
                             .and_then(|password| Some(password.as_str()));
+
                         handles::wallet::create_multiple_accounts_from_mnemonic::<Vec<_>>(
                             &mnemonic,
                             password_as_str,
@@ -286,8 +363,14 @@ impl<'a> RestoreFromSeed {
                 );
             }
             Stage::EnterPassword => {
-                if self.password.len() > Password::MIN_LEN && self.password == self.verify_password
-                {
+                if self.password != self.verify_password {
+                    self.notification = "Passwords do not match";
+                    return Task::none();
+                } else if self.password.len() < Password::MIN_LEN {
+                    self.notification = "Password must be at least 16 characters long";
+                    return Task::none();
+                } else {
+                    self.notification = "";
                     self.stage = Stage::ChooseAccounts;
 
                     let password = self.password.clone();
@@ -317,6 +400,7 @@ impl<'a> RestoreFromSeed {
                     .flatten()
                     .filter_map(|(account, selected, _)| selected.then_some(account.clone()))
                     .collect();
+
                 self.stage = Stage::NameAccounts;
             }
             Stage::NameAccounts => return self.finalize_setup(appdata),
@@ -422,6 +506,8 @@ impl<'a> RestoreFromSeed {
 
                 appdata.resources = accounts_update.new_resources;
                 appdata.resource_icons = icons;
+
+                Ok::<_, AppError>(())
             },
             |result| match result {
                 Ok(_) => Message::Complete.into(),
@@ -435,11 +521,11 @@ impl<'a> RestoreFromSeed {
         Task::batch([create_wallet, move_accounts_and_resources_to_appdata])
     }
 
-    pub fn view(&self, _app: &'a App) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, _app: &'a App) -> Element<'a, AppMessage> {
         let content = match self.stage {
             Stage::EnterSeedPhrase => self.enter_seed_phrase_view(),
             Stage::EnterPassword => self.enter_password_view(),
-            Stage::ChooseAccounts => column!().into(),
+            Stage::ChooseAccounts => self.choose_accounts_view(),
             Stage::NameAccounts => column!().into(),
             Stage::Finalizing => column!().into(),
         };
@@ -486,6 +572,57 @@ impl<'a> RestoreFromSeed {
         );
 
         widget::column![password_notification, password_input, verify_pw_input, nav]
+            .align_items(iced::Alignment::Center)
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .spacing(50)
+    }
+
+    fn choose_accounts_view(&'a self) -> Column<'a, AppMessage> {
+        let mut accounts = column!().height(400);
+
+        let page = self.accounts.get(self.page_index);
+        if let Some(accounts_selection) = page {
+            for (i, (account, is_selected, account_summary)) in
+                accounts_selection.iter().enumerate()
+            {
+                let account_address = widget::text(account.address.truncate());
+                let account_summary = widget::text(account_summary.to_string());
+
+                let is_selected = widget::checkbox("", *is_selected).on_toggle(move |_| {
+                    Message::ToggleAccountSelection((self.page_index, i)).into()
+                });
+
+                accounts = accounts.push(
+                    row![
+                        account_address.width(Length::FillPortion(10)),
+                        widget::Space::new(Length::Fill, 1),
+                        account_summary.width(Length::FillPortion(10)),
+                        widget::Space::new(Length::FillPortion(2), 1),
+                        is_selected.width(Length::FillPortion(2))
+                    ]
+                    .width(Length::Fill),
+                )
+            }
+        }
+
+        let row = row![
+            widget::button("Previous Page").on_press_maybe(if self.page_index == 0 {
+                None
+            } else {
+                Some(Message::NewPage(self.page_index - 1).into())
+            }),
+            accounts.width(400),
+            widget::button("Next Page").on_press(Message::NewPage(self.page_index + 1).into())
+        ]
+        .align_items(iced::Alignment::Center);
+
+        let nav_buttons = Self::nav_row(
+            Self::nav_button("Back").on_press(Message::Back.into()),
+            Self::nav_button("Next").on_press(Message::Next.into()),
+        );
+
+        widget::column![row, nav_buttons]
             .align_items(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
