@@ -90,14 +90,15 @@ impl AsyncDb {
             Network::Mainnet => {
                 let connection = super::connection::async_connection(network, key).await?;
                 let db = Self { client: connection };
-                db.create_tables_if_not_exist();
+                db.create_tables_if_not_exist().await?;
                 let db = MAINNET_DB.get_or_init(|| db);
                 Ok(db)
             }
             Network::Stokenet => {
                 let client = super::connection::async_connection(network, key).await?;
                 let db = Self { client };
-                db.create_tables_if_not_exist();
+                db.create_tables_if_not_exist().await?;
+
                 let db = STOKENET_DB.get_or_init(|| db);
                 Ok(db)
             }
