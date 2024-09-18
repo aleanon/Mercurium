@@ -13,7 +13,7 @@ use std::borrow::Cow;
 pub use app::App;
 use font_and_icons::{images::WINDOW_LOGO, BOOTSTRAP_FONT_BYTES};
 use iced::{
-    advanced::Application,
+    application::application,
     window::{self},
     Settings,
 };
@@ -25,23 +25,24 @@ pub fn run() -> Result<(), iced::Error> {
     )
     .unwrap();
 
-    let mut settings: iced::Settings<()> = Settings {
-        flags: (),
+    let mut settings = Settings {
         antialiasing: false,
-        window: iced::window::Settings {
-            icon: Some(icon),
-            min_size: Some(iced::Size {
-                width: 1000.,
-                height: 700.,
-            }),
-            position: iced::window::Position::Centered,
-            ..Default::default()
-        },
         id: Some(String::from("ravault")),
         ..Default::default()
     };
     settings.fonts.push(Cow::Borrowed(BOOTSTRAP_FONT_BYTES));
 
-    App::run(settings)?;
+    application(types::consts::APPLICATION_NAME, App::update, App::view)
+        .settings(settings)
+        .window(window::Settings {
+            icon: Some(icon),
+            platform_specific: window::settings::PlatformSpecific {
+                skip_taskbar: false,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .run_with(|| App::new())?;
+
     Ok(())
 }

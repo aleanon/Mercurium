@@ -121,14 +121,14 @@ impl<'a> Receive {
         let address_button = button(
             row!(address, copy_icon)
                 .spacing(2)
-                .align_items(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center),
         )
         .on_press(Message::CopyAddress(self.address.to_string()).into())
         .style(button::text);
 
         let barcode_address_container = container(
             column!(barcode, address_button)
-                .align_items(iced::Alignment::Center)
+                .align_x(iced::Alignment::Center)
                 .spacing(15),
         )
         .center_x(Length::Fill)

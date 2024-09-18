@@ -2,7 +2,7 @@ use iced::{
     border::Radius,
     widget::{
         self,
-        scrollable::{default, Scrollbar, Scroller, Status, Style},
+        scrollable::{default, Rail, Scrollbar, Scroller, Status, Style},
     },
     Border, Theme,
 };
@@ -14,7 +14,8 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
             Style {
                 container: widget::container::transparent(theme),
                 gap: None,
-                vertical_scrollbar: Scrollbar {
+
+                vertical_rail: Rail {
                     scroller: Scroller {
                         border: Border {
                             radius: Radius::from(10),
@@ -47,7 +48,7 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
 
             Style {
                 container: widget::container::transparent(theme),
-                vertical_scrollbar: Scrollbar {
+                vertical_rail: Rail {
                     scroller: Scroller {
                         border: Border {
                             radius: Radius::from(10),

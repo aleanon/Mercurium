@@ -1,11 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
 
 use debug_print::debug_println;
-use iced::advanced::Application;
 use iced::widget::image::Handle;
 use iced::widget::{container, text};
+use iced::Length;
 use iced::Task;
-use iced::{Length, Renderer};
 use types::assets::{FungibleAsset, NonFungibleAsset};
 use types::Notification;
 use types::{
@@ -77,14 +76,8 @@ pub struct App {
     pub notification: Notification,
 }
 
-impl<'a> Application for App {
-    type Renderer = Renderer;
-    type Message = AppMessage;
-    type Executor = iced::executor::Default;
-    type Theme = iced::Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, iced::Task<Self::Message>) {
+impl App {
+    pub fn new() -> (Self, Task<AppMessage>) {
         let settings = handles::filesystem::app_settings::get_app_settings();
 
         let app_state =
@@ -110,8 +103,7 @@ impl<'a> Application for App {
         (app, Task::none())
     }
 
-    //All panels have their own Message Enum, they are handled in their own module
-    fn update(&mut self, message: AppMessage) -> Task<Self::Message> {
+    pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
         match message {
             AppMessage::Setup(setup_message) => {
                 if let AppState::Initial(setup) = &mut self.app_state {
@@ -154,7 +146,7 @@ impl<'a> Application for App {
         Task::none()
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message> {
+    pub fn view(&self) -> iced::Element<AppMessage> {
         match &self.app_state {
             AppState::Initial(setup) => setup.view(self),
             AppState::Locked(loginscreen) => loginscreen.view(),
@@ -171,12 +163,8 @@ impl<'a> Application for App {
     //         .map(|update| Message::Update(BackendMessage(update)))])
     // }
 
-    fn theme(&self) -> Self::Theme {
+    fn theme(&self) -> iced::Theme {
         self.app_data.settings.theme.into()
-    }
-
-    fn title(&self) -> String {
-        String::from("RaVault")
     }
 }
 

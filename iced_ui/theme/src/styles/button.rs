@@ -53,7 +53,12 @@ pub fn choose_account(theme: &Theme, status: Status) -> Style {
         _ => Style {
             background: Some(Background::Color(background)),
             border: Border {
-                radius: Radius::from([10., 10., 0., 0.]),
+                radius: Radius {
+                    top_left: 10.,
+                    top_right: 10.,
+                    bottom_right: 0.,
+                    bottom_left: 0.,
+                },
                 ..Default::default()
             },
             ..Default::default()
@@ -111,7 +116,7 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 1.,
-                    radius: Radius::from([10.; 4]),
+                    radius: Radius::new(10),
                 },
                 shadow: Shadow {
                     color: palette.background.weak.color,

@@ -197,8 +197,8 @@ impl<'a> AddAccountView {
         let header = text("Create new account")
             .size(16)
             .width(Length::Fill)
-            .horizontal_alignment(iced::alignment::Horizontal::Center)
-            .vertical_alignment(iced::alignment::Vertical::Center);
+            .align_x(iced::alignment::Horizontal::Center)
+            .align_y(iced::alignment::Vertical::Center);
 
         let top_space = Space::with_height(Length::Fill);
 
@@ -227,7 +227,7 @@ impl<'a> AddAccountView {
             bottom_space,
             continue_button
         ]
-        .align_items(iced::Alignment::Center)
+        .align_x(iced::Alignment::Center)
         .spacing(20)
         .into()
     }
@@ -262,7 +262,7 @@ impl<'a> AddAccountView {
         .spacing(30);
 
         column![password_input, space, buttons_row]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .spacing(20)
             .into()
     }

@@ -340,7 +340,7 @@ impl<'a> NewWallet {
         let nav = Self::nav_row(back, next);
 
         widget::column![notification, password_input, nav]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
             .spacing(50)
@@ -363,7 +363,7 @@ impl<'a> NewWallet {
         let nav = Self::nav_row(back, next);
 
         widget::column![notification, password_input, nav]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
             .spacing(50)
@@ -383,7 +383,7 @@ impl<'a> NewWallet {
         let nav = Self::nav_row(back, next);
 
         widget::column![notification, account_name, nav]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
             .spacing(50)
@@ -446,7 +446,7 @@ impl<'a> NewWallet {
         widget::column![input_seed, nav]
             .width(Length::Shrink)
             .height(Length::Shrink)
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .spacing(50)
     }
 
@@ -515,8 +515,8 @@ impl<'a> NewWallet {
             widget::text(text)
                 .size(16)
                 .width(50)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
-                .vertical_alignment(iced::alignment::Vertical::Center),
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
         )
     }
 
@@ -527,6 +527,6 @@ impl<'a> NewWallet {
         let space = widget::Space::with_width(Length::Fill);
         widget::row![back, space, next]
             .width(Length::Fill)
-            .align_items(iced::Alignment::Start)
+            .align_y(iced::Alignment::Start)
     }
 }

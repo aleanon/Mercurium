@@ -193,8 +193,8 @@ impl<'a> AddAssets {
             .width(Length::Fill)
             .line_height(2.)
             .size(16)
-            .horizontal_alignment(iced::alignment::Horizontal::Center)
-            .vertical_alignment(iced::alignment::Vertical::Center);
+            .align_x(iced::alignment::Horizontal::Center)
+            .align_y(iced::alignment::Vertical::Center);
 
         let space = widget::Space::new(1, 20);
 
@@ -212,8 +212,8 @@ impl<'a> AddAssets {
         let tokens_button = button(
             text("Tokens")
                 .size(12)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
-                .vertical_alignment(iced::alignment::Vertical::Center),
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
         )
         .width(80)
         .height(30)
@@ -222,8 +222,8 @@ impl<'a> AddAssets {
         let nfts_button = button(
             text("NFTs")
                 .size(12)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
-                .vertical_alignment(iced::alignment::Vertical::Center),
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
         )
         .width(80)
         .height(30)
@@ -231,7 +231,7 @@ impl<'a> AddAssets {
 
         let buttons = row![tokens_button, nfts_button]
             .spacing(100)
-            .align_items(iced::Alignment::Center);
+            .align_y(iced::Alignment::Center);
         let buttons = container(buttons).center_x(Length::Fill);
 
         let mut amounts_within_limits = true;
@@ -246,8 +246,8 @@ impl<'a> AddAssets {
                 .size(16)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
-                .vertical_alignment(iced::alignment::Vertical::Center),
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
         )
         .width(150)
         .height(40)
@@ -310,7 +310,7 @@ impl<'a> AddAssets {
                 .height(Length::Fill)
                 .spacing(10)
                 .padding(5)
-                .align_items(iced::Alignment::Center);
+                .align_y(iced::Alignment::Center);
 
             container(header_row)
                 .width(Length::Fill)
@@ -409,7 +409,7 @@ impl<'a> AddAssets {
 
                         let asset = row![icon, name_and_symbol, space, balance, amount, checkbox]
                             .spacing(10)
-                            .align_items(iced::Alignment::Center)
+                            .align_y(iced::Alignment::Center)
                             .width(Length::Fill)
                             .padding(5);
 
@@ -427,9 +427,7 @@ impl<'a> AddAssets {
                                         let warning = text("Amount exceeds available balance")
                                             .size(10)
                                             .line_height(1.5)
-                                            .horizontal_alignment(
-                                                iced::alignment::Horizontal::Center,
-                                            );
+                                            .align_x(iced::alignment::Horizontal::Center);
 
                                         let container = container(warning)
                                             .width(Length::Fill)
@@ -499,7 +497,7 @@ impl<'a> AddAssets {
                 .height(Length::Fill)
                 .spacing(10)
                 .padding(5)
-                .align_items(iced::Alignment::Center);
+                .align_y(iced::Alignment::Center);
 
             container(header_row)
                 .width(Length::Fill)

@@ -272,7 +272,7 @@ impl<'a> TransactionView {
 
         let rule = widget::Rule::horizontal(4).style(styles::rule::text_input_rule);
 
-        let col = widget::column![label, text_field, rule].align_items(Alignment::Start);
+        let col = widget::column![label, text_field, rule].align_x(Alignment::Start);
 
         widget::container(col)
     }
@@ -296,7 +296,7 @@ impl<'a> TransactionView {
         let col = widget::column![label, picklist]
             .width(Length::Fill)
             .height(Length::Shrink)
-            .align_items(Alignment::Start);
+            .align_x(Alignment::Start);
 
         widget::container(col)
             .width(Length::Fill)
@@ -334,7 +334,7 @@ impl<'a> TransactionView {
                 }
 
                 let choose_recipient_content = row![address, remove_recipient_button]
-                    .align_items(Alignment::Center)
+                    .align_y(Alignment::Center)
                     .height(Length::Fill);
 
                 button(choose_recipient_content)
@@ -402,7 +402,7 @@ impl<'a> TransactionView {
                     let resource_row = row![icon, symbol, space, amount, remove_resource]
                         .spacing(10)
                         .padding(5)
-                        .align_items(Alignment::Center)
+                        .align_y(Alignment::Center)
                         .height(Length::Shrink)
                         .width(Length::Fill);
 
@@ -420,8 +420,8 @@ impl<'a> TransactionView {
                 text("Add assets")
                     .height(Length::Fill)
                     .width(Length::Fill)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center)
-                    .vertical_alignment(iced::alignment::Vertical::Center),
+                    .align_x(iced::alignment::Horizontal::Center)
+                    .align_y(iced::alignment::Vertical::Center),
             )
             .height(30)
             .padding(0)
@@ -454,15 +454,15 @@ impl<'a> TransactionView {
 
     fn header(input: &'a str) -> text::Text<'a> {
         text(input)
-            .horizontal_alignment(iced::alignment::Horizontal::Center)
+            .align_x(iced::alignment::Horizontal::Center)
             .width(Length::Fill)
             .size(20)
     }
 
     fn field_label(input: &'a str) -> text::Text<'a> {
         text(input)
-            .horizontal_alignment(iced::alignment::Horizontal::Left)
-            .vertical_alignment(iced::alignment::Vertical::Center)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Center)
             .width(Length::Fill)
     }
 }

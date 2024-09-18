@@ -248,11 +248,11 @@ impl<'a> AppView {
             .size(15)
             .line_height(2.)
             .width(Length::Fill)
-            .horizontal_alignment(iced::alignment::Horizontal::Left);
+            .align_x(iced::alignment::Horizontal::Left);
 
         let content = row![icon, text]
             .spacing(10)
-            .align_items(iced::Alignment::Center);
+            .align_y(iced::Alignment::Center);
 
         button(content)
             .height(Length::Shrink)

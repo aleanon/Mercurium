@@ -16,7 +16,7 @@ pub fn asset_amount(theme: &Theme, status: Status) -> Style {
     style.border = Border {
         width: 0.,
         color: Color::TRANSPARENT,
-        radius: Radius::from([10., 10., 10., 10.]),
+        radius: Radius::new(10),
     };
     style.icon = Color::TRANSPARENT;
     style.background = Background::Color(palette.background.base.color);
