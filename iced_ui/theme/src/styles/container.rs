@@ -78,7 +78,7 @@ pub fn account_overview(theme: &Theme) -> Style {
         border: iced::Border {
             color: Color::TRANSPARENT,
             width: 1.,
-            radius: Radius::from([10.; 4]),
+            radius: Radius::new(10),
         },
         shadow: iced::Shadow {
             color: shadow_color,

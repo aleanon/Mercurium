@@ -7,7 +7,7 @@ use crate::{
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, column, container, row, scrollable, text},
-    Element, Length, Task,
+    Element, Length, Padding, Task,
 };
 use ravault_iced_theme::styles;
 use types::{
@@ -93,13 +93,13 @@ impl<'a> AccountsView {
                 text(Bootstrap::Plus).font(BOOTSTRAP_FONT).size(16),
                 text("Account").size(16)
             ]
-            .align_items(iced::Alignment::End),
+            .align_y(iced::Alignment::End),
         )
         .style(styles::button::general_button)
         .on_press(app_view::Message::SpawnOverlay(SpawnOverlay::AddAccount).into());
 
         let header = row![title, widget::Space::new(Length::Fill, 1), new_account]
-            .align_items(iced::Alignment::End)
+            .align_y(iced::Alignment::End)
             .padding(20);
 
         let accounts = appdata
@@ -124,7 +124,12 @@ impl<'a> AccountsView {
         let col = iced::widget::Column::with_children(children)
             .spacing(30)
             // .width(Length::FillPortion(9))
-            .padding([0, 15, 15, 0]);
+            .padding(Padding {
+                bottom: 0.,
+                top: 15.,
+                right: 15.,
+                left: 0.,
+            });
 
         let scrollable = scrollable::Scrollable::new(col)
             .height(Length::Fill)
@@ -161,16 +166,16 @@ impl<'a> AccountsView {
         // let account_address = account.get_address().truncate();
 
         let account_name_widget = widget::text(&account.name)
-            .horizontal_alignment(iced::alignment::Horizontal::Left)
-            .vertical_alignment(iced::alignment::Vertical::Center)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Center)
             .size(20);
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);
 
         let account_address_widget = widget::text(account.address.truncate())
             .size(18)
-            .horizontal_alignment(iced::alignment::Horizontal::Right)
-            .vertical_alignment(iced::alignment::Vertical::Bottom);
+            .align_x(iced::alignment::Horizontal::Right)
+            .align_y(iced::alignment::Vertical::Bottom);
 
         let name_address_row = row![account_name_widget, space, account_address_widget];
 

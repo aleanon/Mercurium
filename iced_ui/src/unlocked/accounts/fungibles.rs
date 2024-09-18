@@ -118,7 +118,7 @@ impl<'a> Fungibles {
                 }
 
                 let column = column(elements)
-                    .align_items(iced::Alignment::Center)
+                    .align_x(iced::Alignment::Center)
                     .padding(Padding {
                         right: 15.,
                         ..Padding::ZERO
@@ -153,7 +153,7 @@ impl<'a> Fungibles {
 
         let name_and_symbol = column![text(name).size(16), text(symbol).size(14)]
             .spacing(3)
-            .align_items(iced::Alignment::Start);
+            .align_x(iced::Alignment::Start);
 
         let list_button_content = row![
             icon,
@@ -168,7 +168,7 @@ impl<'a> Fungibles {
             top: 5.,
         })
         .spacing(15)
-        .align_items(iced::Alignment::Center);
+        .align_y(iced::Alignment::Center);
 
         widget::button(list_button_content).style(styles::button::asset_list_button)
     }

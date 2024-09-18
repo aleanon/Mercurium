@@ -85,10 +85,10 @@ impl<'a> FungibleView {
             .width(Length::Shrink)
         ]
         .spacing(2)
-        .align_items(iced::Alignment::Center);
+        .align_y(iced::Alignment::Center);
 
         let col = widget::column![name, image, amount]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .spacing(10)
             .padding(Padding {
                 bottom: 5.,
@@ -134,7 +134,7 @@ impl<'a> FungibleView {
 
         let col = widget::column![col, rule, description, rule2, address, current_supply,]
             .spacing(15)
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .height(Length::Shrink)
             .width(FUNGIBLE_VIEW_WIDTH)
             .padding(Padding::from([0, 10]));

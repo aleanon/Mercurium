@@ -108,10 +108,10 @@ impl<'a> LoginScreen {
         let login_button = widget::Button::new(
             widget::text("Login")
                 .size(15)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                .align_x(iced::alignment::Horizontal::Center)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .vertical_alignment(iced::alignment::Vertical::Center),
+                .align_y(iced::alignment::Vertical::Center),
         )
         .height(30)
         .width(100)
@@ -121,7 +121,7 @@ impl<'a> LoginScreen {
         let col = widget::column![text_field, login_button]
             .height(Length::Shrink)
             .width(Length::Shrink)
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .spacing(30);
 
         widget::container(col)

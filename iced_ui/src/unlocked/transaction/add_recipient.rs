@@ -90,7 +90,7 @@ impl<'a> AddRecipient {
             .size(20)
             .width(Length::Fill)
             .height(Length::Shrink)
-            .horizontal_alignment(iced::alignment::Horizontal::Center);
+            .align_x(iced::alignment::Horizontal::Center);
 
         let space = widget::Space::new(Length::Fill, 50);
 
@@ -132,7 +132,7 @@ impl<'a> AddRecipient {
                 .width(Length::Shrink);
 
             let button_row = row![name_and_address, space, radio]
-                .align_items(iced::Alignment::Center)
+                .align_y(iced::Alignment::Center)
                 .width(Length::Fill)
                 .height(Length::Shrink);
 

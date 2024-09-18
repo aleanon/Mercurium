@@ -160,7 +160,7 @@ impl<'a> RestoreFromSeed {
             Message::InputSeedPassword(mut input) => {
                 self.seed_password
                     .as_mut()
-                    .and_then(|password| Some(password.replace_str(input.as_str())));
+                    .and_then(|password| Some(password.replace(input.as_str())));
 
                 input.zeroize();
             }
@@ -547,7 +547,7 @@ impl<'a> RestoreFromSeed {
         widget::column![input_seed, nav]
             .width(Length::Shrink)
             .height(Length::Shrink)
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .spacing(50)
     }
 
@@ -572,7 +572,7 @@ impl<'a> RestoreFromSeed {
         );
 
         widget::column![password_notification, password_input, verify_pw_input, nav]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
             .spacing(50)
@@ -615,7 +615,7 @@ impl<'a> RestoreFromSeed {
             accounts.width(400),
             widget::button("Next Page").on_press(Message::NewPage(self.page_index + 1).into())
         ]
-        .align_items(iced::Alignment::Center);
+        .align_y(iced::Alignment::Center);
 
         let nav_buttons = Self::nav_row(
             Self::nav_button("Back").on_press(Message::Back.into()),
@@ -623,7 +623,7 @@ impl<'a> RestoreFromSeed {
         );
 
         widget::column![row, nav_buttons]
-            .align_items(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
             .spacing(50)
@@ -693,8 +693,8 @@ impl<'a> RestoreFromSeed {
             widget::text(text)
                 .size(16)
                 .width(50)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
-                .vertical_alignment(iced::alignment::Vertical::Center),
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
         )
     }
 
@@ -705,6 +705,6 @@ impl<'a> RestoreFromSeed {
         let space = widget::Space::with_width(Length::Fill);
         widget::row![back, space, next]
             .width(Length::Fill)
-            .align_items(iced::Alignment::Start)
+            .align_y(iced::Alignment::Start)
     }
 }

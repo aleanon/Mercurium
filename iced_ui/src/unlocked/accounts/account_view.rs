@@ -160,11 +160,11 @@ impl<'a> AccountView {
 
         let account_name = text(&self.name)
             .size(20)
-            .vertical_alignment(alignment::Vertical::Bottom);
+            .align_y(alignment::Vertical::Bottom);
 
         let account_address = text(self.address.truncate())
             .size(15)
-            .vertical_alignment(iced::alignment::Vertical::Bottom);
+            .align_y(iced::alignment::Vertical::Bottom);
 
         let icon = text(Bootstrap::Copy).font(BOOTSTRAP_FONT).size(15);
 
@@ -179,7 +179,7 @@ impl<'a> AccountView {
             widget::Space::new(Length::Fill, 1),
             account_address_button
         ]
-        .align_items(iced::Alignment::End);
+        .align_y(iced::Alignment::End);
 
         let name_address = container(name_address_row).width(Length::FillPortion(6));
         let top_row = widget::row![
@@ -232,7 +232,7 @@ impl<'a> AccountView {
             .width(Length::Fill)
             .height(Length::Fill)
             .spacing(10)
-            .align_items(iced::Alignment::Center);
+            .align_x(iced::Alignment::Center);
 
         container(col)
             .height(Length::Fill)
@@ -269,19 +269,19 @@ impl<'a> AccountView {
                     let symbol = text(name)
                         .size(12)
                         .height(15)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Left)
+                        .align_x(iced::alignment::Horizontal::Left)
+                        .align_y(iced::alignment::Vertical::Center)
                         .width(Length::Fill);
 
                     let nr_of_nfts = text(non_fungible.nfids.nr_of_nfts())
                         .size(10)
                         .height(15)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Right)
+                        .align_x(iced::alignment::Horizontal::Right)
+                        .align_y(iced::alignment::Vertical::Center)
                         .width(Length::Shrink);
 
                     let col = column![symbol, nr_of_nfts]
-                        .align_items(iced::Alignment::Center)
+                        .align_x(iced::Alignment::Center)
                         .width(Length::Fill)
                         .height(Length::Shrink);
 
@@ -290,7 +290,7 @@ impl<'a> AccountView {
                         .width(Length::Fill)
                         .padding(5)
                         .spacing(5)
-                        .align_items(iced::Alignment::Center);
+                        .align_y(iced::Alignment::Center);
 
                     let button = widget::button(row)
                         .width(Length::Fill)
@@ -307,7 +307,7 @@ impl<'a> AccountView {
             }
 
             column(elements)
-                .align_items(iced::Alignment::Center)
+                .align_x(iced::Alignment::Center)
                 .padding(Padding {
                     right: 15.,
                     ..Padding::ZERO
@@ -334,8 +334,8 @@ impl<'a> AccountView {
         widget::Button::new(
             text(name)
                 .size(15)
-                .vertical_alignment(iced::alignment::Vertical::Center)
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center)
                 .height(Length::Fill)
                 .width(Length::Fill),
         )

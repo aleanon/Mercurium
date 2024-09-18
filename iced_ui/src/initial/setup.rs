@@ -147,8 +147,8 @@ impl<'a> Setup {
             widget::text(text)
                 .size(20)
                 .line_height(LineHeight::Relative(2.))
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
-                .vertical_alignment(iced::alignment::Vertical::Center)
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center)
                 .width(Length::Fill)
                 .height(Length::Shrink),
             widget::Space::new(Length::Fill, Length::Fill)
