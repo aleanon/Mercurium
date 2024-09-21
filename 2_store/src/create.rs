@@ -1,130 +1,25 @@
-use super::{
-    db::{Db, DbError},
-    statements::create::*,
-};
-
-use super::db::AsyncDb;
+use super::statements::create::*;
+use crate::Db;
+use crate::IconCache;
 
 impl Db {
-    pub fn create_tables_if_not_exist(&self) -> Result<(), DbError> {
-        self.create_table_password_hash()?;
-        self.create_table_accounts()?;
-        self.create_table_resources()?;
-        self.create_table_fungible_assets()?;
-        self.create_table_non_fungible_assets()?;
-        self.create_table_transactions()?;
-        self.create_table_balance_changes()?;
-        Ok(())
-    }
-
-    pub fn create_table_password_hash(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_PASSWORD_HASH, [])
-            .map_err(|err| DbError::FailedToCreateTable("password_hash".to_owned(), err))?;
-        Ok(())
-    }
-
-    pub fn create_table_accounts(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_ACCOUNTS, [])
-            .map_err(|err| DbError::FailedToCreateTable("accounts".to_owned(), err))?;
-        Ok(())
-    }
-
-    pub fn create_table_resources(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_RESOURCES, [])
-            .map_err(|err| DbError::FailedToCreateTable("resources".to_owned(), err))?;
-        Ok(())
-    }
-
-    pub fn create_table_fungible_assets(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_FUNGIBLE_ASSETS, [])
-            .map_err(|err| DbError::FailedToCreateTable("fungible assets".to_owned(), err))?;
-        Ok(())
-    }
-
-    pub fn create_table_non_fungible_assets(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_NON_FUNGIBLE_ASSETS, [])
-            .map_err(|err| DbError::FailedToCreateTable("non_fungible_assets".to_owned(), err))?;
-        Ok(())
-    }
-
-    pub fn create_table_transactions(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_TRANSACTIONS, [])
-            .map_err(|err| DbError::FailedToCreateTable("transactions".to_owned(), err))?;
-        Ok(())
-    }
-
-    pub fn create_table_balance_changes(&self) -> Result<(), DbError> {
-        self.connection
-            .execute(CREATE_TABLE_BALANCE_CHANGES, [])
-            .map_err(|err| DbError::FailedToCreateTable("balance_changes".to_owned(), err))?;
-        Ok(())
+    pub async fn create_tables_if_not_exist(&self) -> Result<(), async_sqlite::Error> {
+        self.client
+            .conn(|conn| {
+                conn.execute_batch(CREATE_ALL_MAIN_DB_TABLES_BATCH)?;
+                Ok(())
+            })
+            .await
     }
 }
 
-impl AsyncDb {
-    pub async fn create_tables_if_not_exist(&self) -> Result<(), DbError> {
-        self.create_table_password_hash().await?;
-        self.create_table_accounts().await?;
-        self.create_table_resources().await?;
-        self.create_table_fungible_assets().await?;
-        self.create_table_non_fungible_assets().await?;
-        self.create_table_transactions().await?;
-        self.create_table_balance_changes().await?;
-        Ok(())
-    }
-
-    pub async fn create_table_password_hash(&self) -> Result<(), DbError> {
+impl IconCache {
+    pub async fn create_tables_if_not_exist(&self) -> Result<(), async_sqlite::Error> {
         self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_PASSWORD_HASH, []))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn create_table_accounts(&self) -> Result<(), DbError> {
-        self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_ACCOUNTS, []))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn create_table_resources(&self) -> Result<(), DbError> {
-        self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_RESOURCES, []))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn create_table_fungible_assets(&self) -> Result<(), DbError> {
-        self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_FUNGIBLE_ASSETS, []))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn create_table_non_fungible_assets(&self) -> Result<(), DbError> {
-        self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_NON_FUNGIBLE_ASSETS, []))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn create_table_transactions(&self) -> Result<(), DbError> {
-        self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_TRANSACTIONS, []))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn create_table_balance_changes(&self) -> Result<(), DbError> {
-        self.client
-            .conn(|conn| conn.execute(CREATE_TABLE_BALANCE_CHANGES, []))
-            .await?;
-        Ok(())
+            .conn(|conn| {
+                conn.execute_batch(CREATE_ALL_ICONCACHE_TABLES_BATCH)?;
+                Ok(())
+            })
+            .await
     }
 }

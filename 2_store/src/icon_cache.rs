@@ -1,42 +1,30 @@
 use std::collections::{BTreeMap, HashMap};
 
-use async_sqlite::Error;
-use rusqlite::{params, OpenFlags};
+use async_sqlite::{
+    rusqlite::{self, params, OpenFlags},
+    Error,
+};
 use types::{
     address::{Address, ResourceAddress},
+    crypto::DataBaseKey,
     AppPath, Network,
 };
 
-use crate::statements;
+use crate::{statements, DbError};
 
 pub struct IconCache {
-    client: async_sqlite::Client,
+    pub(crate) client: async_sqlite::Client,
 }
 
 impl IconCache {
-    pub async fn load(network: Network) -> Result<Self, async_sqlite::Error> {
-        let path = AppPath::get().icon_cache_ref(network);
-        let client = async_sqlite::ClientBuilder::new()
-            .path(path)
-            .flags(OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE)
-            .open()
-            .await?;
+    pub async fn load(network: Network) -> Result<Self, DbError> {
+        let client = super::connection::iconcache_client(network, DataBaseKey::dummy_key()).await?;
 
         let iconcache = Self { client };
 
         iconcache.create_tables_if_not_exist().await?;
 
         Ok(iconcache)
-    }
-
-    pub async fn create_tables_if_not_exist(&self) -> Result<(), async_sqlite::Error> {
-        self.client
-            .conn(|conn| {
-                conn.execute(statements::create::CREATE_TABLE_RESOURCE_IMAGES, [])?;
-                conn.execute(statements::create::CREATE_TABLE_NFT_IMAGES, [])?;
-                Ok(())
-            })
-            .await
     }
 
     pub async fn get_all_resource_icons(

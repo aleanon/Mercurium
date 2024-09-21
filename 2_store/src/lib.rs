@@ -7,5 +7,5 @@ mod read;
 mod statements;
 mod update;
 
-pub use db::{AsyncDb, Db, DbError};
+pub use db::{Db, DbError};
 pub use icon_cache::IconCache;

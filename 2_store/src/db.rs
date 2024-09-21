@@ -1,3 +1,4 @@
+use async_sqlite::rusqlite::{self, CachedStatement};
 use once_cell::sync::OnceCell;
 use thiserror::Error;
 
@@ -10,8 +11,6 @@ use types::{
 pub enum DbError {
     #[error("Unable to create table {0}, source: {1}")]
     FailedToCreateTable(String, rusqlite::Error),
-    #[error("{0}")]
-    RusqliteError(#[from] rusqlite::Error),
     #[error("{0}")]
     AsyncSqliteError(#[from] async_sqlite::Error),
     #[error("Failed to create Db connection, source: {0}")]
@@ -28,74 +27,25 @@ pub enum DbError {
     InvalidPassword,
 }
 
-pub static MAINNET_DB: OnceCell<AsyncDb> = once_cell::sync::OnceCell::new();
-pub static STOKENET_DB: OnceCell<AsyncDb> = once_cell::sync::OnceCell::new();
-
-#[derive(Debug)]
-pub struct Db {
-    pub connection: rusqlite::Connection,
-}
+pub static MAINNET_DB: OnceCell<Db> = once_cell::sync::OnceCell::new();
+pub static STOKENET_DB: OnceCell<Db> = once_cell::sync::OnceCell::new();
 
 #[derive(Clone)]
-pub struct AsyncDb {
+pub struct Db {
     pub(crate) client: async_sqlite::Client,
 }
-
 impl Db {
-    pub fn new(network: Network, key: &DataBaseKey) -> Result<Db, DbError> {
-        let connection = super::connection::connection_new_database(network, key)?;
-
-        let db = Self { connection };
-
-        db.create_tables_if_not_exist()?;
-
-        Ok(db)
-    }
-
-    pub fn load(network: Network, key: &DataBaseKey) -> Result<Self, DbError> {
-        let connection = super::connection::connection_existing_database(network, key)?;
-        Ok(Self { connection })
-    }
-
-    pub fn exists(network: Network) -> bool {
-        AppPath::get().db_path_ref(network).exists()
-    }
-
-    #[cfg(not(release))]
-    pub fn new_in_memory() -> Db {
-        let connection = rusqlite::Connection::open_in_memory().unwrap();
-        Self { connection }
-    }
-}
-
-impl AsyncDb {
-    // pub async fn new(network: Network, key: DataBaseKey) -> Result<Self, DbError> {
-    //     let connection = super::connection::async_connection(network, key).await?;
-    //     let db = Self { client: connection };
-    //     db.create_tables_if_not_exist().await?;
-
-    //     match network {
-    //         Network::Mainnet => {
-    //             MAINNET_DB.set(db.clone()).ok();
-    //         }
-    //         Network::Stokenet => {
-    //             STOKENET_DB.set(db.clone()).ok();
-    //         }
-    //     }
-    //     Ok(db)
-    // }
-
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         match network {
             Network::Mainnet => {
-                let connection = super::connection::async_connection(network, key).await?;
-                let db = Self { client: connection };
+                let client = super::connection::main_db_client(network, key).await?;
+                let db = Self { client };
                 db.create_tables_if_not_exist().await?;
                 let db = MAINNET_DB.get_or_init(|| db);
                 Ok(db)
             }
             Network::Stokenet => {
-                let client = super::connection::async_connection(network, key).await?;
+                let client = super::connection::main_db_client(network, key).await?;
                 let db = Self { client };
                 db.create_tables_if_not_exist().await?;
 
@@ -125,6 +75,28 @@ impl AsyncDb {
 
     pub fn with_connection(client: async_sqlite::Client) -> Self {
         Self { client }
+    }
+
+    pub(crate) async fn transaction<F>(
+        &self,
+        stmt: &'static str,
+        execute_stmt: F,
+    ) -> Result<(), async_sqlite::Error>
+    where
+        F: FnOnce(&mut CachedStatement) -> Result<(), rusqlite::Error> + Send + 'static,
+    {
+        self.client
+            .conn_mut(|conn| {
+                let tx = conn.transaction()?;
+
+                {
+                    let mut cached_stmt = tx.prepare_cached(stmt)?;
+                    execute_stmt(&mut cached_stmt)?;
+                }
+
+                tx.commit()
+            })
+            .await
     }
 }
 

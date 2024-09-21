@@ -1,8 +1,8 @@
 use super::{
     statements::{insert, upsert},
-    AsyncDb,
+    Db,
 };
-use rusqlite::params;
+use async_sqlite::rusqlite::params;
 use types::{
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
@@ -10,7 +10,7 @@ use types::{
     Account, Resource, Transaction, Us,
 };
 
-impl AsyncDb {
+impl Db {
     pub async fn upsert_password_hash(
         &self,
         hash: HashedPassword,
