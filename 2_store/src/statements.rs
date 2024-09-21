@@ -1,4 +1,16 @@
 pub mod create {
+    pub const CREATE_ALL_MAIN_DB_TABLES_BATCH: &'static str = const_format::formatcp!(
+        "BEGIN;
+        {CREATE_TABLE_PASSWORD_HASH}
+        {CREATE_TABLE_ACCOUNTS}
+        {CREATE_TABLE_RESOURCES}
+        {CREATE_TABLE_FUNGIBLE_ASSETS}
+        {CREATE_TABLE_NON_FUNGIBLE_ASSETS}
+        {CREATE_TABLE_TRANSACTIONS}
+        {CREATE_TABLE_BALANCE_CHANGES}
+        COMMIT;"
+    );
+
     pub const CREATE_TABLE_PASSWORD_HASH: &'static str = "CREATE TABLE IF NOT EXISTS 
         password_hash (
             id INTEGER NOT NULL PRIMARY KEY,
@@ -76,6 +88,13 @@ pub mod create {
             FOREIGN KEY(tx_id) REFERENCES transactions(id)
         )
     ";
+
+    pub const CREATE_ALL_ICONCACHE_TABLES_BATCH: &'static str = const_format::formatcp!(
+        "BEGIN;
+        {CREATE_TABLE_RESOURCE_IMAGES}
+        {CREATE_TABLE_NFT_IMAGES}
+        COMMIT;"
+    );
 
     pub const CREATE_TABLE_RESOURCE_IMAGES: &'static str = "CREATE TABLE IF NOT EXISTS
         resource_images (
