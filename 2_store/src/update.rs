@@ -1,28 +1,30 @@
 use super::{
     statements::{insert, upsert},
-    AsyncDb, Db,
+    AsyncDb,
 };
 use rusqlite::params;
 use types::{
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, Resource, Transaction, Ur, Us,
+    Account, Resource, Transaction, Us,
 };
 
-impl Db {
-    pub fn upsert_password_hash(&self, hash: HashedPassword) -> Result<(), rusqlite::Error> {
-        self.connection
-            .prepare_cached(upsert::UPSERT_PASSWORD_HASH)?
-            .execute(params![1, hash])?;
-
-        Ok(())
+impl AsyncDb {
+    pub async fn upsert_password_hash(
+        &self,
+        hash: HashedPassword,
+    ) -> Result<(), async_sqlite::Error> {
+        self.transaction(upsert::UPSERT_PASSWORD_HASH, move |cached_stmt| {
+            cached_stmt.execute(params![1, hash])?;
+            Ok(())
+        })
+        .await
     }
 
-    pub fn upsert_account(&self, account: &Account) -> Result<(), rusqlite::Error> {
-        self.connection
-            .prepare_cached(upsert::UPSERT_ACCOUNT)?
-            .execute(params![
+    pub async fn upsert_account(&self, account: Account) -> Result<(), async_sqlite::Error> {
+        self.transaction(upsert::UPSERT_ACCOUNT, move |cached_stmt| {
+            cached_stmt.execute(params![
                 account.address,
                 account.id as i64,
                 account.name,
@@ -34,18 +36,16 @@ impl Db {
                 account.balances_last_updated,
                 account.transactions_last_updated,
             ])?;
-
-        Ok(())
+            Ok(())
+        })
+        .await
     }
 
-    pub fn upsert_accounts(&mut self, accounts: &[Account]) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(upsert::UPSERT_ACCOUNT)?;
-
-            for account in accounts {
-                stmt.execute(params![
+    pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), async_sqlite::Error> {
+        let accounts = unsafe { Us::new(accounts) };
+        self.transaction(upsert::UPSERT_ACCOUNT, move |cached_stmt| {
+            for account in accounts.iter() {
+                cached_stmt.execute(params![
                     account.address,
                     account.id as i64,
                     account.name,
@@ -58,19 +58,18 @@ impl Db {
                     account.transactions_last_updated,
                 ])?;
             }
-        }
-
-        tx.commit()
+            Ok(())
+        })
+        .await
     }
 
-    pub fn upsert_resources(&mut self, resources: &[Resource]) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(upsert::UPSERT_RESOURCE)?;
-
-            for resource in resources {
-                stmt.execute(params![
+    pub async fn upsert_resources(
+        &self,
+        resources: Vec<Resource>,
+    ) -> Result<(), async_sqlite::Error> {
+        self.transaction(upsert::UPSERT_RESOURCE, move |cached_stmt| {
+            for resource in resources.iter() {
+                cached_stmt.execute(params![
                     resource.address,
                     resource.name,
                     resource.symbol,
@@ -80,203 +79,9 @@ impl Db {
                     resource.tags,
                 ])?;
             }
-        }
-
-        tx.commit()
-    }
-
-    pub fn upsert_fungible_assets_for_account(
-        &mut self,
-        account_address: &AccountAddress,
-        fungibles: &[FungibleAsset],
-    ) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(upsert::UPSERT_FUNGIBLE_ASSET)?;
-
-            for fungible_asset in fungibles {
-                stmt.execute(params![
-                    fungible_asset.id,
-                    fungible_asset.resource_address,
-                    fungible_asset.amount,
-                    account_address,
-                ])?;
-            }
-        }
-
-        tx.commit()
-    }
-
-    pub fn upsert_non_fungible_assets_for_account(
-        &mut self,
-        account_address: &AccountAddress,
-        non_fungibles: &[NonFungibleAsset],
-    ) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(upsert::UPSERT_NON_FUNGIBLE_ASSET)?;
-
-            for non_fungible_asset in non_fungibles {
-                stmt.execute(params![
-                    non_fungible_asset.id,
-                    non_fungible_asset.resource_address,
-                    non_fungible_asset.nfids,
-                    account_address,
-                ])?;
-            }
-        }
-
-        tx.commit()
-    }
-
-    pub fn update_transaction_status(
-        &mut self,
-        transactions: &[Transaction],
-    ) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut stmt = tx.prepare_cached(&upsert::UPSERT_TRANSACTION)?;
-
-            for transaction in transactions {
-                stmt.execute(params![
-                    transaction.id,
-                    transaction.transaction_address,
-                    transaction.timestamp,
-                    transaction.state_version as i64,
-                ])?;
-            }
-        }
-
-        tx.commit()
-    }
-
-    fn insert_transactions(&mut self, transactions: &[Transaction]) -> Result<(), rusqlite::Error> {
-        let tx = self.connection.transaction()?;
-
-        {
-            let mut transaction_stmt = tx.prepare_cached(upsert::UPSERT_TRANSACTION)?;
-            let mut balance_changes_stmt = tx.prepare_cached(insert::INSERT_BALANCE_CHANGE)?;
-
-            for transaction in transactions {
-                transaction_stmt.execute(params![
-                    transaction.id,
-                    transaction.transaction_address,
-                    transaction.timestamp,
-                    transaction.state_version as i64,
-                ])?;
-
-                for balance_change in &transaction.balance_changes {
-                    balance_changes_stmt.execute(params![
-                        balance_change.id,
-                        balance_change.account,
-                        balance_change.resource,
-                        balance_change.nfids,
-                        balance_change.amount,
-                        transaction.transaction_address,
-                    ])?;
-                }
-            }
-        }
-
-        tx.commit()
-    }
-}
-
-impl AsyncDb {
-    pub async fn upsert_password_hash(
-        &self,
-        hash: HashedPassword,
-    ) -> Result<(), async_sqlite::Error> {
-        self.client
-            .conn(move |conn| {
-                conn.prepare_cached(upsert::UPSERT_PASSWORD_HASH)?
-                    .execute(params![1, hash])?;
-                Ok::<(), rusqlite::Error>(())
-            })
-            .await
-    }
-
-    pub async fn upsert_account(&self, account: Account) -> Result<(), async_sqlite::Error> {
-        self.client
-            .conn(move |conn| {
-                conn.prepare_cached(upsert::UPSERT_ACCOUNT)?
-                    .execute(params![
-                        account.address,
-                        account.id as i64,
-                        account.name,
-                        account.network,
-                        account.derivation_path,
-                        account.public_key.0,
-                        account.hidden,
-                        account.settings,
-                        account.balances_last_updated,
-                        account.transactions_last_updated,
-                    ])?;
-                Ok::<(), rusqlite::Error>(())
-            })
-            .await
-    }
-
-    pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), async_sqlite::Error> {
-        let accounts = unsafe { Us::new(accounts) };
-
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
-                {
-                    let mut stmt = tx.prepare_cached(upsert::UPSERT_ACCOUNT)?;
-
-                    for account in accounts.iter() {
-                        stmt.execute(params![
-                            account.address,
-                            account.id as i64,
-                            account.name,
-                            account.network,
-                            account.derivation_path,
-                            account.public_key.0,
-                            account.hidden,
-                            account.settings,
-                            account.balances_last_updated,
-                            account.transactions_last_updated,
-                        ])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
-    }
-
-    pub async fn upsert_resources(
-        &self,
-        resources: Vec<Resource>,
-    ) -> Result<(), async_sqlite::Error> {
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(upsert::UPSERT_RESOURCE)?;
-
-                    for resource in resources.iter() {
-                        stmt.execute(params![
-                            resource.address,
-                            resource.name,
-                            resource.symbol,
-                            resource.description,
-                            resource.current_supply,
-                            resource.divisibility,
-                            resource.tags,
-                        ])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
+            Ok(())
+        })
+        .await
     }
 
     pub async fn upsert_fungible_assets_for_account(
@@ -284,26 +89,18 @@ impl AsyncDb {
         account_address: AccountAddress,
         fungibles: Vec<FungibleAsset>,
     ) -> Result<(), async_sqlite::Error> {
-        self.client
-            .conn_mut(move |connection| {
-                let tx = connection.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(upsert::UPSERT_FUNGIBLE_ASSET)?;
-
-                    for fungible_asset in fungibles {
-                        stmt.execute(params![
-                            fungible_asset.id,
-                            fungible_asset.resource_address,
-                            fungible_asset.amount,
-                            account_address,
-                        ])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
+        self.transaction(upsert::UPSERT_FUNGIBLE_ASSET, move |cached_stmt| {
+            for fungible_asset in fungibles {
+                cached_stmt.execute(params![
+                    fungible_asset.id,
+                    fungible_asset.resource_address,
+                    fungible_asset.amount,
+                    account_address,
+                ])?;
+            }
+            Ok(())
+        })
+        .await
     }
 
     pub async fn upsert_non_fungible_assets_for_account(
@@ -312,52 +109,59 @@ impl AsyncDb {
         non_fungibles: &[NonFungibleAsset],
     ) -> Result<(), async_sqlite::Error> {
         let non_fungibles = unsafe { Us::new(non_fungibles) };
-        self.client
-            .conn_mut(move |connection| {
-                let tx = connection.transaction()?;
 
-                {
-                    let mut stmt = tx.prepare_cached(upsert::UPSERT_NON_FUNGIBLE_ASSET)?;
+        self.transaction(upsert::UPSERT_NON_FUNGIBLE_ASSET, move |cached_stmt| {
+            for non_fungible_asset in non_fungibles.iter() {
+                cached_stmt.execute(params![
+                    non_fungible_asset.id,
+                    non_fungible_asset.resource_address,
+                    non_fungible_asset.nfids,
+                    account_address,
+                ])?;
+            }
+            Ok(())
+        })
+        .await
+    }
 
-                    for non_fungible_asset in non_fungibles.iter() {
-                        stmt.execute(params![
-                            non_fungible_asset.id,
-                            non_fungible_asset.resource_address,
-                            non_fungible_asset.nfids,
-                            account_address,
-                        ])?;
-                    }
-                }
+    pub async fn upsert_non_fungible_assets_for_account_v2(
+        &self,
+        account_address: AccountAddress,
+        non_fungibles: &[NonFungibleAsset],
+    ) -> Result<(), async_sqlite::Error> {
+        let non_fungibles = unsafe { Us::new(non_fungibles) };
 
-                tx.commit()
-            })
-            .await
+        self.transaction(upsert::UPSERT_NON_FUNGIBLE_ASSET, move |cached_stmt| {
+            for non_fungible_asset in non_fungibles.iter() {
+                cached_stmt.execute(params![
+                    non_fungible_asset.id,
+                    non_fungible_asset.resource_address,
+                    non_fungible_asset.nfids,
+                    account_address,
+                ])?;
+            }
+
+            Ok(())
+        })
+        .await
     }
 
     pub async fn update_transaction_status(
         &self,
         transactions: Vec<Transaction>,
     ) -> Result<(), async_sqlite::Error> {
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(&upsert::UPSERT_TRANSACTION)?;
-
-                    for transaction in transactions {
-                        stmt.execute(params![
-                            transaction.id,
-                            transaction.transaction_address,
-                            transaction.timestamp,
-                            transaction.state_version as i64,
-                        ])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await
+        self.transaction(upsert::UPSERT_TRANSACTION, move |cached_stmt| {
+            for transaction in transactions {
+                cached_stmt.execute(params![
+                    transaction.id,
+                    transaction.transaction_address,
+                    transaction.timestamp,
+                    transaction.state_version as i64,
+                ])?;
+            }
+            Ok(())
+        })
+        .await
     }
 
     pub async fn insert_transactions(
