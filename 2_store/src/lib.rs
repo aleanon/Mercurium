@@ -1,4 +1,4 @@
-mod connection;
+mod client;
 mod create;
 mod db;
 mod delete;

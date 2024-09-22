@@ -1,3 +1,5 @@
+use crate::DbError;
+
 use super::{
     statements::{insert, upsert},
     Db,
@@ -11,18 +13,16 @@ use types::{
 };
 
 impl Db {
-    pub async fn upsert_password_hash(
-        &self,
-        hash: HashedPassword,
-    ) -> Result<(), async_sqlite::Error> {
+    pub async fn upsert_password_hash(&self, hash: HashedPassword) -> Result<(), DbError> {
         self.transaction(upsert::UPSERT_PASSWORD_HASH, move |cached_stmt| {
             cached_stmt.execute(params![1, hash])?;
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
-    pub async fn upsert_account(&self, account: Account) -> Result<(), async_sqlite::Error> {
+    pub async fn upsert_account(&self, account: Account) -> Result<(), DbError> {
         self.transaction(upsert::UPSERT_ACCOUNT, move |cached_stmt| {
             cached_stmt.execute(params![
                 account.address,
@@ -38,10 +38,11 @@ impl Db {
             ])?;
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
-    pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), async_sqlite::Error> {
+    pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), DbError> {
         let accounts = unsafe { Us::new(accounts) };
         self.transaction(upsert::UPSERT_ACCOUNT, move |cached_stmt| {
             for account in accounts.iter() {
@@ -60,13 +61,11 @@ impl Db {
             }
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
-    pub async fn upsert_resources(
-        &self,
-        resources: Vec<Resource>,
-    ) -> Result<(), async_sqlite::Error> {
+    pub async fn upsert_resources(&self, resources: Vec<Resource>) -> Result<(), DbError> {
         self.transaction(upsert::UPSERT_RESOURCE, move |cached_stmt| {
             for resource in resources.iter() {
                 cached_stmt.execute(params![
@@ -81,14 +80,15 @@ impl Db {
             }
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
     pub async fn upsert_fungible_assets_for_account(
         &self,
         account_address: AccountAddress,
         fungibles: Vec<FungibleAsset>,
-    ) -> Result<(), async_sqlite::Error> {
+    ) -> Result<(), DbError> {
         self.transaction(upsert::UPSERT_FUNGIBLE_ASSET, move |cached_stmt| {
             for fungible_asset in fungibles {
                 cached_stmt.execute(params![
@@ -100,14 +100,15 @@ impl Db {
             }
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
     pub async fn upsert_non_fungible_assets_for_account(
         &self,
         account_address: AccountAddress,
         non_fungibles: &[NonFungibleAsset],
-    ) -> Result<(), async_sqlite::Error> {
+    ) -> Result<(), DbError> {
         let non_fungibles = unsafe { Us::new(non_fungibles) };
 
         self.transaction(upsert::UPSERT_NON_FUNGIBLE_ASSET, move |cached_stmt| {
@@ -121,14 +122,15 @@ impl Db {
             }
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
     pub async fn upsert_non_fungible_assets_for_account_v2(
         &self,
         account_address: AccountAddress,
         non_fungibles: &[NonFungibleAsset],
-    ) -> Result<(), async_sqlite::Error> {
+    ) -> Result<(), DbError> {
         let non_fungibles = unsafe { Us::new(non_fungibles) };
 
         self.transaction(upsert::UPSERT_NON_FUNGIBLE_ASSET, move |cached_stmt| {
@@ -143,13 +145,14 @@ impl Db {
 
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
     pub async fn update_transaction_status(
         &self,
         transactions: Vec<Transaction>,
-    ) -> Result<(), async_sqlite::Error> {
+    ) -> Result<(), DbError> {
         self.transaction(upsert::UPSERT_TRANSACTION, move |cached_stmt| {
             for transaction in transactions {
                 cached_stmt.execute(params![
@@ -161,13 +164,11 @@ impl Db {
             }
             Ok(())
         })
-        .await
+        .await?;
+        Ok(())
     }
 
-    pub async fn insert_transactions(
-        &self,
-        transactions: Vec<Transaction>,
-    ) -> Result<(), async_sqlite::Error> {
+    pub async fn insert_transactions(&self, transactions: Vec<Transaction>) -> Result<(), DbError> {
         self.client
             .conn_mut(|conn| {
                 let tx = conn.transaction()?;
@@ -200,6 +201,7 @@ impl Db {
 
                 tx.commit()
             })
-            .await
+            .await?;
+        Ok(())
     }
 }

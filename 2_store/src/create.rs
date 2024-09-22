@@ -1,25 +1,28 @@
 use super::statements::create::*;
 use crate::Db;
+use crate::DbError;
 use crate::IconCache;
 
 impl Db {
-    pub async fn create_tables_if_not_exist(&self) -> Result<(), async_sqlite::Error> {
-        self.client
+    pub async fn create_tables_if_not_exist(&self) -> Result<(), DbError> {
+        Ok(self
+            .client
             .conn(|conn| {
                 conn.execute_batch(CREATE_ALL_MAIN_DB_TABLES_BATCH)?;
                 Ok(())
             })
-            .await
+            .await?)
     }
 }
 
 impl IconCache {
-    pub async fn create_tables_if_not_exist(&self) -> Result<(), async_sqlite::Error> {
-        self.client
+    pub async fn create_tables_if_not_exist(&self) -> Result<(), DbError> {
+        Ok(self
+            .client
             .conn(|conn| {
                 conn.execute_batch(CREATE_ALL_ICONCACHE_TABLES_BATCH)?;
                 Ok(())
             })
-            .await
+            .await?)
     }
 }
