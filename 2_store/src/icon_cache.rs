@@ -1,13 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
-use async_sqlite::{
-    rusqlite::{self, params, OpenFlags},
-    Error,
-};
+use async_sqlite::rusqlite::{self, params};
 use types::{
     address::{Address, ResourceAddress},
     crypto::DataBaseKey,
-    AppPath, Network,
+    Network,
 };
 
 use crate::{statements, DbError};
