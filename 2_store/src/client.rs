@@ -6,7 +6,7 @@ use types::{crypto::DataBaseKey, AppPath, Network};
 
 use async_sqlite::rusqlite::{self, OpenFlags};
 
-pub async fn main_db_client(
+pub(crate) async fn main_db_client(
     network: Network,
     key: DataBaseKey,
 ) -> Result<async_sqlite::Client, DbError> {
@@ -16,7 +16,7 @@ pub async fn main_db_client(
     async_client(path, key).await
 }
 
-pub async fn iconcache_client(
+pub(crate) async fn iconcache_client(
     network: Network,
     key: DataBaseKey,
 ) -> Result<async_sqlite::Client, DbError> {
@@ -26,7 +26,7 @@ pub async fn iconcache_client(
     async_client(path, key).await
 }
 
-pub async fn async_client(path: &Path, key: DataBaseKey) -> Result<async_sqlite::Client, DbError> {
+async fn async_client(path: &Path, key: DataBaseKey) -> Result<async_sqlite::Client, DbError> {
     let client = build_db_client(path).await?;
 
     set_database_key(&client, key).await?;

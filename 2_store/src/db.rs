@@ -9,22 +9,16 @@ use types::{
 
 #[derive(Debug, Error)]
 pub enum DbError {
-    #[error("Unable to create table {0}, source: {1}")]
-    FailedToCreateTable(String, rusqlite::Error),
     #[error("{0}")]
     AsyncSqliteError(#[from] async_sqlite::Error),
-    #[error("Failed to create Db connection, source: {0}")]
-    FailedToCreateConnection(#[from] std::io::Error),
+    // #[error("Failed to create Db connection, source: {0}")]
+    // FailedToCreateConnection(#[from] std::io::Error),
     #[error("Database not initialized")]
     DatabaseNotInitialized,
     #[error("No database found")]
     DatabaseNotFound,
-    #[error("Database path not found")]
-    UnableToEstablishPath(std::io::Error),
     #[error("Unable to establish path {0}")]
     PathError(#[from] AppPathError),
-    #[error("Invalid password")]
-    InvalidPassword,
 }
 
 pub static MAINNET_DB: OnceCell<Db> = once_cell::sync::OnceCell::new();
@@ -38,14 +32,14 @@ impl Db {
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         match network {
             Network::Mainnet => {
-                let client = super::connection::main_db_client(network, key).await?;
+                let client = super::client::main_db_client(network, key).await?;
                 let db = Self { client };
                 db.create_tables_if_not_exist().await?;
                 let db = MAINNET_DB.get_or_init(|| db);
                 Ok(db)
             }
             Network::Stokenet => {
-                let client = super::connection::main_db_client(network, key).await?;
+                let client = super::client::main_db_client(network, key).await?;
                 let db = Self { client };
                 db.create_tables_if_not_exist().await?;
 

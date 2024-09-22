@@ -18,7 +18,7 @@ pub struct IconCache {
 
 impl IconCache {
     pub async fn load(network: Network) -> Result<Self, DbError> {
-        let client = super::connection::iconcache_client(network, DataBaseKey::dummy_key()).await?;
+        let client = super::client::iconcache_client(network, DataBaseKey::dummy_key()).await?;
 
         let iconcache = Self { client };
 
@@ -29,7 +29,7 @@ impl IconCache {
 
     pub async fn get_all_resource_icons(
         &self,
-    ) -> Result<HashMap<ResourceAddress, Vec<u8>>, async_sqlite::Error> {
+    ) -> Result<HashMap<ResourceAddress, Vec<u8>>, DbError> {
         let result = self
             .client
             .conn(|conn| {
@@ -48,7 +48,7 @@ impl IconCache {
     pub async fn get_resource_icon(
         &self,
         resource_address: ResourceAddress,
-    ) -> Result<(ResourceAddress, Vec<u8>), Error> {
+    ) -> Result<(ResourceAddress, Vec<u8>), DbError> {
         Ok(self
             .client
             .conn(move |conn| {
@@ -68,7 +68,7 @@ impl IconCache {
     pub async fn get_all_nft_images_for_resource(
         &self,
         resource_address: ResourceAddress,
-    ) -> Result<(ResourceAddress, BTreeMap<String, Vec<u8>>), Error> {
+    ) -> Result<(ResourceAddress, BTreeMap<String, Vec<u8>>), DbError> {
         let resource_address_params = resource_address.clone();
         let btree_map = self
             .client
@@ -90,7 +90,7 @@ impl IconCache {
         &self,
         resource_address: ResourceAddress,
         nfid: String,
-    ) -> Result<(ResourceAddress, String, Vec<u8>), Error> {
+    ) -> Result<(ResourceAddress, String, Vec<u8>), DbError> {
         Ok(self
             .client
             .conn(move |conn| {
@@ -112,7 +112,7 @@ impl IconCache {
     pub async fn upsert_resource_icons(
         &self,
         icons: HashMap<ResourceAddress, Vec<u8>>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), DbError> {
         self.client
             .conn_mut(move |conn| {
                 let tx = conn.transaction()?;
@@ -135,7 +135,7 @@ impl IconCache {
         &self,
         resource_address: ResourceAddress,
         image_data: Vec<u8>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), DbError> {
         self.client
             .conn(move |conn| {
                 conn.execute(
@@ -151,7 +151,7 @@ impl IconCache {
         &self,
         resource_address: ResourceAddress,
         images: BTreeMap<String, Vec<u8>>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), DbError> {
         self.client
             .conn_mut(move |conn| {
                 let tx = conn.transaction()?;
@@ -176,7 +176,7 @@ impl IconCache {
         resource_address: ResourceAddress,
         mut nfid: String,
         image_data: Vec<u8>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), DbError> {
         self.client
             .conn(move |conn| {
                 nfid.push_str(resource_address.as_str());
