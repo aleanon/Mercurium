@@ -1,13 +1,13 @@
 pub mod create {
     pub const CREATE_ALL_MAIN_DB_TABLES_BATCH: &'static str = const_format::formatcp!(
         "BEGIN;
-        {CREATE_TABLE_PASSWORD_HASH}
-        {CREATE_TABLE_ACCOUNTS}
-        {CREATE_TABLE_RESOURCES}
-        {CREATE_TABLE_FUNGIBLE_ASSETS}
-        {CREATE_TABLE_NON_FUNGIBLE_ASSETS}
-        {CREATE_TABLE_TRANSACTIONS}
-        {CREATE_TABLE_BALANCE_CHANGES}
+        {CREATE_TABLE_PASSWORD_HASH};
+        {CREATE_TABLE_ACCOUNTS};
+        {CREATE_TABLE_RESOURCES};
+        {CREATE_TABLE_FUNGIBLE_ASSETS};
+        {CREATE_TABLE_NON_FUNGIBLE_ASSETS};
+        {CREATE_TABLE_TRANSACTIONS};
+        {CREATE_TABLE_BALANCE_CHANGES};
         COMMIT;"
     );
 
@@ -91,8 +91,8 @@ pub mod create {
 
     pub const CREATE_ALL_ICONCACHE_TABLES_BATCH: &'static str = const_format::formatcp!(
         "BEGIN;
-        {CREATE_TABLE_RESOURCE_IMAGES}
-        {CREATE_TABLE_NFT_IMAGES}
+        {CREATE_TABLE_RESOURCE_IMAGES};
+        {CREATE_TABLE_NFT_IMAGES};
         COMMIT;"
     );
 
@@ -248,6 +248,5 @@ pub mod insert {
             tx_id
         )
         VALUES (?,?,?,?,?,?)
-
     ";
 }

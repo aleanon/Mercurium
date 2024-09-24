@@ -1,188 +1,47 @@
-use std::collections::{BTreeMap, HashMap};
+use once_cell::sync::OnceCell;
+use types::{crypto::DataBaseKey, Network};
 
-use async_sqlite::rusqlite::{self, params};
-use types::{
-    address::{Address, ResourceAddress},
-    crypto::DataBaseKey,
-    Network,
-};
+use crate::DbError;
 
-use crate::{statements, DbError};
+pub static MAINNET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
+pub static STOKENET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
 
 pub struct IconCache {
     pub(crate) client: async_sqlite::Client,
 }
 
 impl IconCache {
-    pub async fn load(network: Network) -> Result<Self, DbError> {
-        let client = super::client::iconcache_client(network, DataBaseKey::dummy_key()).await?;
+    pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
+        match network {
+            Network::Mainnet => {
+                let client = super::client::iconcache_client(network, key).await?;
+                let icon_cache = Self { client };
+                icon_cache.create_tables_if_not_exist().await?;
+                let icon_cache = MAINNET_ICONCACHE.get_or_init(|| icon_cache);
+                Ok(icon_cache)
+            }
+            Network::Stokenet => {
+                let client = super::client::iconcache_client(network, key).await?;
+                let icon_cache = Self { client };
+                icon_cache.create_tables_if_not_exist().await?;
 
-        let iconcache = Self { client };
-
-        iconcache.create_tables_if_not_exist().await?;
-
-        Ok(iconcache)
+                let icon_cache = STOKENET_ICONCACHE.get_or_init(|| icon_cache);
+                Ok(icon_cache)
+            }
+        }
     }
 
-    pub async fn get_all_resource_icons(
-        &self,
-    ) -> Result<HashMap<ResourceAddress, Vec<u8>>, DbError> {
-        let result = self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM resource_images")?
-                    .query_map([], |row| {
-                        let resource_address: ResourceAddress = row.get(0)?;
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((resource_address, image_data))
-                    })?
-                    .collect::<Result<HashMap<ResourceAddress, Vec<u8>>, rusqlite::Error>>()
-            })
-            .await?;
-        Ok(result)
+    pub async fn get_or_init(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
+        match Self::get(network) {
+            Some(db) => Ok(db),
+            None => Self::load(network, key).await,
+        }
     }
 
-    pub async fn get_resource_icon(
-        &self,
-        resource_address: ResourceAddress,
-    ) -> Result<(ResourceAddress, Vec<u8>), DbError> {
-        Ok(self
-            .client
-            .conn(move |conn| {
-                conn.query_row(
-                    "SELECT * FROM resource_images WHERE resource_address = ?",
-                    [resource_address],
-                    |row| {
-                        let resource_address: ResourceAddress = row.get(0)?;
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((resource_address, image_data))
-                    },
-                )
-            })
-            .await?)
-    }
-
-    pub async fn get_all_nft_images_for_resource(
-        &self,
-        resource_address: ResourceAddress,
-    ) -> Result<(ResourceAddress, BTreeMap<String, Vec<u8>>), DbError> {
-        let resource_address_params = resource_address.clone();
-        let btree_map = self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM nft_images WHERE resource_address = ?")?
-                    .query_map([resource_address_params], |row| {
-                        let mut nfid: String = row.get(0)?;
-                        let _ = nfid.split_off(nfid.len() - ResourceAddress::CHECKSUM_LENGTH);
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((nfid, image_data))
-                    })?
-                    .collect::<Result<BTreeMap<String, Vec<u8>>, rusqlite::Error>>()
-            })
-            .await?;
-        Ok((resource_address, btree_map))
-    }
-
-    pub async fn get_nft_image(
-        &self,
-        resource_address: ResourceAddress,
-        nfid: String,
-    ) -> Result<(ResourceAddress, String, Vec<u8>), DbError> {
-        Ok(self
-            .client
-            .conn(move |conn| {
-                let mut nfid_param = nfid.clone();
-                nfid_param.push_str(resource_address.checksum_as_str());
-
-                conn.query_row(
-                    "SELECT * FROM nft_images WHERE nfid =?",
-                    [nfid_param],
-                    |row| {
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((resource_address, nfid, image_data))
-                    },
-                )
-            })
-            .await?)
-    }
-
-    pub async fn upsert_resource_icons(
-        &self,
-        icons: HashMap<ResourceAddress, Vec<u8>>,
-    ) -> Result<(), DbError> {
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_RESOURCE_IMAGE)?;
-
-                    for (resource_address, image_data) in icons {
-                        stmt.execute(params![resource_address, image_data])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await?;
-        Ok(())
-    }
-
-    pub async fn upsert_resource_icon(
-        &self,
-        resource_address: ResourceAddress,
-        image_data: Vec<u8>,
-    ) -> Result<(), DbError> {
-        self.client
-            .conn(move |conn| {
-                conn.execute(
-                    statements::upsert::UPSERT_RESOURCE_IMAGE,
-                    params![resource_address, image_data],
-                )
-            })
-            .await?;
-        Ok(())
-    }
-
-    pub async fn upsert_nft_images(
-        &self,
-        resource_address: ResourceAddress,
-        images: BTreeMap<String, Vec<u8>>,
-    ) -> Result<(), DbError> {
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
-
-                {
-                    let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_NFT_IMAGE)?;
-
-                    for (mut nfid, image_data) in images {
-                        nfid.push_str(resource_address.checksum_as_str());
-                        stmt.execute(params![nfid, image_data, resource_address])?;
-                    }
-                }
-
-                tx.commit()
-            })
-            .await?;
-        Ok(())
-    }
-
-    pub async fn upsert_nft_image(
-        &self,
-        resource_address: ResourceAddress,
-        mut nfid: String,
-        image_data: Vec<u8>,
-    ) -> Result<(), DbError> {
-        self.client
-            .conn(move |conn| {
-                nfid.push_str(resource_address.as_str());
-                conn.execute(
-                    statements::upsert::UPSERT_NFT_IMAGE,
-                    params![nfid, image_data, resource_address],
-                )
-            })
-            .await?;
-        Ok(())
+    pub fn get(network: Network) -> Option<&'static Self> {
+        match network {
+            Network::Mainnet => MAINNET_ICONCACHE.get(),
+            Network::Stokenet => STOKENET_ICONCACHE.get(),
+        }
     }
 }
