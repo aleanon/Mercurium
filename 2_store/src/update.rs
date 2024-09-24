@@ -1,4 +1,6 @@
-use crate::DbError;
+use std::collections::{BTreeMap, HashMap};
+
+use crate::{statements, DbError, IconCache};
 
 use super::{
     statements::{insert, upsert},
@@ -6,10 +8,10 @@ use super::{
 };
 use async_sqlite::rusqlite::params;
 use types::{
-    address::AccountAddress,
+    address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, Resource, Transaction, Us,
+    Account, Resource, Transaction, Ur, Us,
 };
 
 impl Db {
@@ -126,28 +128,31 @@ impl Db {
         Ok(())
     }
 
-    pub async fn upsert_non_fungible_assets_for_account_v2(
-        &self,
-        account_address: AccountAddress,
-        non_fungibles: &[NonFungibleAsset],
-    ) -> Result<(), DbError> {
-        let non_fungibles = unsafe { Us::new(non_fungibles) };
+    // pub async fn upsert_non_fungible_assets_for_account_v2<'a, T>(
+    //     &self,
+    //     account_address: AccountAddress,
+    //     non_fungibles: T,
+    // ) -> Result<(), DbError>
+    // where
+    //     T: Iterator<Item = &'a NonFungibleAsset>,
+    // {
+    //     let non_fungibles = unsafe { Ur::new(&non_fungibles) };
 
-        self.transaction(upsert::UPSERT_NON_FUNGIBLE_ASSET, move |cached_stmt| {
-            for non_fungible_asset in non_fungibles.iter() {
-                cached_stmt.execute(params![
-                    non_fungible_asset.id,
-                    non_fungible_asset.resource_address,
-                    non_fungible_asset.nfids,
-                    account_address,
-                ])?;
-            }
+    //     self.transaction(upsert::UPSERT_NON_FUNGIBLE_ASSET, move |cached_stmt| {
+    //         for non_fungible_asset in *non_fungibles {
+    //             cached_stmt.execute(params![
+    //                 non_fungible_asset.id,
+    //                 non_fungible_asset.resource_address,
+    //                 non_fungible_asset.nfids,
+    //                 account_address,
+    //             ])?;
+    //         }
 
-            Ok(())
-        })
-        .await?;
-        Ok(())
-    }
+    //         Ok(())
+    //     })
+    //     .await?;
+    //     Ok(())
+    // }
 
     pub async fn update_transaction_status(
         &self,
@@ -200,6 +205,88 @@ impl Db {
                 }
 
                 tx.commit()
+            })
+            .await?;
+        Ok(())
+    }
+}
+
+impl IconCache {
+    pub async fn upsert_resource_icons(
+        &self,
+        icons: HashMap<ResourceAddress, Vec<u8>>,
+    ) -> Result<(), DbError> {
+        self.client
+            .conn_mut(move |conn| {
+                let tx = conn.transaction()?;
+
+                {
+                    let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_RESOURCE_IMAGE)?;
+
+                    for (resource_address, image_data) in icons {
+                        stmt.execute(params![resource_address, image_data])?;
+                    }
+                }
+
+                tx.commit()
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_resource_icon(
+        &self,
+        resource_address: ResourceAddress,
+        image_data: Vec<u8>,
+    ) -> Result<(), DbError> {
+        self.client
+            .conn(move |conn| {
+                conn.execute(
+                    statements::upsert::UPSERT_RESOURCE_IMAGE,
+                    params![resource_address, image_data],
+                )
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_nft_images(
+        &self,
+        resource_address: ResourceAddress,
+        images: BTreeMap<String, Vec<u8>>,
+    ) -> Result<(), DbError> {
+        self.client
+            .conn_mut(move |conn| {
+                let tx = conn.transaction()?;
+
+                {
+                    let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_NFT_IMAGE)?;
+
+                    for (mut nfid, image_data) in images {
+                        nfid.push_str(resource_address.checksum_as_str());
+                        stmt.execute(params![nfid, image_data, resource_address])?;
+                    }
+                }
+
+                tx.commit()
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_nft_image(
+        &self,
+        resource_address: ResourceAddress,
+        mut nfid: String,
+        image_data: Vec<u8>,
+    ) -> Result<(), DbError> {
+        self.client
+            .conn(move |conn| {
+                nfid.push_str(resource_address.as_str());
+                conn.execute(
+                    statements::upsert::UPSERT_NFT_IMAGE,
+                    params![nfid, image_data, resource_address],
+                )
             })
             .await?;
         Ok(())
