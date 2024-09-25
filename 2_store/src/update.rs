@@ -11,7 +11,7 @@ use types::{
     address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, Resource, Transaction, Ur, Us,
+    Account, Resource, Transaction, Us,
 };
 
 impl Db {
