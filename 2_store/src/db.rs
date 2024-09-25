@@ -1,11 +1,8 @@
-use async_sqlite::rusqlite::{self, CachedStatement};
+use async_sqlite::rusqlite::{self, CachedStatement, Params, Result, Row};
 use once_cell::sync::OnceCell;
 use thiserror::Error;
 
-use types::{
-    crypto::DataBaseKey,
-    Network, {AppPath, AppPathError},
-};
+use types::{crypto::DataBaseKey, AppPath, AppPathError, Network};
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -91,6 +88,62 @@ impl Db {
                 tx.commit()
             })
             .await
+    }
+
+    pub(crate) async fn prepare_cached_statement<T, F>(
+        &self,
+        stmt: &'static str,
+        func: F,
+    ) -> Result<T, DbError>
+    where
+        F: FnOnce(&mut CachedStatement<'_>) -> Result<T> + Send + 'static,
+        T: Send + 'static,
+    {
+        Ok(self
+            .client
+            .conn_mut(|conn| {
+                let mut cached_statement = conn.prepare_cached(stmt)?;
+                func(&mut cached_statement)
+            })
+            .await?)
+    }
+
+    pub(crate) async fn query_row<T, P, F>(
+        &self,
+        stmt: &'static str,
+        params: P,
+        func: F,
+    ) -> Result<T, DbError>
+    where
+        P: Params + Send + 'static,
+        T: Send + 'static,
+        F: FnOnce(&Row<'_>) -> Result<T> + Send + 'static,
+    {
+        Ok(self
+            .client
+            .conn(move |conn| conn.prepare_cached(stmt)?.query_row(params, func))
+            .await?)
+    }
+
+    pub(crate) async fn query_map<T, U, P, F>(
+        &self,
+        stmt: &'static str,
+        params: P,
+        func: F,
+    ) -> Result<T, DbError>
+    where
+        T: FromIterator<U> + Send + 'static,
+        P: Params + Send + 'static,
+        F: FnMut(&Row<'_>) -> Result<U> + Send + 'static,
+    {
+        Ok(self
+            .client
+            .conn(move |conn| {
+                conn.prepare_cached(stmt)?
+                    .query_map(params, func)?
+                    .collect()
+            })
+            .await?)
     }
 }
 

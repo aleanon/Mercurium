@@ -1,123 +1,115 @@
 use crate::{DbError, IconCache};
 
 use super::Db;
-use async_sqlite::rusqlite;
+use async_sqlite::rusqlite::{self, params, Row};
 use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use types::{
     address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
+    response_models::BalanceChanges,
+    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId, Ur,
 };
 
 impl Db {
     pub async fn get_db_password_hash(&self) -> Result<HashedPassword, DbError> {
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT password FROM password_hash WHERE id = 1")?
-                    .query_row([], |row| Ok(row.get(0)?))
-            })
-            .await?)
+        self.query_row(
+            "SELECT password FROM password_hash WHERE id = 1",
+            [],
+            |row| Ok(row.get(0)?),
+        )
+        .await
     }
 
     pub async fn get_account(&self, account_address: AccountAddress) -> Result<Account, DbError> {
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM accounts WHERE address = ?")?
-                    .query_row([account_address], |row| {
-                        Ok(Account {
-                            address: row.get(0)?,
-                            id: row.get(1)?,
-                            name: row.get(2)?,
-                            network: row.get(3)?,
-                            derivation_path: row.get(4)?,
-                            public_key: Ed25519PublicKey(row.get(5)?),
-                            hidden: row.get(6)?,
-                            settings: row.get(7)?,
-                            balances_last_updated: row.get(8)?,
-                            transactions_last_updated: row.get(9)?,
-                        })
-                    })
-            })
-            .await?)
+        self.query_row(
+            "SELECT * FROM accounts WHERE address = ?",
+            [account_address],
+            |row| {
+                Ok(Account {
+                    address: row.get(0)?,
+                    id: row.get(1)?,
+                    name: row.get(2)?,
+                    network: row.get(3)?,
+                    derivation_path: row.get(4)?,
+                    public_key: Ed25519PublicKey(row.get(5)?),
+                    hidden: row.get(6)?,
+                    settings: row.get(7)?,
+                    balances_last_updated: row.get(8)?,
+                    transactions_last_updated: row.get(9)?,
+                })
+            },
+        )
+        .await
     }
 
     pub async fn get_account_addresses<T>(&self) -> Result<T, DbError>
     where
         T: FromIterator<AccountAddress> + Send + 'static,
     {
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT address FROM accounts")?
-                    .query_map([], |row| Ok(row.get(0)?))?
-                    .collect()
-            })
-            .await?)
+        self.query_map("SELECT address FROM accounts", [], |row| Ok(row.get(0)?))
+            .await
     }
 
     pub async fn get_accounts<T>(&self) -> Result<T, DbError>
     where
         T: FromIterator<Account> + Send + 'static,
     {
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM accounts")?
-                    .query_map([], |row| {
-                        let account = Account {
-                            address: row.get(0)?,
-                            id: row.get(1)?,
-                            name: row.get(2)?,
-                            network: row.get(3)?,
-                            derivation_path: row.get(4)?,
-                            public_key: Ed25519PublicKey(row.get(5)?),
-                            hidden: row.get(6)?,
-                            settings: row.get(7)?,
-                            balances_last_updated: row.get(8)?,
-                            transactions_last_updated: row.get(9)?,
-                        };
-                        Ok(account)
-                    })?
-                    .collect()
+        self.query_map("SELECT * FROM accounts", [], |row| {
+            Ok(Account {
+                address: row.get(0)?,
+                id: row.get(1)?,
+                name: row.get(2)?,
+                network: row.get(3)?,
+                derivation_path: row.get(4)?,
+                public_key: Ed25519PublicKey(row.get(5)?),
+                hidden: row.get(6)?,
+                settings: row.get(7)?,
+                balances_last_updated: row.get(8)?,
+                transactions_last_updated: row.get(9)?,
             })
-            .await?)
+        })
+        .await
     }
 
     pub async fn get_all_fungible_assets_per_account<T, U>(&self) -> Result<T, DbError>
     where
-        T: FromIterator<(AccountAddress, U)> + Send + 'static,
+        T: FromAsyncIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<FungibleAsset> + Send + 'static,
     {
         let accounts = self.get_account_addresses::<Vec<_>>().await?;
 
-        Ok(self
-            .client
-            .conn(|conn| {
-                let mut stmt =
-                    conn.prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?;
+        let all_fungibles = accounts
+            .into_aiter()
+            .afilter_map(|address| self.get_fungible_assets_for_account(address))
+            .collect()
+            .await;
 
-                accounts
-                    .into_iter()
-                    .map(|account_address| {
-                        stmt.query_map([&account_address], |row| {
-                            let fungible_asset = FungibleAsset {
-                                id: row.get(0)?,
-                                resource_address: row.get(1)?,
-                                amount: row.get(2)?,
-                            };
+        Ok(all_fungibles)
+    }
 
-                            Ok(fungible_asset)
-                        })?
-                        .collect::<Result<_, _>>()
-                        .map(|assets| (account_address, assets))
-                    })
-                    .collect()
-            })
-            .await?)
+    async fn get_fungible_assets_for_account<T>(
+        &self,
+        account_address: AccountAddress,
+    ) -> Option<(AccountAddress, T)>
+    where
+        T: FromIterator<FungibleAsset> + Send + 'static,
+    {
+        self.query_map(
+            "SELECT * FROM fungible_assets WHERE account_address = ?",
+            [account_address.clone()],
+            |row| {
+                Ok(FungibleAsset {
+                    id: row.get(0)?,
+                    resource_address: row.get(1)?,
+                    amount: row.get(2)?,
+                })
+            },
+        )
+        .await
+        .ok()
+        .map(|assets| (account_address, assets))
     }
 
     pub async fn get_fungible_assets_for_accounts<T, U>(
@@ -125,71 +117,57 @@ impl Db {
         account_addresses: Vec<AccountAddress>,
     ) -> Result<T, DbError>
     where
-        T: FromIterator<(AccountAddress, U)> + Send + 'static,
+        T: FromAsyncIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<FungibleAsset> + Send + 'static,
     {
-        Ok(self
-            .client
-            .conn(|conn| {
-                let mut stmt =
-                    conn.prepare_cached("SELECT * FROM fungible_assets WHERE account_address = ?")?;
+        let all_fungibles = account_addresses
+            .into_aiter()
+            .afilter_map(|account_address| self.get_fungible_assets_for_account(account_address))
+            .collect()
+            .await;
 
-                account_addresses
-                    .into_iter()
-                    .map(|account_address| {
-                        let fungible_assets = stmt
-                            .query_map([&account_address], |row| {
-                                let non_fungible_asset = FungibleAsset {
-                                    id: row.get(0)?,
-                                    resource_address: row.get(1)?,
-                                    amount: row.get(2)?,
-                                };
-
-                                Ok(non_fungible_asset)
-                            })?
-                            .collect::<Result<U, rusqlite::Error>>()?;
-
-                        Ok((account_address, fungible_assets))
-                    })
-                    .collect()
-            })
-            .await?)
+        Ok(all_fungibles)
     }
 
     pub async fn get_all_non_fungible_assets_per_account<T, U>(&self) -> Result<T, DbError>
     where
-        T: FromIterator<(AccountAddress, U)> + Send + 'static,
+        T: FromAsyncIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<NonFungibleAsset> + Send + 'static,
     {
-        let accounts = self.get_account_addresses::<Vec<_>>().await?;
+        let account_addresses = self.get_account_addresses::<Vec<_>>().await?;
 
-        Ok(self
-            .client
-            .conn(|conn| {
-                let mut stmt = conn.prepare_cached(
-                    "SELECT * FROM non_fungible_assets WHERE account_address = ?",
-                )?;
-
-                accounts
-                    .into_iter()
-                    .map(|account_address| {
-                        let non_fungible_assets = stmt
-                            .query_map([&account_address], |row| {
-                                let non_fungible_asset = NonFungibleAsset {
-                                    id: row.get(0)?,
-                                    resource_address: row.get(1)?,
-                                    nfids: row.get(2)?,
-                                };
-
-                                Ok(non_fungible_asset)
-                            })?
-                            .collect::<Result<U, rusqlite::Error>>()?;
-
-                        Ok((account_address, non_fungible_assets))
-                    })
-                    .collect()
+        let all_fungibles = account_addresses
+            .into_aiter()
+            .afilter_map(|account_address| {
+                self.get_non_fungible_assets_for_account(account_address)
             })
-            .await?)
+            .collect()
+            .await;
+
+        Ok(all_fungibles)
+    }
+
+    async fn get_non_fungible_assets_for_account<T>(
+        &self,
+        account_address: AccountAddress,
+    ) -> Option<(AccountAddress, T)>
+    where
+        T: FromIterator<NonFungibleAsset> + Send + 'static,
+    {
+        self.query_map(
+            "SELECT * FROM non_fungible_assets WHERE account_address = ?",
+            [account_address.clone()],
+            |row| {
+                Ok(NonFungibleAsset {
+                    id: row.get(0)?,
+                    resource_address: row.get(1)?,
+                    nfids: row.get(2)?,
+                })
+            },
+        )
+        .await
+        .ok()
+        .map(|assets| (account_address, assets))
     }
 
     pub async fn get_non_fungible_assets_for_accounts<T, U>(
@@ -197,62 +175,37 @@ impl Db {
         account_addresses: Vec<AccountAddress>,
     ) -> Result<T, DbError>
     where
-        T: FromIterator<(AccountAddress, U)> + Send + 'static,
+        T: FromAsyncIterator<(AccountAddress, U)> + Send + 'static,
         U: FromIterator<NonFungibleAsset> + Send + 'static,
     {
-        Ok(self
-            .client
-            .conn(|conn| {
-                let mut stmt = conn.prepare_cached(
-                    "SELECT * FROM non_fungible_assets WHERE account_address = ?",
-                )?;
-
-                account_addresses
-                    .into_iter()
-                    .map(|account_address| {
-                        let non_fungible_assets = stmt
-                            .query_map([&account_address], |row| {
-                                let non_fungible_asset = NonFungibleAsset {
-                                    id: row.get(0)?,
-                                    resource_address: row.get(1)?,
-                                    nfids: row.get(2)?,
-                                };
-
-                                Ok(non_fungible_asset)
-                            })?
-                            // .filter_map(|result| result.ok())
-                            .collect::<Result<U, rusqlite::Error>>()?;
-
-                        Ok((account_address, non_fungible_assets))
-                    })
-                    .collect()
+        let all_fungibles = account_addresses
+            .into_aiter()
+            .afilter_map(|account_address| {
+                self.get_non_fungible_assets_for_account(account_address)
             })
-            .await?)
+            .collect()
+            .await;
+
+        Ok(all_fungibles)
     }
 
     pub async fn get_all_resources<T>(&self) -> Result<T, DbError>
     where
         T: FromIterator<Resource> + Send + 'static,
     {
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM resources")?
-                    .query_map([], |row| {
-                        let resource = Resource {
-                            address: row.get(0)?,
-                            name: row.get(1)?,
-                            symbol: row.get(2)?,
-                            description: row.get(3)?,
-                            current_supply: row.get(4)?,
-                            divisibility: row.get(5)?,
-                            tags: row.get(6)?,
-                        };
-                        Ok(resource)
-                    })?
-                    .collect()
-            })
-            .await?)
+        self.query_map("SELECT * FROM resources", [], |row| {
+            let resource = Resource {
+                address: row.get(0)?,
+                name: row.get(1)?,
+                symbol: row.get(2)?,
+                description: row.get(3)?,
+                current_supply: row.get(4)?,
+                divisibility: row.get(5)?,
+                tags: row.get(6)?,
+            };
+            Ok(resource)
+        })
+        .await
     }
 
     pub async fn get_last_transaction_for_account(
@@ -279,104 +232,149 @@ impl Db {
 
         let transactions: T = balance_changes
             .into_aiter()
-            .afilter_map(|(transaction_id, balance_changes)| async move {
-                self.client
-                    .conn(|conn| {
-                        conn.prepare_cached("SELECT * FROM transactions WHERE transaction_id = ?")?
-                            .query_row([transaction_id], |row| {
-                                Ok(Transaction {
-                                    id: row.get(0)?,
-                                    transaction_address: row.get(1)?,
-                                    timestamp: row.get(2)?,
-                                    state_version: row.get(3)?,
-                                    balance_changes,
-                                    message: row.get(4)?,
-                                })
-                            })
-                    })
-                    .await
-                    .ok()
+            .afilter_map(|(transaction_id, balance_changes)| {
+                self.get_transaction(transaction_id, balance_changes)
             })
             .collect()
             .await;
 
         Ok(transactions)
+    }
+
+    async fn get_transaction(
+        &self,
+        transaction_id: TransactionId,
+        balance_changes: Vec<BalanceChange>,
+    ) -> Option<Transaction> {
+        self.query_row(
+            "SELECT * FROM transactions WHERE transaction_id = ?",
+            [transaction_id],
+            move |row| {
+                Ok(Transaction {
+                    id: row.get(0)?,
+                    transaction_address: row.get(1)?,
+                    timestamp: row.get(2)?,
+                    state_version: row.get(3)?,
+                    balance_changes,
+                    message: row.get(4)?,
+                })
+            },
+        )
+        .await
+        .ok()
     }
 
     pub async fn get_balance_changes_for_account(
         &self,
         account_address: AccountAddress,
     ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, DbError> {
-        type ReturnType = HashMap<TransactionId, Vec<BalanceChange>>;
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM balance_changes WHERE account_address = ?")?
-                    .query_map([account_address], |row| {
-                        let transaction_id: TransactionId = row.get(5)?;
-                        let balance_change = BalanceChange {
-                            id: row.get(0)?,
-                            account: row.get(1)?,
-                            resource: row.get(2)?,
-                            nfids: row.get(3)?,
-                            amount: row.get(4)?,
-                        };
-                        Ok((transaction_id, balance_change))
-                    })?
-                    .fold::<Result<ReturnType, rusqlite::Error>, _>(
-                        Err(rusqlite::Error::QueryReturnedNoRows),
-                        |acc, result| match result {
-                            Ok((transaction_id, balance_change)) => match acc {
-                                Ok(mut map) => {
-                                    map.entry(transaction_id)
-                                        .or_insert(Vec::new())
-                                        .push(balance_change);
-                                    Ok(map)
-                                }
-                                Err(_) => {
-                                    let mut map = HashMap::new();
-                                    map.insert(transaction_id, vec![balance_change]);
-                                    Ok(map)
-                                }
-                            },
-                            Err(err) => acc.map_err(|_| err),
+        self.prepare_cached_statement(
+            "SELECT * FROM balance_changes WHERE account_address = ?",
+            |cached_stmt| {
+                let balance_changes = cached_stmt
+                    .query_map(
+                        [account_address],
+                        Self::get_transactionid_and_balance_change_from_row,
+                    )?
+                    .filter_map(|result| result.ok())
+                    .fold(
+                        HashMap::new(),
+                        |mut acc, (transaction_id, balance_change)| {
+                            acc.entry(transaction_id)
+                                .or_insert(Vec::new())
+                                .push(balance_change);
+                            acc
                         },
-                    )
-            })
-            .await?)
+                    );
+                Ok(balance_changes)
+            },
+        )
+        .await
     }
+
+    fn get_transactionid_and_balance_change_from_row(
+        row: &Row<'_>,
+    ) -> Result<(TransactionId, BalanceChange), async_sqlite::rusqlite::Error> {
+        let transaction_id: TransactionId = row.get(5)?;
+        let balance_change = BalanceChange {
+            id: row.get(0)?,
+            account: row.get(1)?,
+            resource: row.get(2)?,
+            nfids: row.get(3)?,
+            amount: row.get(4)?,
+        };
+        Ok((transaction_id, balance_change))
+    }
+
+    // pub async fn get_balance_changes_for_account(
+    //     &self,
+    //     account_address: AccountAddress,
+    // ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, DbError> {
+    //     type ReturnType = HashMap<TransactionId, Vec<BalanceChange>>;
+
+    //     self.prepare_cached_statement(
+    //         "SELECT * FROM balance_changes WHERE account_address = ?",
+    //         |cached_stmt| {
+    //             cached_stmt
+    //                 .query_map([account_address], |row| {
+    //                     let transaction_id: TransactionId = row.get(5)?;
+    //                     let balance_change = BalanceChange {
+    //                         id: row.get(0)?,
+    //                         account: row.get(1)?,
+    //                         resource: row.get(2)?,
+    //                         nfids: row.get(3)?,
+    //                         amount: row.get(4)?,
+    //                     };
+    //                     Ok((transaction_id, balance_change))
+    //                 })?
+    //                 .fold::<Result<ReturnType, rusqlite::Error>, _>(
+    //                     Err(rusqlite::Error::QueryReturnedNoRows),
+    //                     |acc, result| match result {
+    //                         Ok((transaction_id, balance_change)) => match acc {
+    //                             Ok(mut map) => {
+    //                                 map.entry(transaction_id)
+    //                                     .or_insert(Vec::new())
+    //                                     .push(balance_change);
+    //                                 Ok(map)
+    //                             }
+    //                             Err(_) => {
+    //                                 let mut map = HashMap::new();
+    //                                 map.insert(transaction_id, vec![balance_change]);
+    //                                 Ok(map)
+    //                             }
+    //                         },
+    //                         Err(err) => acc.map_err(|_| err),
+    //                     },
+    //                 )
+    //         },
+    //     )
+    //     .await
+    // }
 
     pub async fn get_all_transactions<T>(&self) -> Result<T, DbError>
     where
         T: FromAsyncIterator<Transaction> + Send + 'static,
     {
         let transactions: Vec<Transaction> = self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM transactions")?
-                    .query_map([], |row| {
-                        Ok(Transaction {
-                            id: row.get(0)?,
-                            transaction_address: row.get(1)?,
-                            timestamp: row.get(2)?,
-                            state_version: row.get(3)?,
-                            balance_changes: Vec::new(),
-                            message: row.get(4)?,
-                        })
-                    })?
-                    .collect::<Result<_, _>>()
+            .query_map("SELECT * FROM transactions", [], |row| {
+                Ok(Transaction {
+                    id: row.get(0)?,
+                    transaction_address: row.get(1)?,
+                    timestamp: row.get(2)?,
+                    state_version: row.get(3)?,
+                    balance_changes: Vec::new(),
+                    message: row.get(4)?,
+                })
             })
             .await?;
 
         let transactions = transactions
             .into_aiter()
-            .afilter_map(|mut transaction| async move {
-                let balance_changes = self
+            .amap(|mut transaction| async {
+                transaction.balance_changes = self
                     .get_balance_changes_for_transaction(transaction.id.clone())
-                    .await
-                    .ok()?;
-                transaction.balance_changes = balance_changes;
-                Some(transaction)
+                    .await;
+                transaction
             })
             .collect()
             .await;
@@ -384,29 +382,25 @@ impl Db {
         Ok(transactions)
     }
 
-    pub async fn get_balance_changes_for_transaction<T>(
-        &self,
-        transaction_id: TransactionId,
-    ) -> Result<T, DbError>
+    async fn get_balance_changes_for_transaction<T>(&self, transaction_id: TransactionId) -> T
     where
-        T: FromIterator<BalanceChange> + Send + 'static,
+        T: FromIterator<BalanceChange> + Default + Send + 'static,
     {
-        Ok(self
-            .client
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM balance_changes WHERE transaction_id = ?")?
-                    .query_map([transaction_id], |row| {
-                        Ok(BalanceChange {
-                            id: row.get(0)?,
-                            account: row.get(1)?,
-                            resource: row.get(2)?,
-                            nfids: row.get(3)?,
-                            amount: row.get(4)?,
-                        })
-                    })?
-                    .collect()
-            })
-            .await?)
+        self.query_map(
+            "SELECT * FROM balance_changes WHERE transaction_id = ?",
+            [transaction_id],
+            |row| {
+                Ok(BalanceChange {
+                    id: row.get(0)?,
+                    account: row.get(1)?,
+                    resource: row.get(2)?,
+                    nfids: row.get(3)?,
+                    amount: row.get(4)?,
+                })
+            },
+        )
+        .await
+        .unwrap_or(T::default())
     }
 }
 
