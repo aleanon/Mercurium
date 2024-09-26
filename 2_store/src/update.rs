@@ -4,7 +4,7 @@ use crate::{statements, DbError, IconCache};
 
 use super::{
     statements::{insert, upsert},
-    Db,
+    AppDataDb,
 };
 use async_sqlite::rusqlite::params;
 use types::{
@@ -14,7 +14,7 @@ use types::{
     Account, Resource, Transaction, Us,
 };
 
-impl Db {
+impl AppDataDb {
     pub async fn upsert_password_hash(&self, hash: HashedPassword) -> Result<(), DbError> {
         self.transaction(upsert::UPSERT_PASSWORD_HASH, move |cached_stmt| {
             cached_stmt.execute(params![1, hash])?;
@@ -174,39 +174,37 @@ impl Db {
     }
 
     pub async fn insert_transactions(&self, transactions: Vec<Transaction>) -> Result<(), DbError> {
-        self.client
-            .conn_mut(|conn| {
-                let tx = conn.transaction()?;
+        self.conn_mut(|conn| {
+            let tx = conn.transaction()?;
 
-                {
-                    let mut transaction_stmt = tx.prepare_cached(upsert::UPSERT_TRANSACTION)?;
-                    let mut balance_changes_stmt =
-                        tx.prepare_cached(insert::INSERT_BALANCE_CHANGE)?;
+            {
+                let mut transaction_stmt = tx.prepare_cached(upsert::UPSERT_TRANSACTION)?;
+                let mut balance_changes_stmt = tx.prepare_cached(insert::INSERT_BALANCE_CHANGE)?;
 
-                    for transaction in transactions {
-                        transaction_stmt.execute(params![
-                            transaction.id,
+                for transaction in transactions {
+                    transaction_stmt.execute(params![
+                        transaction.id,
+                        transaction.transaction_address,
+                        transaction.timestamp,
+                        transaction.state_version as i64,
+                    ])?;
+
+                    for balance_change in &transaction.balance_changes {
+                        balance_changes_stmt.execute(params![
+                            balance_change.id,
+                            balance_change.account,
+                            balance_change.resource,
+                            balance_change.nfids,
+                            balance_change.amount,
                             transaction.transaction_address,
-                            transaction.timestamp,
-                            transaction.state_version as i64,
                         ])?;
-
-                        for balance_change in &transaction.balance_changes {
-                            balance_changes_stmt.execute(params![
-                                balance_change.id,
-                                balance_change.account,
-                                balance_change.resource,
-                                balance_change.nfids,
-                                balance_change.amount,
-                                transaction.transaction_address,
-                            ])?;
-                        }
                     }
                 }
+            }
 
-                tx.commit()
-            })
-            .await?;
+            tx.commit().map_err(|err| err.into())
+        })
+        .await?;
         Ok(())
     }
 }
@@ -216,21 +214,20 @@ impl IconCache {
         &self,
         icons: HashMap<ResourceAddress, Vec<u8>>,
     ) -> Result<(), DbError> {
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
+        self.conn_mut(move |conn| {
+            let tx = conn.transaction()?;
 
-                {
-                    let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_RESOURCE_IMAGE)?;
+            {
+                let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_RESOURCE_IMAGE)?;
 
-                    for (resource_address, image_data) in icons {
-                        stmt.execute(params![resource_address, image_data])?;
-                    }
+                for (resource_address, image_data) in icons {
+                    stmt.execute(params![resource_address, image_data])?;
                 }
+            }
 
-                tx.commit()
-            })
-            .await?;
+            tx.commit()
+        })
+        .await?;
         Ok(())
     }
 
@@ -239,14 +236,13 @@ impl IconCache {
         resource_address: ResourceAddress,
         image_data: Vec<u8>,
     ) -> Result<(), DbError> {
-        self.client
-            .conn(move |conn| {
-                conn.execute(
-                    statements::upsert::UPSERT_RESOURCE_IMAGE,
-                    params![resource_address, image_data],
-                )
-            })
-            .await?;
+        self.conn(move |conn| {
+            conn.execute(
+                statements::upsert::UPSERT_RESOURCE_IMAGE,
+                params![resource_address, image_data],
+            )
+        })
+        .await?;
         Ok(())
     }
 
@@ -255,22 +251,21 @@ impl IconCache {
         resource_address: ResourceAddress,
         images: BTreeMap<String, Vec<u8>>,
     ) -> Result<(), DbError> {
-        self.client
-            .conn_mut(move |conn| {
-                let tx = conn.transaction()?;
+        self.conn_mut(move |conn| {
+            let tx = conn.transaction()?;
 
-                {
-                    let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_NFT_IMAGE)?;
+            {
+                let mut stmt = tx.prepare_cached(statements::upsert::UPSERT_NFT_IMAGE)?;
 
-                    for (mut nfid, image_data) in images {
-                        nfid.push_str(resource_address.checksum_as_str());
-                        stmt.execute(params![nfid, image_data, resource_address])?;
-                    }
+                for (mut nfid, image_data) in images {
+                    nfid.push_str(resource_address.checksum_as_str());
+                    stmt.execute(params![nfid, image_data, resource_address])?;
                 }
+            }
 
-                tx.commit()
-            })
-            .await?;
+            tx.commit()
+        })
+        .await?;
         Ok(())
     }
 
@@ -280,15 +275,14 @@ impl IconCache {
         mut nfid: String,
         image_data: Vec<u8>,
     ) -> Result<(), DbError> {
-        self.client
-            .conn(move |conn| {
-                nfid.push_str(resource_address.as_str());
-                conn.execute(
-                    statements::upsert::UPSERT_NFT_IMAGE,
-                    params![nfid, image_data, resource_address],
-                )
-            })
-            .await?;
+        self.conn(move |conn| {
+            nfid.push_str(resource_address.as_str());
+            conn.execute(
+                statements::upsert::UPSERT_NFT_IMAGE,
+                params![nfid, image_data, resource_address],
+            )
+        })
+        .await?;
         Ok(())
     }
 }

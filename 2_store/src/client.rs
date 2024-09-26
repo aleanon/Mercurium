@@ -1,10 +1,11 @@
 use std::path::Path;
 
-use super::db::DbError;
 use debug_print::debug_println;
 use types::{crypto::DataBaseKey, AppPath, Network};
 
-use async_sqlite::rusqlite::{self, OpenFlags, ToSql};
+use async_sqlite::rusqlite::OpenFlags;
+
+use crate::db::DbError;
 
 pub(crate) async fn main_db_client(
     network: Network,

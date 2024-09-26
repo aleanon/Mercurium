@@ -1,8 +1,9 @@
-use async_sqlite::rusqlite::{self, CachedStatement, Params, Result, Row};
-use once_cell::sync::OnceCell;
-use thiserror::Error;
+use std::path::Path;
 
-use types::{crypto::DataBaseKey, AppPath, AppPathError, Network};
+use async_sqlite::rusqlite::{self, CachedStatement, Connection, OpenFlags, Params, Result, Row};
+use debug_print::debug_println;
+use thiserror::Error;
+use types::{crypto::DataBaseKey, AppPathError};
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -18,54 +19,60 @@ pub enum DbError {
     PathError(#[from] AppPathError),
 }
 
-pub static MAINNET_DB: OnceCell<Db> = once_cell::sync::OnceCell::new();
-pub static STOKENET_DB: OnceCell<Db> = once_cell::sync::OnceCell::new();
+impl From<rusqlite::Error> for DbError {
+    fn from(value: rusqlite::Error) -> Self {
+        Self::AsyncSqliteError(async_sqlite::Error::Rusqlite(value))
+    }
+}
 
 #[derive(Clone)]
-pub struct Db {
-    pub(crate) client: async_sqlite::Client,
+pub struct DataBase {
+    client: async_sqlite::Client,
 }
-impl Db {
-    pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
-        match network {
-            Network::Mainnet => {
-                let client = super::client::main_db_client(network, key).await?;
-                let db = Self { client };
-                db.create_tables_if_not_exist().await?;
-                let db = MAINNET_DB.get_or_init(|| db);
-                Ok(db)
-            }
-            Network::Stokenet => {
-                let client = super::client::main_db_client(network, key).await?;
-                let db = Self { client };
-                db.create_tables_if_not_exist().await?;
 
-                let db = STOKENET_DB.get_or_init(|| db);
-                Ok(db)
-            }
-        }
+impl DataBase {
+    pub(crate) async fn load(path: &Path, key: DataBaseKey) -> Result<Self, DbError> {
+        let client = Self::build_async_db_client(path).await?;
+        Self::set_database_key(&client, key).await?;
+
+        debug_println!("AsyncDb connection up");
+
+        Ok(Self { client })
     }
 
-    pub async fn get_or_init(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
-        match Self::get(network) {
-            Some(db) => Ok(db),
-            None => Self::load(network, key).await,
-        }
+    async fn build_async_db_client(
+        path: &Path,
+    ) -> Result<async_sqlite::Client, async_sqlite::Error> {
+        async_sqlite::ClientBuilder::new()
+            .path(path)
+            .flags(OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE)
+            .open()
+            .await
     }
 
-    pub fn get(network: Network) -> Option<&'static Self> {
-        match network {
-            Network::Mainnet => MAINNET_DB.get(),
-            Network::Stokenet => STOKENET_DB.get(),
-        }
+    async fn set_database_key(
+        client: &async_sqlite::Client,
+        key: DataBaseKey,
+    ) -> Result<(), async_sqlite::Error> {
+        client
+            .conn(move |conn| conn.pragma_update(None, "key", key))
+            .await
     }
 
-    pub fn exists(network: Network) -> bool {
-        AppPath::get().db_path_ref(network).exists()
+    pub(crate) async fn conn<T, F>(&self, f: F) -> Result<T, async_sqlite::Error>
+    where
+        T: Send + 'static,
+        F: FnOnce(&Connection) -> Result<T, rusqlite::Error> + Send + 'static,
+    {
+        self.client.conn(f).await
     }
 
-    pub fn with_connection(client: async_sqlite::Client) -> Self {
-        Self { client }
+    pub(crate) async fn conn_mut<T, F>(&self, f: F) -> Result<T, async_sqlite::Error>
+    where
+        T: Send + 'static,
+        F: FnOnce(&mut Connection) -> Result<T, rusqlite::Error> + Send + 'static,
+    {
+        self.client.conn_mut(f).await
     }
 
     pub(crate) async fn transaction<F>(
@@ -76,31 +83,26 @@ impl Db {
     where
         F: FnOnce(&mut CachedStatement) -> Result<(), rusqlite::Error> + Send + 'static,
     {
-        self.client
-            .conn_mut(|conn| {
-                let tx = conn.transaction()?;
+        self.conn_mut(|conn| {
+            let tx = conn.transaction()?;
 
-                {
-                    let mut cached_stmt = tx.prepare_cached(stmt)?;
-                    execute_stmt(&mut cached_stmt)?;
-                }
+            execute_stmt(&mut tx.prepare_cached(stmt)?)?;
 
-                tx.commit()
-            })
-            .await
+            tx.commit()
+        })
+        .await
     }
 
     pub(crate) async fn prepare_cached_statement<T, F>(
         &self,
         stmt: &'static str,
         func: F,
-    ) -> Result<T, DbError>
+    ) -> Result<T, async_sqlite::Error>
     where
-        F: FnOnce(&mut CachedStatement<'_>) -> Result<T> + Send + 'static,
+        F: FnOnce(&mut CachedStatement<'_>) -> Result<T, rusqlite::Error> + Send + 'static,
         T: Send + 'static,
     {
         Ok(self
-            .client
             .conn_mut(|conn| {
                 let mut cached_statement = conn.prepare_cached(stmt)?;
                 func(&mut cached_statement)
@@ -112,16 +114,16 @@ impl Db {
         &self,
         stmt: &'static str,
         params: P,
-        func: F,
+        f: F,
     ) -> Result<T, DbError>
     where
         P: Params + Send + 'static,
         T: Send + 'static,
-        F: FnOnce(&Row<'_>) -> Result<T> + Send + 'static,
+        F: FnOnce(&Row<'_>) -> Result<T, rusqlite::Error> + Send + 'static,
     {
         Ok(self
             .client
-            .conn(move |conn| conn.prepare_cached(stmt)?.query_row(params, func))
+            .conn(move |conn| conn.prepare_cached(stmt)?.query_row(params, f))
             .await?)
     }
 
@@ -134,7 +136,7 @@ impl Db {
     where
         T: FromIterator<U> + Send + 'static,
         P: Params + Send + 'static,
-        F: FnMut(&Row<'_>) -> Result<U> + Send + 'static,
+        F: FnMut(&Row<'_>) -> Result<U, rusqlite::Error> + Send + 'static,
     {
         Ok(self
             .client
@@ -146,169 +148,3 @@ impl Db {
             .await?)
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     #![allow(dead_code)]
-
-//     impl Db {
-//         pub fn with_connection(connection: rusqlite::Connection) -> Self {
-//             Self { connection }
-//         }
-//     }
-
-//     use types::Ed25519PublicKey;
-
-//     use super::*;
-//     use std::{collections::HashMap, str::FromStr};
-//     use types::{
-//         Account, AccountAddress, Decimal, Fungible, Fungibles, MetaData, NFIDs, Network,
-//         NonFungible, NonFungibles, RadixDecimal, ResourceAddress,
-//     };
-
-//     #[test]
-//     fn test_accounts_table() {
-//         let connection = rusqlite::Connection::open_in_memory().unwrap();
-
-//         let mut db = Db { connection };
-
-//         db.create_table_accounts().unwrap();
-//         db.create_table_fungibles().unwrap();
-
-//         let account = Account::new(
-//             1,
-//             "test_account 1".to_owned(),
-//             Network::Mainnet,
-//             [0u32; 6],
-//             AccountAddress::from_str(
-//                 "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
-//             )
-//             .unwrap(),
-//             Ed25519PublicKey([0u8; Ed25519PublicKey::LENGTH]),
-//         );
-
-//         let mut fungibles = Fungibles::new();
-//         fungibles.insert(Fungible {
-//             name: "test fungible".to_owned(),
-//             symbol: "TF".to_owned(),
-//             icon: None,
-//             amount: Decimal::from(RadixDecimal::ONE_HUNDRED),
-//             total_supply: "1000".to_owned(),
-//             description: None,
-//             address: ResourceAddress::from_str(
-//                 "resource_rdx1thlnv2lydu7np9w8guguqslkydv000d7ydn7uq0sestql96hrfml0v",
-//             )
-//             .unwrap(),
-//             last_updated_at_state_version: 150,
-//             metadata: MetaData::new(),
-//         });
-
-//         db.upsert_account(&account)
-//             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
-//         db.update_fungibles_for_account(&fungibles, &account.address)
-//             .unwrap_or_else(|err| panic!("Error creating fungibles, error: {err}"));
-
-//         let accounts: HashMap<AccountAddress, Account> = db
-//             .get_accounts()
-//             .unwrap_or_else(|err| panic!("Unable to get accounts, error: {}", err));
-
-//         assert_eq!(accounts.get(&account.address), Some(&account))
-//     }
-
-//     #[test]
-//     fn test_fungibles_table() {
-//         let connection = rusqlite::Connection::open_in_memory().unwrap();
-
-//         let mut db = Db { connection };
-
-//         db.create_table_accounts().unwrap();
-//         db.create_table_fungibles().unwrap();
-
-//         let account = Account::new(
-//             1,
-//             "test_account 1".to_owned(),
-//             Network::Mainnet,
-//             [0u32; 6],
-//             AccountAddress::from_str(
-//                 "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
-//             )
-//             .unwrap(),
-//             Ed25519PublicKey([0u8; Ed25519PublicKey::LENGTH]),
-//         );
-
-//         let mut fungibles = Fungibles::new();
-//         fungibles.insert(Fungible {
-//             name: "test fungible".to_owned(),
-//             symbol: "TF".to_owned(),
-//             icon: None,
-//             amount: Decimal::from(RadixDecimal::ONE_HUNDRED),
-//             total_supply: "1000".to_owned(),
-//             description: None,
-//             address: ResourceAddress::from_str(
-//                 "resource_rdx1thlnv2lydu7np9w8guguqslkydv000d7ydn7uq0sestql96hrfml0v",
-//             )
-//             .unwrap(),
-//             last_updated_at_state_version: 150,
-//             metadata: MetaData::new(),
-//         });
-
-//         db.upsert_account(&account)
-//             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
-//         db.update_fungibles_for_account(&fungibles, &account.address)
-//             .unwrap_or_else(|err| panic!("Error creating fungibles, error: {err}"));
-
-//         let accounts: HashMap<AccountAddress, Account> = db
-//             .get_accounts()
-//             .unwrap_or_else(|err| panic!("Unable to get accounts, error: {}", err));
-
-//         assert_eq!(accounts.get(&account.address), Some(&account))
-//     }
-
-//     #[test]
-//     fn test_non_fungibles_table() {
-//         let connection = rusqlite::Connection::open_in_memory().unwrap();
-
-//         let mut db = Db { connection };
-
-//         db.create_table_accounts().unwrap();
-//         db.create_table_non_fungibles().unwrap();
-
-//         let account = Account::new(
-//             1,
-//             "test_account 1".to_owned(),
-//             Network::Mainnet,
-//             [0u32; 6],
-//             AccountAddress::from_str(
-//                 "account_rdx12ymqrlezhreuknut5x5ucq30he638pqu9wum7nuxl65z9pjdt2a5ax",
-//             )
-//             .unwrap(),
-//             Ed25519PublicKey([0u8; Ed25519PublicKey::LENGTH]),
-//         );
-
-//         let mut non_fungibles = NonFungibles::new();
-//         non_fungibles.insert(NonFungible {
-//             name: "test nft".to_owned(),
-//             symbol: "TN".to_owned(),
-//             icon: None,
-//             description: None,
-//             nfids: NFIDs::new(),
-//             address: ResourceAddress::from_str(
-//                 "resource_rdx1thlnv2lydu7np9w8guguqslkydv000d7ydn7uq0sestql96hrfml0v",
-//             )
-//             .unwrap(),
-//             last_updated_at_state_version: 140,
-//             metadata: MetaData::new(),
-//         });
-
-//         db.upsert_account(&account)
-//             .unwrap_or_else(|err| panic!("Error creating account, error: {err}"));
-//         db.update_non_fungibles_for_account(&non_fungibles, &account.address)
-//             .unwrap_or_else(|err| panic!("Error updating table: {}", err));
-
-//         let accounts: HashMap<AccountAddress, Account> = db
-//             .get_accounts()
-//             .unwrap_or_else(|err| panic!("Unable to get accounts, error: {}", err));
-
-//         assert_eq!(accounts.get(&account.address), Some(&account))
-//     }
-// }

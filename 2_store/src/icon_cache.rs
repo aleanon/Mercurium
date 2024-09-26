@@ -1,32 +1,37 @@
-use once_cell::sync::OnceCell;
-use types::{crypto::DataBaseKey, Network};
+use std::ops::Deref;
 
-use crate::DbError;
+use once_cell::sync::OnceCell;
+use types::{crypto::DataBaseKey, AppPath, Network};
+
+use crate::db::{DataBase, DbError};
 
 pub static MAINNET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
 pub static STOKENET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
 
 pub struct IconCache {
-    pub(crate) client: async_sqlite::Client,
+    db: DataBase,
 }
 
 impl IconCache {
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
+        let app_path = AppPath::get();
         match network {
             Network::Mainnet => {
-                let client = super::client::iconcache_client(network, key).await?;
-                let icon_cache = Self { client };
-                icon_cache.create_tables_if_not_exist().await?;
-                let icon_cache = MAINNET_ICONCACHE.get_or_init(|| icon_cache);
-                Ok(icon_cache)
+                let path = app_path.icon_cache_ref(network);
+                let db = DataBase::load(path, key).await?;
+                let icons_db = Self { db };
+                icons_db.create_tables_if_not_exist().await?;
+                let icons_db = MAINNET_ICONCACHE.get_or_init(|| icons_db);
+                Ok(icons_db)
             }
             Network::Stokenet => {
-                let client = super::client::iconcache_client(network, key).await?;
-                let icon_cache = Self { client };
-                icon_cache.create_tables_if_not_exist().await?;
+                let path = app_path.icon_cache_ref(network);
+                let db = DataBase::load(path, key).await?;
+                let icons_db = Self { db };
+                icons_db.create_tables_if_not_exist().await?;
 
-                let icon_cache = STOKENET_ICONCACHE.get_or_init(|| icon_cache);
-                Ok(icon_cache)
+                let icons_db = STOKENET_ICONCACHE.get_or_init(|| icons_db);
+                Ok(icons_db)
             }
         }
     }
@@ -43,5 +48,12 @@ impl IconCache {
             Network::Mainnet => MAINNET_ICONCACHE.get(),
             Network::Stokenet => STOKENET_ICONCACHE.get(),
         }
+    }
+}
+
+impl Deref for IconCache {
+    type Target = DataBase;
+    fn deref(&self) -> &Self::Target {
+        &self.db
     }
 }

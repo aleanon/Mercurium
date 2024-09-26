@@ -1,12 +1,11 @@
 use super::statements::create::*;
-use crate::Db;
-use crate::DbError;
+use crate::db::DbError;
+use crate::AppDataDb;
 use crate::IconCache;
 
-impl Db {
+impl AppDataDb {
     pub async fn create_tables_if_not_exist(&self) -> Result<(), DbError> {
         Ok(self
-            .client
             .conn(|conn| {
                 conn.execute_batch(CREATE_ALL_MAIN_DB_TABLES_BATCH)?;
                 Ok(())
@@ -18,7 +17,6 @@ impl Db {
 impl IconCache {
     pub async fn create_tables_if_not_exist(&self) -> Result<(), DbError> {
         Ok(self
-            .client
             .conn(|conn| {
                 conn.execute_batch(CREATE_ALL_ICONCACHE_TABLES_BATCH)?;
                 Ok(())
