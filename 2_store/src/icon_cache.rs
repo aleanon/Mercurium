@@ -3,7 +3,7 @@ use std::ops::Deref;
 use once_cell::sync::OnceCell;
 use types::{crypto::DataBaseKey, AppPath, Network};
 
-use crate::db::{DataBase, DbError};
+use crate::database::{DataBase, DbError};
 
 pub static MAINNET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
 pub static STOKENET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();

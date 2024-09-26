@@ -1,5 +1,5 @@
 use super::statements::create::*;
-use crate::db::DbError;
+use crate::database::DbError;
 use crate::AppDataDb;
 use crate::IconCache;
 
