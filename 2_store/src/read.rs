@@ -1,6 +1,6 @@
 use crate::{DbError, IconCache};
 
-use super::Db;
+use super::AppDataDb;
 use async_sqlite::rusqlite::{self, params, Row};
 use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -12,7 +12,7 @@ use types::{
     Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId, Ur,
 };
 
-impl Db {
+impl AppDataDb {
     pub async fn get_db_password_hash(&self) -> Result<HashedPassword, DbError> {
         self.query_row(
             "SELECT password FROM password_hash WHERE id = 1",
@@ -268,28 +268,29 @@ impl Db {
         &self,
         account_address: AccountAddress,
     ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, DbError> {
-        self.prepare_cached_statement(
-            "SELECT * FROM balance_changes WHERE account_address = ?",
-            |cached_stmt| {
-                let balance_changes = cached_stmt
-                    .query_map(
-                        [account_address],
-                        Self::get_transactionid_and_balance_change_from_row,
-                    )?
-                    .filter_map(|result| result.ok())
-                    .fold(
-                        HashMap::new(),
-                        |mut acc, (transaction_id, balance_change)| {
-                            acc.entry(transaction_id)
-                                .or_insert(Vec::new())
-                                .push(balance_change);
-                            acc
-                        },
-                    );
-                Ok(balance_changes)
-            },
-        )
-        .await
+        Ok(self
+            .prepare_cached_statement(
+                "SELECT * FROM balance_changes WHERE account_address = ?",
+                |cached_stmt| {
+                    let balance_changes = cached_stmt
+                        .query_map(
+                            [account_address],
+                            Self::get_transactionid_and_balance_change_from_row,
+                        )?
+                        .filter_map(|result| result.ok())
+                        .fold(
+                            HashMap::new(),
+                            |mut acc, (transaction_id, balance_change)| {
+                                acc.entry(transaction_id)
+                                    .or_insert(Vec::new())
+                                    .push(balance_change);
+                                acc
+                            },
+                        );
+                    Ok(balance_changes)
+                },
+            )
+            .await?)
     }
 
     fn get_transactionid_and_balance_change_from_row(
@@ -409,7 +410,6 @@ impl IconCache {
         &self,
     ) -> Result<HashMap<ResourceAddress, Vec<u8>>, DbError> {
         let result = self
-            .client
             .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM resource_images")?
                     .query_map([], |row| {
@@ -428,7 +428,6 @@ impl IconCache {
         resource_address: ResourceAddress,
     ) -> Result<(ResourceAddress, Vec<u8>), DbError> {
         Ok(self
-            .client
             .conn(move |conn| {
                 conn.query_row(
                     "SELECT * FROM resource_images WHERE resource_address = ?",
@@ -449,7 +448,6 @@ impl IconCache {
     ) -> Result<(ResourceAddress, BTreeMap<String, Vec<u8>>), DbError> {
         let resource_address_params = resource_address.clone();
         let btree_map = self
-            .client
             .conn(|conn| {
                 conn.prepare_cached("SELECT * FROM nft_images WHERE resource_address = ?")?
                     .query_map([resource_address_params], |row| {
@@ -470,7 +468,6 @@ impl IconCache {
         nfid: String,
     ) -> Result<(ResourceAddress, String, Vec<u8>), DbError> {
         Ok(self
-            .client
             .conn(move |conn| {
                 let mut nfid_param = nfid.clone();
                 nfid_param.push_str(resource_address.checksum_as_str());

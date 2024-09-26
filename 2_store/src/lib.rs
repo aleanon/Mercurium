@@ -1,3 +1,4 @@
+mod app_data_db;
 mod client;
 mod create;
 mod db;
@@ -7,5 +8,6 @@ mod read;
 mod statements;
 mod update;
 
-pub use db::{Db, DbError};
+pub use app_data_db::AppDataDb;
+pub use db::DbError;
 pub use icon_cache::IconCache;
