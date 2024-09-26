@@ -27,7 +27,7 @@ impl From<rusqlite::Error> for DbError {
 
 #[derive(Clone)]
 pub struct DataBase {
-    client: async_sqlite::Client,
+    pub(crate) client: async_sqlite::Client,
 }
 
 impl DataBase {
@@ -146,5 +146,61 @@ impl DataBase {
                     .collect()
             })
             .await?)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{fs::File, io::Write};
+
+    use types::crypto::Password;
+
+    use crate::statements;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_set_database_key() {
+        File::create("./mock.db").unwrap().write(&[]).unwrap();
+
+        let key = Password::from("SomePasswordtype")
+            .derive_new_db_encryption_key()
+            .unwrap()
+            .0;
+        {
+            let client = async_sqlite::ClientBuilder::new()
+                .path("./mock.db")
+                .open()
+                .await
+                .expect("Failed to open in memory database");
+
+            DataBase::set_database_key(&client, key.clone())
+                .await
+                .expect("Failed to set database key");
+
+            client
+                .conn(|conn| conn.execute(statements::create::CREATE_TABLE_ACCOUNTS, []))
+                .await
+                .expect("Unable to create table, accounts");
+        }
+        let second_client = async_sqlite::ClientBuilder::new()
+            .path("./mock.db")
+            .open()
+            .await
+            .expect("Failed to open second client");
+
+        let query = second_client
+            .conn(|conn| conn.execute(&statements::create::CREATE_TABLE_FUNGIBLE_ASSETS, []))
+            .await;
+        assert!(query.is_err());
+
+        DataBase::set_database_key(&second_client, key)
+            .await
+            .expect("Failed to set database key for second client");
+
+        second_client
+            .conn(|conn| conn.execute(&statements::create::CREATE_TABLE_NON_FUNGIBLE_ASSETS, []))
+            .await
+            .expect("Unable to create table, fungibles");
     }
 }

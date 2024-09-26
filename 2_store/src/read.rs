@@ -1,15 +1,14 @@
 use crate::{DbError, IconCache};
 
 use super::AppDataDb;
-use async_sqlite::rusqlite::{self, params, Row};
+use async_sqlite::rusqlite::{self, Row};
 use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use types::{
     address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    response_models::BalanceChanges,
-    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId, Ur,
+    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
 };
 
 impl AppDataDb {

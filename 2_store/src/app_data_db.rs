@@ -1,4 +1,4 @@
-use crate::db::{DataBase, DbError};
+use crate::database::{DataBase, DbError};
 use once_cell::sync::OnceCell;
 use std::ops::Deref;
 use types::{crypto::DataBaseKey, AppPath, Network};
