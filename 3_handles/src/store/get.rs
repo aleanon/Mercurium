@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use debug_print::debug_println;
 use iced::widget::image::Handle;
-use store::{AsyncDb, DbError, IconCache};
+use store::{AppDataDb, DbError, IconsDb};
 use types::address::ResourceAddress;
 use types::{collections::AppdataFromDisk, AppError, Network};
 
 pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk, DbError> {
-    let Some(db) = AsyncDb::get(network) else {
-        return Err(DbError::DatabaseNotInitialized);
+    let Some(db) = AppDataDb::get(network) else {
+        return Err(DbError::DatabaseNotLoaded);
     };
     let accounts = db.get_accounts().await.unwrap_or_else(|err| {
         debug_println!("Failed to retrieve accounts: {}", err);
@@ -44,9 +44,9 @@ pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk,
 pub async fn resource_icons(
     network: Network,
 ) -> Result<(Network, HashMap<ResourceAddress, Handle>), AppError> {
-    let icon_cache = IconCache::load(network)
-        .await
-        .map_err(|err| AppError::Fatal(err.to_string()))?;
+    let Some(icon_cache) = IconsDb::get(network) else {
+        return Err(AppError::Fatal("Icon cache not initialized".to_owned()));
+    };
 
     let icons_data = icon_cache
         .get_all_resource_icons()
@@ -64,5 +64,6 @@ pub async fn resource_icons(
             (resource_address, handle)
         })
         .collect::<HashMap<ResourceAddress, Handle>>();
+
     Ok((network, icons))
 }

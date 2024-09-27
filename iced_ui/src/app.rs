@@ -1,10 +1,14 @@
+use std::borrow::Cow;
 use std::collections::{BTreeSet, HashMap};
 
 use debug_print::debug_println;
+use font_and_icons::images::WINDOW_LOGO;
+use font_and_icons::BOOTSTRAP_FONT_BYTES;
 use iced::widget::image::Handle;
 use iced::widget::{container, text};
-use iced::Length;
 use iced::Task;
+use iced::{application, window, Length, Settings, Size};
+use store::AppDataDb;
 use types::assets::{FungibleAsset, NonFungibleAsset};
 use types::Notification;
 use types::{
@@ -33,8 +37,6 @@ pub enum AppMessage {
     ToggleTheme,
     None,
 }
-
-use store::Db;
 
 #[derive(Debug, Clone)]
 pub struct AppData {
@@ -84,7 +86,7 @@ impl App {
             match handles::statics::initialize_statics::initialize_statics(Network::Mainnet) {
                 Err(err) => AppState::Error(err.to_string()),
                 Ok(_) => {
-                    if Db::exists(settings.network) {
+                    if AppDataDb::exists(settings.network) {
                         AppState::Locked(LoginScreen::new(true))
                     } else {
                         AppState::Initial(Setup::new())
@@ -103,7 +105,7 @@ impl App {
         (app, Task::none())
     }
 
-    pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
+    fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
         match message {
             AppMessage::Setup(setup_message) => {
                 if let AppState::Initial(setup) = &mut self.app_state {
@@ -146,7 +148,7 @@ impl App {
         Task::none()
     }
 
-    pub fn view(&self) -> iced::Element<AppMessage> {
+    fn view(&self) -> iced::Element<AppMessage> {
         match &self.app_state {
             AppState::Initial(setup) => setup.view(self),
             AppState::Locked(loginscreen) => loginscreen.view(),
@@ -163,12 +165,40 @@ impl App {
     //         .map(|update| Message::Update(BackendMessage(update)))])
     // }
 
+    pub fn run() -> Result<(), iced::Error> {
+        let icon = window::icon::from_file_data(
+            WINDOW_LOGO,
+            Some(iced::advanced::graphics::image::image_rs::ImageFormat::Png),
+        )
+        .unwrap();
+
+        let mut settings = Settings {
+            antialiasing: false,
+            ..Default::default()
+        };
+        settings.fonts.push(Cow::Borrowed(BOOTSTRAP_FONT_BYTES));
+
+        let window_settings = window::Settings {
+            min_size: Some(Size {
+                height: 800.,
+                width: 1000.,
+            }),
+            icon: Some(icon),
+            ..Default::default()
+        };
+
+        application(types::consts::APPLICATION_NAME, App::update, App::view)
+            .settings(settings)
+            .window(window_settings)
+            .run_with(|| App::new())?;
+
+        Ok(())
+    }
+
     fn theme(&self) -> iced::Theme {
         self.app_data.settings.theme.into()
     }
-}
 
-impl App {
     pub fn handle_error(&mut self, err: AppError) {
         debug_println!("Error: {err}");
         match err {

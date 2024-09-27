@@ -2,7 +2,7 @@ use super::*;
 use debug_print::debug_println;
 use futures::future::join_all;
 use std::{collections::HashMap, sync::Arc};
-use store::AsyncDb;
+use store::AppDataDb;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use types::{
@@ -26,7 +26,7 @@ pub enum UpdateError {
 
 pub async fn update_all_accounts(network: Network) -> Result<AccountsUpdate, AppError> {
     let db =
-        AsyncDb::get(network).ok_or(AppError::Fatal("Database not initialized".to_string()))?;
+        AppDataDb::get(network).ok_or(AppError::Fatal("Database not initialized".to_string()))?;
 
     let accounts = db.get_accounts().await.unwrap_or(Vec::new());
     let resource_map = db.get_all_resources().await.unwrap_or(HashMap::new());

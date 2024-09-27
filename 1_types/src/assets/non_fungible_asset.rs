@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+use async_sqlite::rusqlite;
 use serde::{Deserialize, Serialize};
 
 use crate::{

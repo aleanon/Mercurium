@@ -1,3 +1,6 @@
+cargo-features = ["profile-rustflags"]
+
+
 [workspace]
 members = [
   "1_types",
@@ -7,24 +10,25 @@ members = [
   "iced_ui",
   "mercurium",
 ]
-resolver = "2"
+package.edition = "2021"
 
 [profile.release]
-strip = true
+panic = "unwind"
+strip = "symbols"
 opt-level = 3
-lto = true
+lto = "fat"
 codegen-units = 1
 
 [profile.dev]
-lto = false
-
+opt-level = 0
+lto = "off"
 
 [workspace.dependencies]
 scrypto = { version = "1.2.0-dev" }
-tokio = { version = "1.37.0", features = ["full"] }
-serde = { version = "1.0.201", features = ["derive"] }
-serde_json = { version = "1.0.117" }
-iced = { version = "0.13.0-dev", features = [
+tokio = { version = "*", features = ["full"] }
+serde = { version = "*", features = ["derive"] }
+serde_json = { version = "*" }
+iced = { version = "0.13.0", features = [
   "tokio",
   "lazy",
   "advanced",
@@ -34,33 +38,40 @@ iced = { version = "0.13.0-dev", features = [
 async-sqlite = { version = "0.3.1", features = [
   "bundled-sqlcipher-vendored-openssl",
 ] }
-reqwest = { version = "0.12.4", features = ["blocking", "json"] }
-rusqlite = { version = "0.32.0", features = [
-  "bundled-sqlcipher-vendored-openssl",
-] }
-openssl-sys = { version = "0.9.100", features = ["vendored"] }
-flate2 = "1.0.30"
-thiserror = "1.0.60"
-bytes = "1.6.0"
-image = "0.25.1"
+reqwest = { version = "*", features = ["blocking", "json"] }
+openssl-sys = { version = "*", features = ["vendored"] }
+flate2 = "*"
+thiserror = "*"
+bytes = "*"
+image = "*"
 fast_image_resize = "3.0.4"
-tiny-bip39 = "1.0.0"
-slip10_ed25519 = "0.1.3"
-ed25519-dalek-fiat = "0.1.0"
-rand = "0.8.5"
-ring = "0.17.8"
-zeroize = { version = "1.7.0", features = ["zeroize_derive"] }
+tiny-bip39 = "*"
+slip10_ed25519 = "*"
+ed25519-dalek-fiat = "*"
+rand = "*"
+ring = "*"
+zeroize = { version = "1.8.1", features = ["zeroize_derive"] }
 # iso8601-timestamp = { version = "0.2.17", features = ["serde", "rusqlite"] }
-debug_print = "1.0.0"
-hot-lib-reloader = { version = "0.7.0" }
+debug_print = "*"
+# hot-lib-reloader = { version = "0.7.0" }
 regex = { version = "*" }
-once_cell = "1.19.0"
-lazy_static = { version = "1.5.0" }
-const_format = "0.2.32"
+once_cell = "*"
+lazy_static = { version = "*" }
+const_format = "*"
 radix-gateway-sdk = { git = "https://github.com/borderline-labs/radix-gateway-sdk.git" }
 # chrono = { version = "0.4.26", features = ["serde"] }
-asynciter = "0.1.0"
+asynciter = "*"
+futures = "*"
 
-[patch.crates-io]
-iced = { git = "https://github.com/iced-rs/iced", rev = "19db068bbbebcda1756720525da247f35bd3a5e0" }
-iced_core = { git = "https://github.com/iced-rs/iced", rev = "19db068bbbebcda1756720525da247f35bd3a5e0" }
+
+# Windows specific imports
+winapi = { version = "*", features = ["winuser"] }
+windows = { version = "*", features = [
+  "Win32_System",
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Cryptography",
+  "Win32_Security_Credentials",
+] }
+
+# [workspace.dependencies.target.windows]

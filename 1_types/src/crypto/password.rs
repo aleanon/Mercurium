@@ -1,8 +1,7 @@
 use std::num::NonZeroU32;
 
+use async_sqlite::rusqlite::{self, types::FromSql, ToSql};
 use ring::pbkdf2::{self, PBKDF2_HMAC_SHA512};
-use rusqlite::types::FromSql;
-use rusqlite::ToSql;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -17,8 +16,8 @@ pub enum PasswordError {
     EncryptionKeyError(#[from] EncryptionError),
 }
 
-///A secure wrapper around a ``String`` that implements ``ZeroizeOnDrop`` to make sure the password is cleaned from memory before it is dropped.
-///It allocates with the max password size once, to make sure the ``zeroize`` method works. ``Zeroize`` can not guarantee data is properly removed
+///A secure wrapper around a `String` that implements `ZeroizeOnDrop` to make sure the password is cleaned from memory before it is dropped.
+///It allocates with the max password size once, to make sure the `zeroize` method works. `Zeroize` can not guarantee data is properly removed
 ///if the memory has been reallocated.
 #[derive(Debug, Clone, ZeroizeOnDrop, PartialEq)]
 pub struct Password(String);
@@ -35,7 +34,6 @@ impl Password {
         if self.0.len() < Self::MAX_LEN {
             self.0.push(c)
         }
-        //Else do nothing
     }
 
     pub fn pop(&mut self) -> Option<char> {
@@ -43,22 +41,21 @@ impl Password {
     }
 
     /// Replaces the current password with the supplied [&str]
-    pub fn replace_str(&mut self, s: &str) {
+    pub fn replace(&mut self, s: &str) {
         if s.len() <= Self::MAX_LEN {
-            self.0.replace_range(0..s.len(), s)
+            self.0.replace_range(..s.len(), s)
         } else {
-            self.0.replace_range(0..Self::MAX_LEN, &s[..Self::MAX_LEN])
+            self.0.replace_range(..Self::MAX_LEN, &s[..Self::MAX_LEN])
         }
     }
 
     pub fn push_str(&mut self, s: &str) {
-        let len = self.0.len();
-        if len < Self::MAX_LEN {
-            let max_len = Self::MAX_LEN - len;
-            if len <= max_len {
+        if self.len() < Self::MAX_LEN {
+            let len_left = Self::MAX_LEN - self.len();
+            if s.len() <= len_left {
                 self.0.push_str(s);
             } else {
-                self.0.push_str(&s[..max_len]);
+                self.0.push_str(&s[..len_left]);
             }
         }
     }
@@ -110,9 +107,9 @@ impl From<&str> for Password {
     fn from(value: &str) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
         match value.len() {
-            len if len > 0 && len <= Self::MAX_LEN => string.push_str(&value[0..len]),
+            len @ 1..=Self::MAX_LEN => string.push_str(&value[..len]),
             0 => {}
-            _ => string.push_str(&value[0..Self::MAX_LEN]),
+            _ => string.push_str(&value[..Self::MAX_LEN]),
         };
 
         Self(string)
@@ -124,12 +121,12 @@ impl From<String> for Password {
         let mut string = String::with_capacity(Self::MAX_LEN);
         match value.len() {
             len if len > 0 && len <= Self::MAX_LEN => {
-                string.push_str(&value[0..len]);
+                string.push_str(&value[..len]);
                 value.zeroize()
             }
             0 => {}
             _ => {
-                string.push_str(&value[0..Self::MAX_LEN]);
+                string.push_str(&value[..Self::MAX_LEN]);
                 value.zeroize()
             }
         }
@@ -262,5 +259,19 @@ mod tests {
                 "tolongpasswordthatshouldbecutoffbeforethefullpasswordiscopiedint".to_string()
             )
         );
+    }
+
+    #[test]
+    fn test_capacity_does_not_change() {
+        let mut password = Password::new();
+        let capacity_before_change = password.0.capacity();
+        assert_eq!(capacity_before_change, Password::MAX_LEN);
+
+        let to_long_password =
+            "tolongpasswordthatshouldbecutoffbeforethefullpasswordiscopiedinthshouldbecut";
+        password.push_str(&to_long_password);
+
+        assert_eq!(password.len(), Password::MAX_LEN);
+        assert_eq!(capacity_before_change, password.0.capacity())
     }
 }

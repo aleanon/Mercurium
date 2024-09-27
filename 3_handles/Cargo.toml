@@ -1,7 +1,7 @@
 [package]
 name = "handles"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -26,12 +26,12 @@ tokio = { workspace = true }
 radix-gateway-sdk = { workspace = true }
 once_cell = { workspace = true }
 iced = { workspace = true, features = ["image"] }
-futures = "=0.3.30"
+futures = { workspace = true }
 
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.9", features = ["winuser"] }
-windows = { version = "0.56.0", features = [
+winapi = { workspace = true, features = ["winuser"] }
+windows = { workspace = true, features = [
     "Win32_System",
     "Win32_Foundation",
     "Win32_Security",

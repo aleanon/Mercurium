@@ -30,7 +30,7 @@ pub struct AppPathInner {
 }
 
 impl AppPathInner {
-    pub const APP_DIRECTORY: &'static str = "Ravault";
+    pub const APP_DIRECTORY: &'static str = crate::consts::APPLICATION_NAME;
     const APP_SETTINGS_FILE_NAME: &'static str = "settings";
     const APP_SETTINGS_EXTENSION: &'static str = "json";
     const STORE_DIRECTORY: &'static str = "database";
@@ -90,7 +90,7 @@ impl AppPathInner {
                 .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
         }
 
-        if !self.icons_directory().exists() {
+        if !self.icons_directory.exists() {
             std::fs::DirBuilder::new()
                 .create(&self.icons_directory)
                 .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;

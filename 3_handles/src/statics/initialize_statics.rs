@@ -1,4 +1,9 @@
-use types::{AppError, AppPath, AppPathInner, Network};
+use std::str::FromStr;
+
+use types::{
+    address::{AccountAddress, ResourceAddress},
+    AppError, AppPath, AppPathInner, Network,
+};
 
 pub fn initialize_statics(network: Network) -> Result<(), AppError> {
     match AppPathInner::get_application_root_directory() {
@@ -10,6 +15,8 @@ pub fn initialize_statics(network: Network) -> Result<(), AppError> {
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     // address regexes
+    AccountAddress::from_str("some_invalid_address_to_initialize_the_regex_statics").ok();
+    ResourceAddress::from_str("some_invalid_address_to_initialize_the_regex_statics").ok();
 
     Ok(())
 }

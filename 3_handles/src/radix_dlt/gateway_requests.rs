@@ -1,6 +1,6 @@
 use std::future::IntoFuture;
 
-use iced::futures::future::join_all;
+use futures::future::join_all;
 use radix_gateway_sdk::{
     generated::{
         model::{

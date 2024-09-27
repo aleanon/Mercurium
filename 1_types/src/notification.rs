@@ -29,7 +29,7 @@ impl Notification {
 impl Display for Notification {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::None => write!(f, "No Message"),
+            Self::None => Ok(()),
             Self::Success(message) => write!(f, "Success: {}", message),
             Self::Info(message) => write!(f, "Info: {}", message),
             Self::Warn(message) => write!(f, "Warning: {}", message),

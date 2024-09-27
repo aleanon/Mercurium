@@ -6,7 +6,7 @@ use std::{
 use debug_print::debug_println;
 use iced::{futures::future::join_all, widget::image::Handle};
 use image::DynamicImage;
-use store::IconCache;
+use store::IconsDb;
 use types::{address::ResourceAddress, Network};
 
 use crate::image::resize::{resize_small_dimensions, resize_standard_dimensions};
@@ -15,7 +15,7 @@ pub async fn download_resize_and_store_resource_icons(
     icon_urls: BTreeMap<ResourceAddress, String>,
     network: Network,
 ) -> HashMap<ResourceAddress, Handle> {
-    let icon_cache = IconCache::load(network).await;
+    let icon_cache = IconsDb::get(network);
     let tasks = icon_urls.into_iter().map(|(resource_address, url)| {
         tokio::spawn(async move {
             download_image(&url).await.and_then(|image| {
@@ -61,10 +61,10 @@ pub async fn download_resize_and_store_resource_icons(
             },
         );
 
-    if let Ok(icon_cache) = icon_cache {
+    if let Some(icon_cache) = icon_cache {
         icon_cache.upsert_resource_icons(icons_data).await.ok();
     } else {
-        debug_println!("Unable to Open/Create Icon Cache")
+        debug_println!("Icon cache not found")
     }
 
     icons

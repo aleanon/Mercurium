@@ -1,5 +1,5 @@
 use debug_print::debug_println;
-use store::AsyncDb;
+use store::AppDataDb;
 use types::{crypto::Password, AppError, Network};
 
 pub async fn perform_login_check(network: Network, password: Password) -> Result<(), AppError> {
@@ -10,7 +10,7 @@ pub async fn perform_login_check(network: Network, password: Password) -> Result
 
     debug_println!("Key created");
 
-    let db = AsyncDb::get_or_init(network, key)
+    let db = AppDataDb::get_or_init(network, key)
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 

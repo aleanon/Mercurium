@@ -1,3 +1,4 @@
+use async_sqlite::rusqlite;
 use scrypto::crypto::Ed25519PublicKey;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};

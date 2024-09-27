@@ -1,3 +1,4 @@
+use async_sqlite::rusqlite;
 use std::{
     fmt::{self, Display},
     ops::{Deref, DerefMut},

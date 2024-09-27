@@ -4,6 +4,7 @@ pub(crate) mod app_path;
 pub(crate) mod app_settings;
 pub(crate) mod decimal;
 // pub(crate) mod metadata;
+pub mod consts;
 pub(crate) mod network;
 pub(crate) mod notification;
 pub(crate) mod resource;

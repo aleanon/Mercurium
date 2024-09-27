@@ -1,12 +1,15 @@
 [package]
 name = "types"
 version = "0.1.0"
-edition = "2021"
+
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
 [dependencies]
+async-sqlite = { workspace = true }
+reqwest = { workspace = true }
 scrypto.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -20,8 +23,7 @@ ed25519-dalek-fiat = { workspace = true }
 slip10_ed25519 = { workspace = true }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
 debug_print = { workspace = true }
-rusqlite.workspace = true
-reqwest = { workspace = true }
+# rusqlite.workspace = true
 regex = { workspace = true }
 once_cell = { workspace = true }
 const_format = { workspace = true }

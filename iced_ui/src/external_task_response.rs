@@ -5,7 +5,7 @@ use debug_print::debug_println;
 use iced::widget::image::Handle;
 use iced::Task;
 
-use store::{AsyncDb, DbError};
+use store::{AppDataDb, DbError};
 use types::{
     address::ResourceAddress,
     assets::FungibleAsset,
@@ -151,7 +151,7 @@ impl App {
             let network = self.app_data.settings.network;
             Task::perform(
                 async move {
-                    let Some(db) = AsyncDb::get(network) else {
+                    let Some(db) = AppDataDb::get(network) else {
                         return Err(DbError::DatabaseNotFound);
                     };
                     db.upsert_resources(new_resources).await?;

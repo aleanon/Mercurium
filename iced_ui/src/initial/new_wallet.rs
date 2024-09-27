@@ -6,7 +6,7 @@ use iced::{
     widget::{self, text_input::Id, Button, Column, Row},
     Element, Length,
 };
-use store::AsyncDb;
+use store::AppDataDb;
 use types::crypto::{EncryptedMnemonic, Password, SeedPhrase};
 use types::MutUr;
 use types::{AppError, Network};
@@ -231,7 +231,7 @@ impl<'a> NewWallet {
                     }
                 };
 
-                let db = AsyncDb::load(network, key)
+                let db = AppDataDb::load(network, key)
                     .await
                     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
