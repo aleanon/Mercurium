@@ -74,54 +74,39 @@ impl Key {
     }
 }
 
-/// A Hexadecimal representation of `Key` so it can be formatted as text and passed as key to the database
+/// A Hexadecimal representation of `Key` with a prefix and end so it can be formatted as text and passed as a hexadecimal key to the database
 #[derive(Debug, ZeroizeOnDrop, Clone)]
 pub struct DataBaseKey([u8; Self::LENGTH]);
 
 impl DataBaseKey {
-    const LENGTH: usize = Key::LENGTH * 2;
-    const PRAGMA_END: &'static [u8] = b"'\"";
-    const PRAGMA_KEY_START: &'static [u8] = b"PRAGMA key = \"x'";
-    const PRAGMA_REKEY_START: &'static [u8] = b"PRAGMA rekey = \"x'";
-    const PRAGMA_KEY_AND_ARGUMENT_LENGTH: usize =
-        Self::LENGTH + Self::PRAGMA_KEY_START.len() + Self::PRAGMA_END.len();
-    const PRAGMA_REKEY_AND_ARGUMENT_LENGTH: usize =
-        Self::LENGTH + Self::PRAGMA_REKEY_START.len() + Self::PRAGMA_END.len();
+    const KEY_LENGTH: usize = Key::LENGTH * 2;
+    const LENGTH: usize = Self::KEY_LENGTH + 3;
+    const DB_KEY_START: &[u8] = b"x\'";
+    const DB_KEY_END: &[u8] = b"\'";
+
+    pub fn dummy_one_use_key() -> Self {
+        let salt = Salt::new().expect("Failed to create random value for salt");
+        Password::from("dummy key").derive_db_encryption_key_from_salt(&salt)
+    }
 
     pub fn from_key(key: Key) -> Self {
-        let mut hex_key = [0u8; Self::LENGTH];
+        let mut hex_key = [0u8; Self::KEY_LENGTH];
         for (i, byte) in key.as_bytes().iter().enumerate() {
             hex_key[i * 2] = Self::to_hex_digit(byte >> 4);
             hex_key[i * 2 + 1] = Self::to_hex_digit(byte & 0x0F);
         }
-        Self(hex_key)
+        let mut db_hex_key = [b' '; Self::LENGTH];
+        db_hex_key[..Self::DB_KEY_START.len()].copy_from_slice(Self::DB_KEY_START);
+        db_hex_key[Self::DB_KEY_START.len()..Self::KEY_LENGTH + Self::DB_KEY_START.len()]
+            .copy_from_slice(&hex_key);
+        db_hex_key[Self::LENGTH - Self::DB_KEY_END.len()..].copy_from_slice(Self::DB_KEY_END);
+
+        Self(db_hex_key)
     }
 
     pub fn as_str(&self) -> &str {
         std::str::from_utf8(&self.0)
             .unwrap_unreachable(debug_info!("HexKey contained non utf8 bytes"))
-    }
-
-    pub fn set_key_statement(&self) -> [u8; Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH] {
-        let mut statement = [b' '; Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH];
-        statement[..Self::PRAGMA_KEY_START.len()].copy_from_slice(Self::PRAGMA_KEY_START);
-        statement[Self::PRAGMA_KEY_START.len()
-            ..Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()]
-            .copy_from_slice(&self.0);
-        statement[Self::PRAGMA_KEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()..]
-            .copy_from_slice(Self::PRAGMA_END);
-        statement
-    }
-
-    pub fn rekey_statement(&self) -> [u8; Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH] {
-        let mut statement = [b' '; Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH];
-        statement[..Self::PRAGMA_REKEY_START.len()].copy_from_slice(Self::PRAGMA_REKEY_START);
-        statement[Self::PRAGMA_REKEY_START.len()
-            ..Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()]
-            .copy_from_slice(&self.0);
-        statement[Self::PRAGMA_REKEY_AND_ARGUMENT_LENGTH - Self::PRAGMA_END.len()..]
-            .copy_from_slice(Self::PRAGMA_END);
-        statement
     }
 
     fn to_hex_digit(n: u8) -> u8 {
@@ -130,5 +115,15 @@ impl DataBaseKey {
             10..=15 => b'a' + (n - 10),
             _ => unreachable!(),
         }
+    }
+}
+
+impl async_sqlite::rusqlite::ToSql for DataBaseKey {
+    fn to_sql(
+        &self,
+    ) -> Result<async_sqlite::rusqlite::types::ToSqlOutput, async_sqlite::rusqlite::Error> {
+        Ok(async_sqlite::rusqlite::types::ToSqlOutput::Borrowed(
+            async_sqlite::rusqlite::types::ValueRef::Text(&self.0),
+        ))
     }
 }

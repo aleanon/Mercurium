@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use async_sqlite::rusqlite;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::{Deserialize, Deserializer};
@@ -8,7 +9,7 @@ use serde::ser::{Serialize, Serializer};
 use crate::unwrap_unreachable::UnwrapUnreachable;
 use crate::{debug_info, Network};
 
-use super::{AddressError, Address, AddressType};
+use super::{Address, AddressError, AddressType};
 
 static MAINNET_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(ResourceAddress::MAINNET_REGEX_PATTERN).unwrap());

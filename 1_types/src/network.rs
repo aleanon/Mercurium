@@ -1,3 +1,4 @@
+use async_sqlite::rusqlite;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]

@@ -1,7 +1,8 @@
 use crate::unwrap_unreachable::UnwrapUnreachable;
 use crate::{debug_info, Network};
 
-use super::{AddressError, Address, AddressType};
+use super::{Address, AddressError, AddressType};
+use async_sqlite::rusqlite;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::{Deserialize, Deserializer};

@@ -3,6 +3,7 @@ use crate::unwrap_unreachable::UnwrapUnreachable;
 use crate::{debug_info, Network};
 
 use super::{Address, AddressError, AddressType};
+use async_sqlite::rusqlite;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::{Deserialize, Deserializer};
@@ -90,23 +91,19 @@ impl FromStr for AccountAddress {
     type Err = AddressError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if MAINNET_REGEX.is_match(s) {
-            if Self::is_valid_address(Network::Mainnet, s) {
-                return Ok(Self::Mainnet(
-                    s.as_bytes()
-                        .try_into()
-                        .map_err(|_| AddressError::InvalidLength)?,
-                ));
-            }
+        if Self::is_valid_address(Network::Mainnet, s) {
+            return Ok(Self::Mainnet(
+                s.as_bytes()
+                    .try_into()
+                    .map_err(|_| AddressError::InvalidLength)?,
+            ));
         }
-        if STOKENET_REGEX.is_match(s) {
-            if Self::is_valid_address(Network::Stokenet, s) {
-                return Ok(Self::Stokenet(
-                    s.as_bytes()
-                        .try_into()
-                        .map_err(|_| AddressError::InvalidLength)?,
-                ));
-            }
+        if Self::is_valid_address(Network::Stokenet, s) {
+            return Ok(Self::Stokenet(
+                s.as_bytes()
+                    .try_into()
+                    .map_err(|_| AddressError::InvalidLength)?,
+            ));
         }
         Err(AddressError::InvalidAddress)
     }
@@ -178,4 +175,9 @@ impl rusqlite::types::ToSql for AccountAddress {
             rusqlite::types::ValueRef::Blob(&self.as_bytes()),
         ))
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }

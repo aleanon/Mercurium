@@ -1,5 +1,6 @@
 use std::{collections::BTreeSet, fmt::Display};
 
+use async_sqlite::rusqlite;
 use asynciter::FromAsyncIterator;
 
 use crate::{

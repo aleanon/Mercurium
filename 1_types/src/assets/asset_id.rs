@@ -3,6 +3,7 @@ use crate::{
     debug_info,
     unwrap_unreachable::UnwrapUnreachable,
 };
+use async_sqlite::rusqlite;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -15,9 +16,9 @@ impl AssetId {
     pub fn new(account_address: &AccountAddress, resource_address: &ResourceAddress) -> Self {
         let mut assetid = [0; Self::LENGTH];
         assetid[..AccountAddress::CHECKSUM_DOUBLE_LENGTH]
-            .copy_from_slice(account_address.checksum_slice());
+            .copy_from_slice(account_address.checksum_double_slice());
         assetid[ResourceAddress::CHECKSUM_DOUBLE_LENGTH..]
-            .copy_from_slice(resource_address.checksum_slice());
+            .copy_from_slice(resource_address.checksum_double_slice());
 
         Self(assetid)
     }
@@ -56,4 +57,9 @@ impl rusqlite::types::FromSql for AssetId {
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }

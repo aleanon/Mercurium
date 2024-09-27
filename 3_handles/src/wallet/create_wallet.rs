@@ -1,5 +1,5 @@
 use bip39::Mnemonic;
-use store::AsyncDb;
+use store::AppDataDb;
 use types::{
     crypto::{DataBaseKey, EncryptedMnemonic, Key, Salt},
     Account, AppError, Network,
@@ -28,7 +28,7 @@ pub async fn create_new_wallet_with_accounts(
 
     crate::credentials::store_db_encryption_salt(db_key_salt.1)?;
 
-    let db = AsyncDb::load(network, db_key_salt.0)
+    let db = AppDataDb::load(network, db_key_salt.0)
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 

@@ -5,7 +5,7 @@ use iced::{
     Element, Length, Padding, Task,
 };
 use ravault_iced_theme::styles;
-use store::IconCache;
+use store::{DbError, IconsDb};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 use types::{address::AccountAddress, assets::FungibleAsset};
@@ -76,7 +76,7 @@ impl<'a> Fungibles {
         let network = appdata.settings.network;
         Task::perform(
             async move {
-                let icon_cache = IconCache::load(network).await?;
+                let icon_cache = IconsDb::get(network).ok_or(DbError::DatabaseNotLoaded)?;
                 icon_cache.get_resource_icon(address).await
             },
             |result| match result {

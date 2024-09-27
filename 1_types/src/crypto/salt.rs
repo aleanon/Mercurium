@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::array::TryFromSliceError;
 use zeroize::ZeroizeOnDrop;
 
-#[cfg_attr(debug_assertions, derive(PartialEq, Eq, Clone))]
-#[derive(Debug, ZeroizeOnDrop, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, derive(PartialEq, Eq))]
+#[derive(Debug, Clone, ZeroizeOnDrop, Serialize, Deserialize)]
 pub struct Salt([u8; Self::LENGTH]);
 
 impl Salt {
