@@ -1,3 +1,8 @@
+pub mod create;
+pub mod read;
+pub mod statements;
+pub mod update;
+
 use crate::database::{DataBase, DbError};
 use once_cell::sync::OnceCell;
 use std::ops::Deref;
@@ -19,6 +24,7 @@ impl AppDataDb {
                 let db = DataBase::load(path, key).await?;
                 let app_data_db = Self { db };
                 app_data_db.create_tables_if_not_exist().await?;
+
                 let app_data_db = MAINNET_DB.get_or_init(|| app_data_db);
                 Ok(app_data_db)
             }
