@@ -1,3 +1,8 @@
+pub mod create;
+pub mod read;
+pub mod statements;
+pub mod update;
+
 use std::ops::Deref;
 
 use once_cell::sync::OnceCell;
@@ -5,14 +10,14 @@ use types::{crypto::DataBaseKey, AppPath, Network};
 
 use crate::database::{DataBase, DbError};
 
-pub static MAINNET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
-pub static STOKENET_ICONCACHE: OnceCell<IconCache> = once_cell::sync::OnceCell::new();
+pub static MAINNET_ICONCACHE: OnceCell<IconsDb> = once_cell::sync::OnceCell::new();
+pub static STOKENET_ICONCACHE: OnceCell<IconsDb> = once_cell::sync::OnceCell::new();
 
-pub struct IconCache {
+pub struct IconsDb {
     db: DataBase,
 }
 
-impl IconCache {
+impl IconsDb {
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         let app_path = AppPath::get();
         match network {
@@ -51,7 +56,7 @@ impl IconCache {
     }
 }
 
-impl Deref for IconCache {
+impl Deref for IconsDb {
     type Target = DataBase;
     fn deref(&self) -> &Self::Target {
         &self.db

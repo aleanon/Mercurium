@@ -1,15 +1,17 @@
-use crate::{DbError, IconCache};
+use std::collections::{BTreeSet, HashMap};
 
-use super::AppDataDb;
 use async_sqlite::rusqlite::{self, Row};
 use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
 use types::{
-    address::{AccountAddress, Address, ResourceAddress},
+    address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
     Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
 };
+
+use crate::DbError;
+
+use super::AppDataDb;
 
 impl AppDataDb {
     pub async fn get_db_password_hash(&self) -> Result<HashedPassword, DbError> {
@@ -19,6 +21,7 @@ impl AppDataDb {
             |row| Ok(row.get(0)?),
         )
         .await
+        .map_err(|err| err.into())
     }
 
     pub async fn get_account(&self, account_address: AccountAddress) -> Result<Account, DbError> {
@@ -41,6 +44,7 @@ impl AppDataDb {
             },
         )
         .await
+        .map_err(|err| err.into())
     }
 
     pub async fn get_account_addresses<T>(&self) -> Result<T, DbError>
@@ -403,138 +407,3 @@ impl AppDataDb {
         .unwrap_or(T::default())
     }
 }
-
-impl IconCache {
-    pub async fn get_all_resource_icons(
-        &self,
-    ) -> Result<HashMap<ResourceAddress, Vec<u8>>, DbError> {
-        let result = self
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM resource_images")?
-                    .query_map([], |row| {
-                        let resource_address: ResourceAddress = row.get(0)?;
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((resource_address, image_data))
-                    })?
-                    .collect::<Result<HashMap<ResourceAddress, Vec<u8>>, rusqlite::Error>>()
-            })
-            .await?;
-        Ok(result)
-    }
-
-    pub async fn get_resource_icon(
-        &self,
-        resource_address: ResourceAddress,
-    ) -> Result<(ResourceAddress, Vec<u8>), DbError> {
-        Ok(self
-            .conn(move |conn| {
-                conn.query_row(
-                    "SELECT * FROM resource_images WHERE resource_address = ?",
-                    [resource_address],
-                    |row| {
-                        let resource_address: ResourceAddress = row.get(0)?;
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((resource_address, image_data))
-                    },
-                )
-            })
-            .await?)
-    }
-
-    pub async fn get_all_nft_images_for_resource(
-        &self,
-        resource_address: ResourceAddress,
-    ) -> Result<(ResourceAddress, BTreeMap<String, Vec<u8>>), DbError> {
-        let resource_address_params = resource_address.clone();
-        let btree_map = self
-            .conn(|conn| {
-                conn.prepare_cached("SELECT * FROM nft_images WHERE resource_address = ?")?
-                    .query_map([resource_address_params], |row| {
-                        let mut nfid: String = row.get(0)?;
-                        let _ = nfid.split_off(nfid.len() - ResourceAddress::CHECKSUM_LENGTH);
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((nfid, image_data))
-                    })?
-                    .collect::<Result<BTreeMap<String, Vec<u8>>, rusqlite::Error>>()
-            })
-            .await?;
-        Ok((resource_address, btree_map))
-    }
-
-    pub async fn get_nft_image(
-        &self,
-        resource_address: ResourceAddress,
-        nfid: String,
-    ) -> Result<(ResourceAddress, String, Vec<u8>), DbError> {
-        Ok(self
-            .conn(move |conn| {
-                let mut nfid_param = nfid.clone();
-                nfid_param.push_str(resource_address.checksum_as_str());
-
-                conn.query_row(
-                    "SELECT * FROM nft_images WHERE nfid =?",
-                    [nfid_param],
-                    |row| {
-                        let image_data: Vec<u8> = row.get(1)?;
-                        Ok((resource_address, nfid, image_data))
-                    },
-                )
-            })
-            .await?)
-    }
-}
-
-// #[cfg(test)]
-// mod tests {
-//     use std::str::FromStr;
-
-//     use bip39::Mnemonic;
-
-//     use types::crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair};
-//     use types::Network;
-
-//     use super::*;
-
-//     #[test]
-//     fn get_accounts() {
-//         let db = Db::new_in_memory();
-//         db.create_table_accounts()
-//             .expect("Unable to create table 'accounts'");
-
-//         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
-//         let (keypair, derivation_path) = Ed25519KeyPair::new(
-//             &mnemonic,
-//             None,
-//             0,
-//             Network::Mainnet,
-//             Bip32Entity::Account,
-//             Bip32KeyKind::TransactionSigning,
-//         );
-
-//         let pub_key = keypair.radixdlt_public_key();
-//         let address = keypair.bech32_address();
-//         let address =
-//             AccountAddress::from_str(address.as_str()).expect("Unable to parse account address");
-
-//         let account = Account::new(
-//             0,
-//             "test".to_owned(),
-//             Network::Mainnet,
-//             derivation_path,
-//             address,
-//             pub_key,
-//         );
-
-//         db.upsert_account(&account)
-//             .expect("Unable to create account");
-
-//         let mut accounts = db
-//             .get_accounts_map::<HashMap<AccountAddress, Account>>()
-//             .expect("Unable to get accounts map");
-//         let retrieved_account = accounts
-//             .remove(&account.address)
-//             .expect("Account not found");
-
-//         assert_eq!(account, retrieved_account);
-//     }
-// }
