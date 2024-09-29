@@ -195,10 +195,6 @@ impl App {
         Ok(())
     }
 
-    fn theme(&self) -> iced::Theme {
-        self.app_data.settings.theme.into()
-    }
-
     pub fn handle_error(&mut self, err: AppError) {
         debug_println!("Error: {err}");
         match err {

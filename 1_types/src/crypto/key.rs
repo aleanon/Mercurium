@@ -74,7 +74,7 @@ impl Key {
     }
 }
 
-/// A Hexadecimal representation of `Key` with a prefix and end so it can be formatted as text and passed as a hexadecimal key to the database
+/// A Hexadecimal representation of `Key` with a prefix (x') and end (') so it can be formatted as text and passed as a hexadecimal key to the database
 #[derive(Debug, ZeroizeOnDrop, Clone)]
 pub struct DataBaseKey([u8; Self::LENGTH]);
 
