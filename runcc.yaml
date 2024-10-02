@@ -1,5 +1,0 @@
-commands:
-  ravault: |
-    cargo run --features reload
-  theme: |
-    cargo watch -w crates/iced_ui/theme -x build -p theme --features reload
