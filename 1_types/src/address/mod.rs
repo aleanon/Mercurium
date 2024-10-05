@@ -1,7 +1,7 @@
-mod account_address;
-mod address_validator;
-mod resource_address;
-mod transaction_address;
+pub(crate) mod account_address;
+pub(crate) mod address_validator;
+pub(crate) mod resource_address;
+pub(crate) mod transaction_address;
 
 use std::str::FromStr;
 use thiserror::Error;

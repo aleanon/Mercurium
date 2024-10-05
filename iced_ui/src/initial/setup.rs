@@ -12,7 +12,7 @@ use crate::{
 use super::{
     new_wallet::{self, NewWallet, NewWalletStage},
     restore_from_seed::{self, RestoreFromSeed},
-    restore_wallet::{self, RestoreWallet},
+    restore_wallet::{self, RestoreFromBackup},
 };
 
 #[derive(Debug, Clone)]
@@ -35,7 +35,7 @@ impl Into<AppMessage> for Message {
 #[derive(Debug)]
 pub enum Setup {
     SelectCreation,
-    RestoreWallet(RestoreWallet),
+    RestoreFromBackup(RestoreFromBackup),
     RestoreFromSeed(RestoreFromSeed),
     NewWallet(NewWallet),
 }
@@ -112,30 +112,32 @@ impl<'a> Setup {
 
     pub fn view(&'a self, app: &'a App) -> Element<'a, AppMessage> {
         let content: Element<'a, AppMessage> = match self {
-            Self::SelectCreation => {
-                let restore_from_backup = Self::creation_button("Restore from backup")
-                    .on_press(Message::FromBackup.into());
-
-                let restore_from_seed =
-                    Self::creation_button("Restore from seed").on_press(Message::FromSeed.into());
-
-                let new_wallet =
-                    Self::creation_button("Create new wallet").on_press(Message::NewWallet.into());
-
-                widget::column![restore_from_backup, restore_from_seed, new_wallet]
-                    .width(Length::Shrink)
-                    .height(Length::Shrink)
-                    .spacing(40)
-                    .into()
-            }
-            Self::RestoreWallet(restore) => restore.view(app),
-            Self::NewWallet(new_wallet) => new_wallet.view(app),
-            Self::RestoreFromSeed(restore_from_seed) => restore_from_seed.view(app),
+            Setup::SelectCreation => self.select_creation_view(),
+            Setup::RestoreFromBackup(restore_from_backup) => restore_from_backup.view(app),
+            Setup::NewWallet(new_wallet) => new_wallet.view(app),
+            Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view(app),
         };
 
         widget::container(content)
             .center_x(Length::Fill)
             .center_y(Length::Fill)
+            .into()
+    }
+
+    fn select_creation_view(&self) -> Element<'_, AppMessage> {
+        let restore_from_backup =
+            Self::creation_button("Restore from backup").on_press(Message::FromBackup.into());
+
+        let restore_from_seed =
+            Self::creation_button("Restore from seed").on_press(Message::FromSeed.into());
+
+        let new_wallet =
+            Self::creation_button("Create new wallet").on_press(Message::NewWallet.into());
+
+        widget::column![restore_from_backup, restore_from_seed, new_wallet]
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .spacing(40)
             .into()
     }
 
