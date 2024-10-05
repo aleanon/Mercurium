@@ -4,7 +4,7 @@ use types::{collections::AppdataFromDisk, Network};
 
 use crate::{app::AppMessage, external_task_response};
 
-pub fn update_accounts(network: Network) -> Task<AppMessage> {
+pub fn update_all_accounts(network: Network) -> Task<AppMessage> {
     Task::perform(
         async move { handles::radix_dlt::updates::update_all_accounts(network).await },
         |result| match result {
@@ -81,7 +81,7 @@ pub fn get_resource_icons_from_disk(network: Network) -> Task<AppMessage> {
 pub fn initial_login_tasks(network: Network) -> Task<AppMessage> {
     Task::batch([
         #[cfg(not(feature = "noupdate"))]
-        update_accounts(network),
+        update_all_accounts(network),
         get_app_data_from_disk(network),
         get_resource_icons_from_disk(network),
     ])

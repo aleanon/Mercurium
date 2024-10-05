@@ -12,6 +12,6 @@ pub use encrypted_mnemonic::{EncryptedMnemonic, EncryptedMnemonicError};
 pub use encryption_error::EncryptionError;
 pub use key::{DataBaseKey, Key};
 pub use password::{HashedPassword, Password, PasswordError};
-pub use public_key::{PublicKey, PublicKeyType};
+pub use public_key::PublicKey;
 pub use salt::Salt;
 pub use seedphrase::{Phrase, SeedPhrase};

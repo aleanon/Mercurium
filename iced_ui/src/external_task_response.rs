@@ -213,7 +213,7 @@ impl App {
     fn wallet_created(&mut self) -> Task<AppMessage> {
         self.app_state = AppState::Unlocked;
 
-        external_tasks::update_accounts(self.app_data.settings.network)
+        external_tasks::update_all_accounts(self.app_data.settings.network)
     }
 
     fn place_accounts_and_resources_in_memory(

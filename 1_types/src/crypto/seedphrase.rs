@@ -57,7 +57,7 @@ impl SeedPhrase {
         }
     }
 
-    ///The byte slices are turned into a Phrase instead of a String because it should implement `ZeroizeOnDrop`
+    ///The byte slices are turned into a `Phrase` instead of a `String` because it should implement `ZeroizeOnDrop`
     pub fn phrase(&self) -> Phrase {
         let mut phrase = String::with_capacity(Self::MAX_PHRASE_LENGTH);
 
@@ -107,10 +107,10 @@ impl Phrase {
 
 impl From<String> for Phrase {
     fn from(mut value: String) -> Self {
-        if value.len() < SeedPhrase::MAX_PHRASE_LENGTH {
-            value.reserve_exact(SeedPhrase::MAX_PHRASE_LENGTH - value.len());
-        }
+        let mut phrase = Self::new();
+        phrase.push_str(value.as_str());
+        value.zeroize();
 
-        Self(value)
+        phrase
     }
 }

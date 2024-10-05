@@ -17,12 +17,12 @@ impl Into<AppMessage> for Message {
 }
 
 #[derive(Debug)]
-pub enum RestoreWallet {
+pub enum RestoreFromBackup {
     FromBackup,
     FromSeed,
 }
 
-impl<'a> RestoreWallet {
+impl<'a> RestoreFromBackup {
     pub fn view(&self, _app: &'a App) -> Element<'a, AppMessage> {
         let from_backup =
             Setup::creation_button("From Cloud").on_press(setup::Message::FromBackup.into());
