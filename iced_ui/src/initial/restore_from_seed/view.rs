@@ -5,7 +5,7 @@ use iced::{
 use types::address::Address;
 use zeroize::Zeroize;
 
-use crate::{app::AppMessage, App};
+use crate::{app::AppMessage, common_elements, App};
 
 use super::{Message, RestoreFromSeed, Stage};
 
@@ -26,6 +26,10 @@ impl<'a> RestoreFromSeed {
     }
 
     fn enter_seed_phrase_view(&self) -> Column<'a, AppMessage> {
+        let header = common_elements::header_one("Enter seed phrase");
+
+        let notification = widget::text(self.notification).size(12);
+
         let input_seed = self.input_seed();
 
         let nav = Self::nav_row(
@@ -33,7 +37,7 @@ impl<'a> RestoreFromSeed {
             Self::nav_button("Next").on_press(Message::Next.into()),
         );
 
-        widget::column![input_seed, nav]
+        widget::column![header, notification, input_seed, nav]
             .width(Length::Shrink)
             .height(Length::Shrink)
             .align_x(iced::Alignment::Center)
@@ -41,15 +45,18 @@ impl<'a> RestoreFromSeed {
     }
 
     fn enter_password_view(&self) -> Column<'a, AppMessage> {
+        let header = common_elements::header_one("Create password");
+
         let password_notification = Self::notification_field(self.notification);
 
-        let password_input = Self::text_input_field("Enter Password", &self.password.as_str())
-            .on_paste(|input| Message::InputPassword(input).into())
-            .on_input(|input| Message::InputPassword(input).into())
-            .secure(true);
+        let password_input =
+            Self::text_input_field("Enter Password", &self.inputs.password.as_str())
+                .on_paste(|input| Message::InputPassword(input).into())
+                .on_input(|input| Message::InputPassword(input).into())
+                .secure(true);
 
         let verify_pw_input =
-            Self::text_input_field("Verify Password", &self.verify_password.as_str())
+            Self::text_input_field("Verify Password", &self.inputs.verify_password.as_str())
                 .on_submit(Message::Next.into())
                 .on_paste(|input| Message::InputVerifyPassword(input).into())
                 .on_input(|input| Message::InputVerifyPassword(input).into())
@@ -60,17 +67,26 @@ impl<'a> RestoreFromSeed {
             Self::nav_button("Next").on_press(Message::Next.into()),
         );
 
-        widget::column![password_notification, password_input, verify_pw_input, nav]
-            .align_x(iced::Alignment::Center)
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .spacing(50)
+        widget::column![
+            header,
+            password_notification,
+            password_input,
+            verify_pw_input,
+            nav
+        ]
+        .align_x(iced::Alignment::Center)
+        .width(Length::Shrink)
+        .height(Length::Shrink)
+        .spacing(50)
     }
 
     fn choose_accounts_view(&'a self) -> Column<'a, AppMessage> {
         let mut accounts = column!().height(400);
 
-        let page = self.accounts.get(self.page_index);
+        let page = self
+            .accounts_data
+            .accounts
+            .get(self.accounts_data.page_index);
         if let Some(accounts_selection) = page {
             for (i, (account, is_selected, account_summary)) in
                 accounts_selection.iter().enumerate()
@@ -79,7 +95,7 @@ impl<'a> RestoreFromSeed {
                 let account_summary = widget::text(account_summary.to_string());
 
                 let is_selected = widget::checkbox("", *is_selected).on_toggle(move |_| {
-                    Message::ToggleAccountSelection((self.page_index, i)).into()
+                    Message::ToggleAccountSelection((self.accounts_data.page_index, i)).into()
                 });
 
                 accounts = accounts.push(
@@ -96,13 +112,14 @@ impl<'a> RestoreFromSeed {
         }
 
         let row = row![
-            widget::button("Previous Page").on_press_maybe(if self.page_index == 0 {
+            widget::button("Previous Page").on_press_maybe(if self.accounts_data.page_index == 0 {
                 None
             } else {
-                Some(Message::NewPage(self.page_index - 1).into())
+                Some(Message::NewPage(self.accounts_data.page_index - 1).into())
             }),
             accounts.width(400),
-            widget::button("Next Page").on_press(Message::NewPage(self.page_index + 1).into())
+            widget::button("Next Page")
+                .on_press(Message::NewPage(self.accounts_data.page_index + 1).into())
         ]
         .align_y(iced::Alignment::Center);
 
@@ -156,7 +173,7 @@ impl<'a> RestoreFromSeed {
             }
             let mut word = "";
 
-            if let Some(s) = self.seed_phrase.reference_word(i) {
+            if let Some(s) = self.inputs.seed_phrase.reference_word(i) {
                 word = s
             }
 
