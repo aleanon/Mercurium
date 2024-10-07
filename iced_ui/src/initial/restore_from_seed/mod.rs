@@ -1,3 +1,6 @@
+mod choose_account_view;
+mod enter_password_view;
+mod input_seed_view;
 mod model;
 mod update;
 mod view;
