@@ -11,10 +11,9 @@ use types::{
     address::{AccountAddress, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     collections::AccountsUpdate,
-    crypto::{DataBaseKey, Key, Password, PasswordError, Salt},
+    crypto::{DataBaseKey, Key, Salt},
     Account, AppError, AppSettings, MutUr, Network, Ur,
 };
-use zeroize::Zeroize;
 
 use crate::{
     app::{AppData, AppMessage},
@@ -270,20 +269,20 @@ impl<'a> RestoreFromSeed {
         }
     }
 
-    fn update_verify_password_field(&mut self, mut input: String) {
-        self.inputs.verify_password.clear();
-        self.inputs.verify_password.push_str(input.as_str());
-        input.zeroize();
-        self.notification = "";
-    }
+    // fn update_verify_password_field(&mut self, mut input: String) {
+    //     self.inputs.verify_password.clear();
+    //     self.inputs.verify_password.push_str(input.as_str());
+    //     input.zeroize();
+    //     self.notification = "";
+    // }
 
-    fn update_single_word_in_seed_phrase(&mut self, word_index: usize, mut word: String) {
-        self.inputs
-            .seed_phrase
-            .update_word(word_index, word.as_str());
-        word.zeroize();
-        self.notification = "";
-    }
+    // fn update_single_word_in_seed_phrase(&mut self, word_index: usize, mut word: String) {
+    //     self.inputs
+    //         .seed_phrase
+    //         .update_word(word_index, word.as_str());
+    //     word.zeroize();
+    //     self.notification = "";
+    // }
 
     fn task_update_created_accounts(
         &mut self,
@@ -344,112 +343,42 @@ impl<'a> RestoreFromSeed {
         )
     }
 
-    fn update_multiple_words_in_seed_phrase(&mut self, mut index: usize, words: Vec<String>) {
-        for mut word in words {
-            self.inputs.seed_phrase.update_word(index, &word);
-            word.zeroize();
-            index += 1;
-        }
-    }
+    // fn update_multiple_words_in_seed_phrase(&mut self, mut index: usize, words: Vec<String>) {
+    //     for mut word in words {
+    //         self.inputs.seed_phrase.update_word(index, &word);
+    //         word.zeroize();
+    //         index += 1;
+    //     }
+    // }
 
-    fn toggle_use_of_seed_password(&mut self) {
-        if self.inputs.seed_password.is_none() {
-            self.inputs.seed_password = Some(Password::new())
-        } else {
-            self.inputs.seed_password = None;
-        }
-    }
+    // fn toggle_use_of_seed_password(&mut self) {
+    //     if self.inputs.seed_password.is_none() {
+    //         self.inputs.seed_password = Some(Password::new())
+    //     } else {
+    //         self.inputs.seed_password = None;
+    //     }
+    // }
 
-    fn update_seed_password_field(&mut self, mut input: String) {
-        self.inputs
-            .seed_password
-            .as_mut()
-            .and_then(|password| Some(password.replace(input.as_str())));
+    // fn update_seed_password_field(&mut self, mut input: String) {
+    //     self.inputs
+    //         .seed_password
+    //         .as_mut()
+    //         .and_then(|password| Some(password.replace(input.as_str())));
 
-        input.zeroize();
-    }
+    //     input.zeroize();
+    // }
 
-    fn update_password_field(&mut self, mut input: String) {
-        self.inputs.password.clear();
-        self.inputs.password.push_str(input.as_str());
-        input.zeroize();
-        self.notification = "";
-    }
+    // fn update_password_field(&mut self, mut input: String) {
+    //     self.inputs.password.clear();
+    //     self.inputs.password.push_str(input.as_str());
+    //     input.zeroize();
+    //     self.notification = "";
+    // }
 
     fn next(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         match self.stage {
-            Stage::EnterSeedPhrase => {
-                let mnemonic = Mnemonic::from_phrase(
-                    self.inputs.seed_phrase.phrase().as_str(),
-                    bip39::Language::English,
-                );
-                let Ok(mnemonic) = mnemonic else {
-                    self.notification = "Invalid seed phrase";
-                    return Task::none();
-                };
-
-                self.mnemonic = Some(mnemonic.clone());
-                self.stage = Stage::EnterPassword;
-                self.notification = "";
-
-                let password = self.inputs.seed_password.clone();
-                let network = appdata.settings.network;
-                let task_id = self.accounts_data.create_accounts_task_nr + 1;
-
-                return Task::perform(
-                    async move {
-                        let password_as_str = password
-                            .as_ref()
-                            .and_then(|password| Some(password.as_str()));
-
-                        let accounts = handles::wallet::create_multiple_accounts_from_mnemonic::<
-                            Vec<_>,
-                        >(
-                            &mnemonic, password_as_str, 0, 0, 60, network
-                        );
-                        (task_id, accounts)
-                    },
-                    |(task_id, accounts)| {
-                        Message::TaskResponse(TaskResponse::AccountsCreated { task_id, accounts })
-                            .into()
-                    },
-                );
-            }
-            Stage::EnterPassword => {
-                if self.inputs.password != self.inputs.verify_password {
-                    self.notification = "Passwords do not match";
-                    return Task::none();
-                } else if self.inputs.password.len() < Password::MIN_LEN {
-                    self.notification = "Password must be at least 16 characters long";
-                    return Task::none();
-                } else {
-                    self.notification = "";
-                    self.stage = Stage::ChooseAccounts;
-
-                    let password = self.inputs.password.clone();
-                    let task_id = self.key_and_salt.last_task_nr + 1;
-                    return Task::perform(
-                        async move {
-                            let db_key_salt = password.derive_new_db_encryption_key()?;
-                            let mnemonic_key_salt =
-                                password.derive_new_mnemonic_encryption_key()?;
-
-                            Ok::<_, PasswordError>((task_id, db_key_salt, mnemonic_key_salt))
-                        },
-                        |result| match result {
-                            Ok((task_id, db_key_salt, mnemonic_key_salt)) => {
-                                Message::TaskResponse(TaskResponse::DbAndMnemonicKeySaltReceived {
-                                    task_id,
-                                    db_key_salt,
-                                    mnemonic_key_salt,
-                                })
-                                .into()
-                            }
-                            Err(err) => AppMessage::Error(ErrorMessage::Fatal(err.to_string())),
-                        },
-                    );
-                }
-            }
+            Stage::EnterSeedPhrase => return self.from_enter_seed_to_enter_password(appdata),
+            Stage::EnterPassword => return self.from_enter_password_to_choose_account(),
             Stage::ChooseAccounts => {
                 self.accounts_data.selected_accounts = self
                     .accounts_data
