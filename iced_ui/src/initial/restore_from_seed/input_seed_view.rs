@@ -1,5 +1,5 @@
 use iced::{
-    widget::{self, text_input::Id, Column},
+    widget::{self, text_input::Id, Column, TextInput},
     Length,
 };
 use zeroize::Zeroize;
@@ -42,34 +42,34 @@ impl<'a> RestoreFromSeed {
             .height(Length::Shrink)
             .spacing(20);
 
-        for i in 0..24 {
-            if i % 4 == 0 && i != 0 {
+        for index in 0..24 {
+            if index % 4 == 0 && index != 0 {
                 seed = seed.push(row);
                 row = widget::row![]
                     .width(Length::Shrink)
                     .height(Length::Shrink)
                     .spacing(20);
             }
-            let mut word = "";
+            let word = self.inputs.seed_phrase.reference_word(index).unwrap_or("");
 
-            if let Some(s) = self.inputs.seed_phrase.reference_word(i) {
-                word = s
-            }
-
-            let text_field = seed_word_field(&format!("Word {}", i + 1), word)
-                .id(Id::new(format!("{i}")))
-                .on_input(move |input| Message::InputSeedWord((i, input)).into())
-                .on_paste(move |mut string| {
-                    let input = string
-                        .split_ascii_whitespace()
-                        .map(|s| String::from(s))
-                        .collect::<Vec<String>>();
-                    string.zeroize();
-                    Message::PasteSeedPhrase((i, input)).into()
-                });
+            let text_field = Self::seed_word_text_field_with_id(index, word);
 
             row = row.push(text_field);
         }
         seed.push(row)
+    }
+
+    fn seed_word_text_field_with_id(index: usize, word: &str) -> TextInput<'a, AppMessage> {
+        seed_word_field(&format!("Word {}", index + 1), word)
+            .id(Id::new(format!("{index}")))
+            .on_input(move |input| Message::InputSeedWord((index, input)).into())
+            .on_paste(move |mut string| {
+                let input = string
+                    .split_ascii_whitespace()
+                    .map(|s| String::from(s))
+                    .collect::<Vec<String>>();
+                string.zeroize();
+                Message::PasteSeedPhrase((index, input)).into()
+            })
     }
 }
