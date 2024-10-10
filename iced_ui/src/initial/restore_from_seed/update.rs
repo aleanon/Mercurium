@@ -243,13 +243,13 @@ impl<'a> RestoreFromSeed {
         )
     }
 
-    fn update_account_selected(&mut self, chunk_index: usize, account_index: usize) {
-        if let Some(chunk) = self.accounts_data.accounts.get_mut(chunk_index) {
-            if let Some((_, is_selected, _)) = chunk.get_mut(account_index) {
-                *is_selected = !*is_selected
-            }
-        }
-    }
+    // fn update_account_selected(&mut self, chunk_index: usize, account_index: usize) {
+    //     if let Some(chunk) = self.accounts_data.accounts.get_mut(chunk_index) {
+    //         if let Some((_, is_selected, _)) = chunk.get_mut(account_index) {
+    //             *is_selected = !*is_selected
+    //         }
+    //     }
+    // }
 
     fn update_database_key_and_mnemonic_key_fields(
         &mut self,
@@ -376,25 +376,16 @@ impl<'a> RestoreFromSeed {
     // }
 
     fn next(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+        let mut task = Task::none();
         match self.stage {
-            Stage::EnterSeedPhrase => return self.from_enter_seed_to_enter_password(appdata),
-            Stage::EnterPassword => return self.from_enter_password_to_choose_account(),
-            Stage::ChooseAccounts => {
-                self.accounts_data.selected_accounts = self
-                    .accounts_data
-                    .accounts
-                    .iter()
-                    .flatten()
-                    .filter_map(|(account, selected, _)| selected.then_some(account.clone()))
-                    .collect();
-
-                self.stage = Stage::NameAccounts;
-            }
-            Stage::NameAccounts => return self.finalize_setup(appdata),
+            Stage::EnterSeedPhrase => task = self.goto_page_enter_password(appdata),
+            Stage::EnterPassword => task = self.goto_page_choose_account(),
+            Stage::ChooseAccounts => self.goto_page_name_accounts(),
+            Stage::NameAccounts => task = self.finalize_setup(appdata),
             Stage::Finalizing => {}
         }
 
-        Task::none()
+        task
     }
 
     fn back(&mut self) {

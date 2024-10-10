@@ -21,7 +21,7 @@ impl RestoreFromSeed {
         self.notification = "";
     }
 
-    pub fn from_enter_password_to_choose_account(&mut self) -> Task<AppMessage> {
+    pub fn goto_page_choose_account(&mut self) -> Task<AppMessage> {
         if self.inputs.password != self.inputs.verify_password {
             self.notification = "Passwords do not match";
             return Task::none();

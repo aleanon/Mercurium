@@ -41,10 +41,7 @@ impl<'a> RestoreFromSeed {
         }
     }
 
-    pub fn from_enter_seed_to_enter_password(
-        &mut self,
-        appdata: &'a mut AppData,
-    ) -> Task<AppMessage> {
+    pub fn goto_page_enter_password(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         let mnemonic = Mnemonic::from_phrase(
             self.inputs.seed_phrase.phrase().as_str(),
             bip39::Language::English,
