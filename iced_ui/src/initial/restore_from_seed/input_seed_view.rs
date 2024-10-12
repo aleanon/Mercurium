@@ -2,6 +2,7 @@ use iced::{
     widget::{self, text_input::Id, Column, TextInput},
     Length,
 };
+use types::crypto::SeedPhrase;
 use zeroize::Zeroize;
 
 use crate::{
@@ -42,7 +43,7 @@ impl<'a> RestoreFromSeed {
             .height(Length::Shrink)
             .spacing(20);
 
-        for index in 0..24 {
+        for index in 0..SeedPhrase::WORD_COUNT {
             if index % 4 == 0 && index != 0 {
                 seed = seed.push(row);
                 row = widget::row![]
