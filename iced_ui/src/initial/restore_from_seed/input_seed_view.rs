@@ -43,7 +43,7 @@ impl<'a> RestoreFromSeed {
             .height(Length::Shrink)
             .spacing(20);
 
-        for index in 0..SeedPhrase::WORD_COUNT {
+        for index in 0..self.inputs.seed_phrase.nr_of_words() {
             if index % 4 == 0 && index != 0 {
                 seed = seed.push(row);
                 row = widget::row![]

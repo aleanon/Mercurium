@@ -16,6 +16,10 @@ impl SeedPhrase {
         Self([[b' '; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT])
     }
 
+    pub fn nr_of_words(&self) -> usize {
+        Self::WORD_COUNT
+    }
+
     /// Checks if the word index is within bounds and copies a maximum of 8 characters into the buffer.
     /// Index starts at 0
     /// If a word is longer then 8 characters, the first 8 characters are copied.
