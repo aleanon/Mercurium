@@ -10,7 +10,7 @@ impl SeedPhrase {
     ///24 words with max length of 8 pluss whitespaces, including a trailing whitespace
     const MAX_PHRASE_LENGTH: usize = 216;
     const MAX_WORD_LENGTH: usize = 8;
-    pub const WORD_COUNT: usize = 24;
+    const WORD_COUNT: usize = 24;
 
     pub fn new() -> Self {
         Self([[b' '; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT])
