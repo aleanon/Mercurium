@@ -2,7 +2,6 @@ use iced::{
     widget::{self, text_input::Id, Column, TextInput},
     Length,
 };
-use types::crypto::SeedPhrase;
 use zeroize::Zeroize;
 
 use crate::{

@@ -281,15 +281,7 @@ impl AppDataDb {
                             Self::get_transactionid_and_balance_change_from_row,
                         )?
                         .filter_map(|result| result.ok())
-                        .fold(
-                            HashMap::new(),
-                            |mut acc, (transaction_id, balance_change)| {
-                                acc.entry(transaction_id)
-                                    .or_insert(Vec::new())
-                                    .push(balance_change);
-                                acc
-                            },
-                        );
+                        .fold(HashMap::new(), Self::fold_transactions_and_balance_changes);
                     Ok(balance_changes)
                 },
             )
@@ -310,50 +302,16 @@ impl AppDataDb {
         Ok((transaction_id, balance_change))
     }
 
-    // pub async fn get_balance_changes_for_account(
-    //     &self,
-    //     account_address: AccountAddress,
-    // ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, DbError> {
-    //     type ReturnType = HashMap<TransactionId, Vec<BalanceChange>>;
-
-    //     self.prepare_cached_statement(
-    //         "SELECT * FROM balance_changes WHERE account_address = ?",
-    //         |cached_stmt| {
-    //             cached_stmt
-    //                 .query_map([account_address], |row| {
-    //                     let transaction_id: TransactionId = row.get(5)?;
-    //                     let balance_change = BalanceChange {
-    //                         id: row.get(0)?,
-    //                         account: row.get(1)?,
-    //                         resource: row.get(2)?,
-    //                         nfids: row.get(3)?,
-    //                         amount: row.get(4)?,
-    //                     };
-    //                     Ok((transaction_id, balance_change))
-    //                 })?
-    //                 .fold::<Result<ReturnType, rusqlite::Error>, _>(
-    //                     Err(rusqlite::Error::QueryReturnedNoRows),
-    //                     |acc, result| match result {
-    //                         Ok((transaction_id, balance_change)) => match acc {
-    //                             Ok(mut map) => {
-    //                                 map.entry(transaction_id)
-    //                                     .or_insert(Vec::new())
-    //                                     .push(balance_change);
-    //                                 Ok(map)
-    //                             }
-    //                             Err(_) => {
-    //                                 let mut map = HashMap::new();
-    //                                 map.insert(transaction_id, vec![balance_change]);
-    //                                 Ok(map)
-    //                             }
-    //                         },
-    //                         Err(err) => acc.map_err(|_| err),
-    //                     },
-    //                 )
-    //         },
-    //     )
-    //     .await
-    // }
+    fn fold_transactions_and_balance_changes(
+        mut map: HashMap<TransactionId, Vec<BalanceChange>>,
+        transaction_id: TransactionId,
+        balance_change: BalanceChange,
+    ) -> HashMap<TransactionId, Vec<BalanceChange>> {
+        map.entry(transaction_id)
+            .or_insert(Vec::new())
+            .push(balance_change);
+        map
+    }
 
     pub async fn get_all_transactions<T>(&self) -> Result<T, DbError>
     where
