@@ -10,8 +10,8 @@ use types::{crypto::DataBaseKey, AppPath, Network};
 
 use crate::database::{DataBase, DbError};
 
-pub static MAINNET_ICONCACHE: OnceCell<IconsDb> = once_cell::sync::OnceCell::new();
-pub static STOKENET_ICONCACHE: OnceCell<IconsDb> = once_cell::sync::OnceCell::new();
+pub static MAINNET_ICONCACHE: OnceCell<IconsDb> = OnceCell::new();
+pub static STOKENET_ICONCACHE: OnceCell<IconsDb> = OnceCell::new();
 
 pub struct IconsDb {
     db: DataBase,

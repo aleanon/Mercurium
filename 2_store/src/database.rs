@@ -30,30 +30,26 @@ pub struct DataBase {
 
 impl DataBase {
     pub(crate) async fn load(path: &Path, key: DataBaseKey) -> Result<Self, DbError> {
-        let client = Self::build_async_db_client(path).await?;
-        Self::set_database_key(&client, key).await?;
+        let db = Self::new_with_async_client(path).await?;
+        db.set_database_key(key).await?;
 
         debug_println!("AsyncDb connection up");
+
+        Ok(db)
+    }
+
+    async fn new_with_async_client(path: &Path) -> Result<Self, async_sqlite::Error> {
+        let client = async_sqlite::ClientBuilder::new()
+            .path(path)
+            .flags(OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE)
+            .open()
+            .await?;
 
         Ok(Self { client })
     }
 
-    async fn build_async_db_client(
-        path: &Path,
-    ) -> Result<async_sqlite::Client, async_sqlite::Error> {
-        async_sqlite::ClientBuilder::new()
-            .path(path)
-            .flags(OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE)
-            .open()
-            .await
-    }
-
-    async fn set_database_key(
-        client: &async_sqlite::Client,
-        key: DataBaseKey,
-    ) -> Result<(), async_sqlite::Error> {
-        client
-            .conn(move |conn| conn.pragma_update(None, "key", key))
+    async fn set_database_key(&self, key: DataBaseKey) -> Result<(), DbError> {
+        self.conn(move |conn| conn.pragma_update(None, "key", key))
             .await
     }
 
