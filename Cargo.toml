@@ -28,7 +28,7 @@ scrypto = { version = "1.2.0-dev" }
 tokio = { version = "*", features = ["full"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = { version = "*" }
-iced = { version = "0.13.0", features = [
+iced = { version = "0.13.1", features = [
   "tokio",
   "lazy",
   "advanced",

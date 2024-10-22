@@ -1,6 +1,5 @@
 /target
 /.vscode
-/Cargo.lock
 /slint_ui
 /ravault/dist
 /dioxus_ui

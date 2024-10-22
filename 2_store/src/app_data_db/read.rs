@@ -304,8 +304,7 @@ impl AppDataDb {
 
     fn fold_transactions_and_balance_changes(
         mut map: HashMap<TransactionId, Vec<BalanceChange>>,
-        transaction_id: TransactionId,
-        balance_change: BalanceChange,
+        (transaction_id, balance_change): (TransactionId, BalanceChange),
     ) -> HashMap<TransactionId, Vec<BalanceChange>> {
         map.entry(transaction_id)
             .or_insert(Vec::new())
