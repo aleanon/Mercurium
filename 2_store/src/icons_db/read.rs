@@ -5,9 +5,10 @@ use std::collections::{BTreeMap, HashMap};
 use types::address::{Address, ResourceAddress};
 
 impl IconsDb {
-    pub async fn get_all_resource_icons(
-        &self,
-    ) -> Result<HashMap<ResourceAddress, Vec<u8>>, DbError> {
+    pub async fn get_all_resource_icons<T>(&self) -> Result<T, DbError>
+    where
+        T: FromIterator<(ResourceAddress, Vec<u8>)>,
+    {
         self.conn(|conn| {
             conn.prepare_cached("SELECT * FROM resource_images")?
                 .query_map([], |row| {
@@ -15,7 +16,7 @@ impl IconsDb {
                     let image_data: Vec<u8> = row.get(1)?;
                     Ok((resource_address, image_data))
                 })?
-                .collect::<Result<HashMap<ResourceAddress, Vec<u8>>, rusqlite::Error>>()
+                .collect()
         })
         .await
     }
