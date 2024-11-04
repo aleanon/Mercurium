@@ -7,7 +7,7 @@ use types::address::{Address, ResourceAddress};
 impl IconsDb {
     pub async fn get_all_resource_icons<T>(&self) -> Result<T, DbError>
     where
-        T: FromIterator<(ResourceAddress, Vec<u8>)>,
+        T: FromIterator<(ResourceAddress, Vec<u8>)> + Send + 'static,
     {
         self.conn(|conn| {
             conn.prepare_cached("SELECT * FROM resource_images")?

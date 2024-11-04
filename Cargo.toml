@@ -9,8 +9,11 @@ members = [
   "4_font_and_icons",
   "iced_ui",
   "mercurium",
+  "slint_ui",
 ]
+
 package.edition = "2021"
+
 
 [profile.release]
 panic = "unwind"
@@ -51,15 +54,12 @@ ed25519-dalek-fiat = "*"
 rand = "*"
 ring = "*"
 zeroize = { version = "1.8.1", features = ["zeroize_derive"] }
-# iso8601-timestamp = { version = "0.2.17", features = ["serde", "rusqlite"] }
 debug_print = "*"
-# hot-lib-reloader = { version = "0.7.0" }
 regex = { version = "*" }
 once_cell = "*"
 lazy_static = { version = "*" }
 const_format = "*"
 radix-gateway-sdk = { git = "https://github.com/borderline-labs/radix-gateway-sdk.git" }
-# chrono = { version = "0.4.26", features = ["serde"] }
 asynciter = "*"
 futures = "*"
 
@@ -73,5 +73,5 @@ windows = { version = "*", features = [
   "Win32_Security_Cryptography",
   "Win32_Security_Credentials",
 ] }
-
-# [workspace.dependencies.target.windows]
+# Experimantal
+slint = { version = "1.8.0" }
