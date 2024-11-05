@@ -192,13 +192,13 @@ pub mod test {
                 .open()
                 .await
                 .expect("Failed to open in memory database");
+            let db = DataBase{client};
 
-            DataBase::set_database_key(&client, key.clone())
+            db.set_database_key(key.clone())
                 .await
                 .expect("Failed to set database key");
 
-            client
-                .conn(|conn| conn.execute(accounts::CREATE_TABLE_ACCOUNTS, []))
+            db.conn(|conn| conn.execute(accounts::CREATE_TABLE_ACCOUNTS, []))
                 .await
                 .expect("Unable to create table, accounts");
         }
@@ -213,12 +213,13 @@ pub mod test {
             .await;
         assert!(query.is_err());
 
-        DataBase::set_database_key(&second_client, key)
+        let db = DataBase{client: second_client};
+
+        db.set_database_key(key)
             .await
             .expect("Failed to set database key for second client");
 
-        second_client
-            .conn(|conn| conn.execute(non_fungible_assets::CREATE_TABLE_NON_FUNGIBLE_ASSETS, []))
+        db.conn(|conn| conn.execute(non_fungible_assets::CREATE_TABLE_NON_FUNGIBLE_ASSETS, []))
             .await
             .expect("Unable to create table, fungibles");
     }
