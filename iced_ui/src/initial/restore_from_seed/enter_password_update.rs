@@ -31,7 +31,6 @@ impl RestoreFromSeed {
         } else {
             self.notification = "";
             self.stage = Stage::ChooseAccounts;
-
             self.task_derive_encryption_keys_and_salt_for_mnemonic_and_database()
         }
     }
