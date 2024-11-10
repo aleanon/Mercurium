@@ -1,1 +1,1 @@
-Mercurium is a desktop crypto wallet for radix DLT
+Mercurium is a desktop crypto wallet for radix DLT.
