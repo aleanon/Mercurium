@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use bip39::Mnemonic;
 use iced::widget::image::Handle;
+use scrypto::crypto::Ed25519PrivateKey;
 use types::{
     address::ResourceAddress,
     collections::AccountsUpdate,

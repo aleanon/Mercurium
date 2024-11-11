@@ -80,12 +80,12 @@ impl<'a> RestoreFromSeed {
                 self.update_single_word_in_seed_phrase(word_index, word)
             }
             Message::PasteSeedPhrase((index, words)) => {
-                self.update_multiple_words_in_seed_phrase(index, words)
+                self.update_multiple_words_in_seed_phrase_from_index(index, words)
             }
             Message::ToggleSeedPassword => self.toggle_use_of_seed_password(),
             Message::InputSeedPassword(input) => self.update_seed_password_field(input),
-            Message::InputPassword(input) => self.update_password_field(input),
-            Message::InputVerifyPassword(input) => self.update_verify_password_field(input),
+            Message::InputPassword(input) => self.update_password(input),
+            Message::InputVerifyPassword(input) => self.update_verify_password(input),
             Message::ToggleAccountSelection((chunk_index, account_index)) => {
                 self.update_account_selected(chunk_index, account_index)
             }

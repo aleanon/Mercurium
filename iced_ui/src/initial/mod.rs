@@ -1,4 +1,5 @@
 pub mod common;
+pub mod pages;
 pub mod new_wallet;
 pub mod restore_from_backup;
 pub mod restore_from_seed;
