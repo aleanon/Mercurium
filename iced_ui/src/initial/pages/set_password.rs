@@ -1,11 +1,12 @@
 
+use bip39::Mnemonic;
 use iced::Task;
-use types::crypto::{Password, PasswordError};
+use types::crypto::{Password, PasswordError, SeedPhrase};
 use zeroize::Zeroize;
 
 use crate::{app::AppMessage, error::errorscreen::ErrorMessage};
 
-use super::{Message, RestoreFromSeed, Stage, TaskResponse};
+use super::{enter_seedphrase::EnterSeedPhrase, Message, RestoreFromSeed, Stage, TaskResponse};
 use iced::{
     widget::{self, Column},
     Length,
@@ -19,12 +20,26 @@ use crate::{
 
 
 pub struct SetPassword {
-    notification: &'static str,
-    mnemonic: Mnemonic,
-    seed_password: Option<Password>,
-    password: Password,
-    verify_password: Password,
+    pub notification: &'static str,
+    pub mnemonic: Mnemonic,
+    pub seed_password: Option<Password>,
+    pub password: Password,
+    pub verify_password: Password,
 }
+
+impl Into<EnterSeedPhrase> for SetPassword {
+    fn into(self) -> EnterSeedPhrase {
+        let seed_phrase = SeedPhrase::from(self.mnemonic.phrase());
+        EnterSeedPhrase {
+            notification: "",
+            mnemonic: None,
+            seed_password: self.seed_password,
+            seed_phrase,
+        }
+    }
+}
+
+impl Into<ChooseAccounts> 
 
 use super::{Message, RestoreFromSeed};
 

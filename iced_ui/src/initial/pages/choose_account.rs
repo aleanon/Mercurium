@@ -1,6 +1,3 @@
-
-
-
 use super::{RestoreFromSeed, Stage};
 use iced::{
     widget::{self, column, row, Column},
@@ -14,6 +11,14 @@ use crate::{
 };
 
 use super::{Message, RestoreFromSeed};
+
+pub struct ChooseAccounts {
+    pub notification: &'static str,
+    pub mnemonic: Mnemonic,
+    pub seed_password: Option<Password>,
+    pub password: Password,
+    pub accounts: Vec<(Account, bool)>
+}
 
 impl RestoreFromSeed {
     pub fn update_account_selected(&mut self, chunk_index: usize, account_index: usize) {

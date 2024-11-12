@@ -19,15 +19,20 @@ use crate::{
 use super::{Message, RestoreFromSeed};
 
 pub struct EnterSeedPhrase {
-    notification: &'static str,
-    seed_phrase: SeedPhrase,
-    seed_password: Option<Password>,
+    pub notification: &'static str,
+    pub seed_phrase: SeedPhrase,
+    pub seed_password: Option<Password>,
+    pub mnemonic: Option<Mnemonic>,
 }
 
 impl Into<SetPassword> for EnterSeedPhrase {
     fn into(self) -> SetPassword {
         SetPassword {
-            
+            notification: "",
+            mnemonic:  self.mnemonic.unwrap_or(Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English)),
+            seed_password: self.seed_password,
+            password: Password::new(),
+            verify_password: Password::new(), 
         }
     }
 }
