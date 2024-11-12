@@ -169,6 +169,17 @@ impl<'a> RestoreFromSeed {
     //     }
     // }
 
+    pub struct TaskResponse<T> {
+        task_id: u8,
+        data: Option<T>
+    }
+
+    impl<T> TaskResponse<T> {
+        pub fn new() -> Self {
+            Self { 0, None }
+        }
+    }
+
     pub fn new(network: Network) -> Self {
         Self {
             stage: Stage::EnterSeedPhrase,
