@@ -1,32 +1,50 @@
-use super::{RestoreFromSeed, Stage};
+use super::set_password::SetPassword;
+use bip39::Mnemonic;
 use iced::{
     widget::{self, column, row, Column},
     Length,
 };
-use types::address::Address;
+use types::{address::Address, crypto::Password, Account};
 
 use crate::{
     app::AppMessage,
-    initial::common::{nav_button, nav_row},
+    initial::{common::{nav_button, nav_row}, restore_from_seed::AccountSummary},
 };
 
-use super::{Message, RestoreFromSeed};
 
+#[derive(Debug, Clone)]
+pub enum Message {
+    ToggleAccountSelection,
+}
+
+
+#[derive(Debug)]
 pub struct ChooseAccounts {
     pub notification: &'static str,
     pub mnemonic: Mnemonic,
     pub seed_password: Option<Password>,
     pub password: Password,
-    pub accounts: Vec<(Account, bool)>
+    pub accounts: Vec<(Account, bool, AccountSummary)>,
+    pub show_from_current_index: usize,
 }
 
-impl RestoreFromSeed {
-    pub fn update_account_selected(&mut self, chunk_index: usize, account_index: usize) {
-        if let Some(chunk) = self.accounts_data.accounts.get_mut(chunk_index) {
-            if let Some((_, is_selected, _)) = chunk.get_mut(account_index) {
-                *is_selected = !*is_selected
-            }
+impl ChooseAccounts {
+    pub fn from_page_set_password(page: SetPassword) -> Self {
+        Self {
+            notification: "",
+            mnemonic: page.mnemonic,
+            seed_password: page.seed_password,
+            password: page.password,
+            accounts: Vec::new(),
+            show_from_current_index: 0,
         }
+    }
+
+
+    pub fn update_account_selected(&mut self, account_index: usize) {
+        if let Some((_, is_selected, _)) = self.accounts.get_mut(account_index) {
+            *is_selected =!*is_selected
+        };
     }
 
     pub fn goto_page_name_accounts(&mut self) {
@@ -43,37 +61,40 @@ impl RestoreFromSeed {
 }
 
 
-impl<'a> RestoreFromSeed {
+impl<'a> ChooseAccounts {
     pub fn choose_accounts_view(&'a self) -> Column<'a, AppMessage> {
         let mut accounts = column!().height(400);
 
-        let page = self
-            .accounts_data
+        let accounts_pr_view = 20;
+        let start_index = self.show_from_current_index;
+        let show_accounts = self
             .accounts
-            .get(self.accounts_data.page_index);
-        if let Some(accounts_selection) = page {
-            for (i, (account, is_selected, account_summary)) in
-                accounts_selection.iter().enumerate()
-            {
-                let account_address = widget::text(account.address.truncate());
-                let account_summary = widget::text(account_summary.to_string());
+            .get(start_index..start_index + accounts_pr_view);
 
-                let is_selected = widget::checkbox("", *is_selected).on_toggle(move |_| {
-                    Message::ToggleAccountSelection((self.accounts_data.page_index, i)).into()
-                });
+        let Some(accounts_selection) = show_accounts else {return accounts};
 
-                accounts = accounts.push(
-                    row![
-                        account_address.width(Length::FillPortion(10)),
-                        widget::Space::new(Length::Fill, 1),
-                        account_summary.width(Length::FillPortion(10)),
-                        widget::Space::new(Length::FillPortion(2), 1),
-                        is_selected.width(Length::FillPortion(2))
-                    ]
-                    .width(Length::Fill),
-                )
-            }
+        for (i, (account, is_selected, account_summary)) in
+            accounts_selection.iter().enumerate()
+        {
+            let account_address = widget::text(account.address.truncate());
+            let account_summary = widget::text(account_summary.to_string());
+
+            let is_selected = widget::checkbox("", *is_selected).on_toggle(move |_| {
+                Message::ToggleAccountSelection((self.accounts_data.page_index, i)).into()
+            });
+
+            accounts = accounts.push(
+                row![
+                    account_address.width(Length::FillPortion(10)),
+                    widget::Space::new(Length::Fill, 1),
+                    account_summary.width(Length::FillPortion(10)),
+                    widget::Space::new(Length::FillPortion(2), 1),
+                    is_selected.width(Length::FillPortion(2))
+                ]
+                .width(Length::Fill),
+            )
         }
+        
 
         let row = row![
             widget::button("Previous Page").on_press_maybe(if self.accounts_data.page_index == 0 {

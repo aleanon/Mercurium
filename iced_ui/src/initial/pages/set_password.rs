@@ -6,19 +6,24 @@ use zeroize::Zeroize;
 
 use crate::{app::AppMessage, error::errorscreen::ErrorMessage};
 
-use super::{enter_seedphrase::EnterSeedPhrase, Message, RestoreFromSeed, Stage, TaskResponse};
+use super::enter_seedphrase::EnterSeedPhrase;
 use iced::{
     widget::{self, Column},
     Length,
 };
 
 use crate::{
-    app::AppMessage,
     common_elements,
     initial::common::{nav_button, nav_row, notification_field, text_input_field},
 };
 
+#[derive(Debug, Clone)]
+pub enum Message {
+    InputPassword(String),
+    InputVerifyPassword(String),
+}
 
+#[derive(Debug)]
 pub struct SetPassword {
     pub notification: &'static str,
     pub mnemonic: Mnemonic,
@@ -27,24 +32,27 @@ pub struct SetPassword {
     pub verify_password: Password,
 }
 
-impl Into<EnterSeedPhrase> for SetPassword {
-    fn into(self) -> EnterSeedPhrase {
-        let seed_phrase = SeedPhrase::from(self.mnemonic.phrase());
-        EnterSeedPhrase {
-            notification: "",
-            mnemonic: None,
-            seed_password: self.seed_password,
-            seed_phrase,
-        }
-    }
-}
-
-impl Into<ChooseAccounts> 
-
-use super::{Message, RestoreFromSeed};
-
 
 impl SetPassword {
+    pub fn from_page_enter_seedphrase(enter_seedphrase: EnterSeedPhrase) -> Result<Self,&str> {
+        let phrase = enter_seedphrase.seed_phrase.phrase();
+        let mnemonic = Mnemonic::from_phrase(phrase, bip39::Language::English).map_err(|_| "Invalid seed phrase")?;
+        Ok(Self {
+            notification: "",
+            mnemonic,
+            seed_password: enter_seedphrase.seed_password,
+            password: Password::new(),
+            verify_password: Password::new(),
+        })
+    }
+
+    pub fn update(&mut self, message: Message) -> Task<AppMessage> {
+        match message {
+            Message::InputPassword(input) => self.update_password(input),
+            Message::InputVerifyPassword(input) => self.update_verify_password(input),
+        }
+    }
+
     pub fn update_password(&mut self, mut input: String) {
         self.password.clear();
         self.password.push_str(input.as_str());
@@ -59,19 +67,6 @@ impl SetPassword {
         self.notification = "";
     }
 
-    pub fn goto_page_choose_account(&mut self) -> Task<AppMessage> {
-        if self.inputs.password != self.inputs.verify_password {
-            self.notification = "Passwords do not match";
-            return Task::none();
-        } else if self.inputs.password.len() < Password::MIN_LEN {
-            self.notification = "Password must be at least 16 characters long";
-            return Task::none();
-        } else {
-            self.notification = "";
-            self.stage = Stage::ChooseAccounts;
-            self.task_derive_encryption_keys_and_salt_for_mnemonic_and_database()
-        }
-    }
 
     fn task_derive_encryption_keys_and_salt_for_mnemonic_and_database(
         &mut self,
@@ -100,7 +95,7 @@ impl SetPassword {
     }
 }
 
-impl<'a> RestoreFromSeed {
+impl<'a> SetPassword {
     pub fn enter_password_view(&self) -> Column<'a, AppMessage> {
         let header = common_elements::header_one("Create password");
 

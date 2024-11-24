@@ -19,7 +19,3 @@ pub const UPSERT_NFT_IMAGE: &'static str = "INSERT INTO
         image_data = excluded.image_data
 ";
 
-#[cfg(test)]
-mod test {
-    use super::*;
-}

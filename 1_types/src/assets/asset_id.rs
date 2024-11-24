@@ -59,7 +59,3 @@ impl rusqlite::types::FromSql for AssetId {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-}

@@ -1,3 +1,3 @@
-mod choose_account;
-mod enter_seedphrase;
-mod set_password;
+pub mod choose_account;
+pub mod enter_seedphrase;
+pub mod set_password;

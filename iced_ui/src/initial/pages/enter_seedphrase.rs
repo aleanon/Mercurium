@@ -1,23 +1,28 @@
 use bip39::Mnemonic;
-use iced::{futures::executor::Enter, Task};
+use iced::Task;
 use types::crypto::{Password, SeedPhrase};
 use zeroize::Zeroize;
 use crate::app::{AppData, AppMessage};
-use super::{set_password::SetPassword, Message, RestoreFromSeed, Stage, TaskResponse};
+use super::set_password::SetPassword;
 use iced::{
     widget::{self, text_input::Id, Column, TextInput},
     Length,
 };
-use zeroize::Zeroize;
 
 use crate::{
-    app::AppMessage,
     common_elements,
     initial::common::{nav_button, nav_row, seed_word_field},
 };
 
-use super::{Message, RestoreFromSeed};
+#[derive(Debug, Clone)]
+pub enum Message {
+    UpdateSingleWordInSeedPhrase(usize, String),
+    UpdateMultipleWordsInSeedPhraseFromIndex(usize, Vec<String>),
+    ToggleSeedPassword,
+    InputSeedPassword(String),
+}
 
+#[derive(Debug)]
 pub struct EnterSeedPhrase {
     pub notification: &'static str,
     pub seed_phrase: SeedPhrase,
@@ -25,19 +30,18 @@ pub struct EnterSeedPhrase {
     pub mnemonic: Option<Mnemonic>,
 }
 
-impl Into<SetPassword> for EnterSeedPhrase {
-    fn into(self) -> SetPassword {
-        SetPassword {
+impl EnterSeedPhrase {
+    pub fn new() -> Self {
+        Self {
             notification: "",
-            mnemonic:  self.mnemonic.unwrap_or(Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English)),
-            seed_password: self.seed_password,
-            password: Password::new(),
-            verify_password: Password::new(), 
+            seed_phrase: SeedPhrase::new(),
+            seed_password: None,
+            mnemonic: None,
         }
     }
 }
 
-
+// Update
 impl<'a> EnterSeedPhrase {
     pub fn update_single_word_in_seed_phrase(&mut self, word_index: usize, mut word: String) {
         self.seed_phrase
@@ -55,13 +59,10 @@ impl<'a> EnterSeedPhrase {
     }
 
     pub fn update_seed_password_field(&mut self, mut input: String) {
-        self.seed_password.clear();
-        self.seed_password.push_str(input.as_str());
-        input.zeroize();
-        self.seed_password
-            .as_mut()
-            .and_then(|password| Some(password.replace(input.as_str())));
-
+        if let Some(password) = &mut self.seed_password {
+            password.clear();
+            password.push_str(input.as_str());
+        }
         input.zeroize();
     }
 
@@ -95,7 +96,7 @@ impl<'a> EnterSeedPhrase {
         appdata: &'a mut AppData,
         mnemonic: Mnemonic,
     ) -> Task<AppMessage> {
-        let password = self.inputs.seed_password.clone();
+        let password = self.seed_password.clone();
         let network = appdata.settings.network;
         let task_id = self.accounts_data.create_accounts_task_nr + 1;
         Task::perform(
@@ -121,7 +122,7 @@ impl<'a> EnterSeedPhrase {
     }
 }
 
-
+// View
 impl<'a> EnterSeedPhrase {
     pub fn view(&self) -> Column<'a, AppMessage> {
         let header = common_elements::header_one("Enter seed phrase");
