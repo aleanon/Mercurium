@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use async_sqlite::rusqlite::{self, CachedStatement, Connection, OpenFlags, Params, Result, Row};
+use async_sqlite::rusqlite::{self, CachedStatement, Connection, Params, Result, Row};
 use debug_print::debug_println;
 use thiserror::Error;
 use types::{crypto::DataBaseKey, AppPathError};
@@ -41,7 +41,6 @@ impl DataBase {
     async fn new_with_async_client(path: &Path) -> Result<Self, async_sqlite::Error> {
         let client = async_sqlite::ClientBuilder::new()
             .path(path)
-            .flags(OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_READ_WRITE)
             .open()
             .await?;
 

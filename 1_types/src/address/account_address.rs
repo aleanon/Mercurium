@@ -176,8 +176,3 @@ impl rusqlite::types::ToSql for AccountAddress {
         ))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}

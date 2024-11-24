@@ -1,7 +1,7 @@
 use super::*;
 use debug_print::debug_println;
 use futures::future::join_all;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 use store::AppDataDb;
 use thiserror::Error;
 use tokio::task::JoinHandle;
@@ -53,27 +53,35 @@ pub async fn update_accounts(
     join_all(tasks)
         .await
         .into_iter()
-        .filter_map(|join_result| {
-            #[cfg(debug_assertions)]
-            if let Err(err) = &join_result {
-                println!("Failed to join task {}", err);
-            }
-
-            join_result.ok()
-        })
+        .filter_map(get_successful_task_value)
         .fold(
             AccountsUpdate::new(network),
-            |mut acc, (accountupdate, new_resources)| {
-                new_resources
-                    .into_iter()
-                    .for_each(|(resource_address, (resource, url))| {
-                        acc.new_resources.insert(resource_address.clone(), resource);
-                        acc.icon_urls.insert(resource_address, url);
-                    });
-                acc.account_updates.push(accountupdate);
-                acc
-            },
+            add_account_update_and_resources_to_accounts_update
         )
+}
+
+fn add_account_update_and_resources_to_accounts_update(
+    mut acc: AccountsUpdate, 
+    (account_update, new_resources):(AccountUpdate, HashMap<ResourceAddress, (Resource, String)>)
+) -> AccountsUpdate {
+    new_resources
+        .into_iter()
+        .for_each(|(resource_address, (resource, url))| {
+            acc.new_resources.insert(resource_address.clone(), resource);
+            acc.icon_urls.insert(resource_address, url);
+        });
+    acc.account_updates.push(account_update);
+    acc
+}
+
+fn get_successful_task_value<T, E: Display>(result: Result<T, E>) -> Option<T> {
+    match result {
+        Ok(value) => Some(value),
+        Err(error) => {
+            debug_println!("Failed to join task: {}", error);
+            None
+        }
+    }
 }
 
 async fn update_account(
@@ -82,6 +90,7 @@ async fn update_account(
     mut account: Account,
 ) -> (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>) {
     let balances_last_updated_at_state_version = account.balances_last_updated.unwrap_or(0);
+    // TODO get transactions 
     let transactions_last_updated = account.transactions_last_updated;
 
     // The account address should be used througout tasks and is never mutated or removed from the Account struct.

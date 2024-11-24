@@ -74,7 +74,7 @@ async fn download_image(url: &String) -> Option<DynamicImage> {
     let response = reqwest::get(url).await.ok()?;
 
     let bytes = response.bytes().await.ok()?;
-    let reader = image::io::Reader::new(Cursor::new(&bytes));
+    let reader = image::ImageReader::new(Cursor::new(&bytes));
     let with_guessed_format = reader.with_guessed_format().ok()?;
     with_guessed_format.decode().ok()
 }
