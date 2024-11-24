@@ -124,7 +124,9 @@ impl DataBase {
         F: FnOnce(&Row<'_>) -> Result<T, rusqlite::Error> + Send + 'static,
     {
         self.client
-            .conn(move |conn| conn.prepare_cached(stmt)?.query_row(params, f))
+            .conn(move |conn| 
+                conn.prepare_cached(stmt)?
+                    .query_row(params, f))
             .await
             .map_err(|err| DbError::AsyncSqliteError(err))
     }
