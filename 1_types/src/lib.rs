@@ -12,6 +12,8 @@ pub(crate) mod theme;
 pub(crate) mod transaction;
 pub(crate) mod unsafe_reference;
 pub(crate) mod unwrap_unreachable;
+pub(crate) mod task_response;
+pub(crate) mod account_summary;
 
 pub use account::Account;
 pub use app_error::*;
@@ -26,6 +28,8 @@ pub use theme::*;
 pub use transaction::*;
 pub use unsafe_reference::*;
 pub use unwrap_unreachable::*;
+pub use task_response::*;
+pub use account_summary::*;
 
 // public modules
 pub mod address;
