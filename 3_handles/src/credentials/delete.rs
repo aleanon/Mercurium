@@ -40,21 +40,16 @@ mod mswindows {
     }
 
     #[cfg(test)]
-    pub use tests::*;
-
-    #[cfg(test)]
-    mod tests {
+    pub(crate) mod tests {
         use crate::credentials::{
-            get_credentials::get_blob_test, store_credentials::store_blob_test,
+            get_credentials::tests::get_blob_test, store_credentials::tests::store_blob_test,
         };
 
         use super::*;
 
         #[test]
         fn test_delete_blob() {
-            let mut blob = vec![
-                b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd',
-            ];
+            let mut blob = b"hello world".to_vec();
             let target_name = "test_blob";
             store_blob_test(blob.as_mut_ptr(), blob.len(), target_name);
 

@@ -3,7 +3,10 @@
 use bip39::Mnemonic;
 use types::crypto::{EncryptedMnemonic, Password};
 
-use super::{delete::*, get_credentials::*, store_credentials::*};
+
+use crate::credentials::{delete_encrypted_mnemonic, delete_salt, get_db_encryption_salt, get_encrypted_mnemonic, store_db_encryption_salt, store_encrypted_mnemonic};
+
+use super::{delete::tests::*, get_credentials::tests::*, store_credentials::tests::*};
 
 #[test]
 fn test_store_get_delete_blob() {

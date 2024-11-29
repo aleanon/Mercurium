@@ -67,10 +67,7 @@ pub mod mswindows {
     }
 
     #[cfg(test)]
-    pub use tests::*;
-
-    #[cfg(test)]
-    mod tests {
+    pub(crate) mod tests {
         use super::*;
 
         #[test]

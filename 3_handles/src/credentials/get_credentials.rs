@@ -68,13 +68,10 @@ mod mswindows {
         }
     }
 
-    #[cfg(test)]
-    pub use tests::*;
 
     #[cfg(test)]
-    mod tests {
-        use crate::credentials::store_credentials::store_blob_test;
-
+    pub(crate) mod tests {
+        use crate::credentials::store_credentials::tests::store_blob_test;
         use super::*;
 
         #[test]
