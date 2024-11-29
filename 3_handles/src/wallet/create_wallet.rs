@@ -1,7 +1,7 @@
 use bip39::Mnemonic;
 use store::AppDataDb;
 use types::{
-    crypto::{DataBaseKey, EncryptedMnemonic, Key, Salt},
+    crypto::{DataBaseKey, EncryptedMnemonic, HashedPassword, Key, Salt},
     Account, AppError, Network,
 };
 
@@ -12,6 +12,7 @@ pub async fn create_new_wallet_with_accounts(
     seed_password: Option<&str>,
     db_key_salt: (DataBaseKey, Salt),
     mnemonic_key_salt: (Key, Salt),
+    password_hash: HashedPassword,
     accounts: &[Account],
     network: Network,
 ) -> Result<(), AppError> {
@@ -32,6 +33,7 @@ pub async fn create_new_wallet_with_accounts(
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
+    db.upsert_password_hash(password_hash);
     db.upsert_accounts(accounts).await.ok();
 
     Ok(())

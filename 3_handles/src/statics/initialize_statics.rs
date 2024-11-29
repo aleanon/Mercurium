@@ -6,9 +6,9 @@ use types::{
 };
 
 pub fn initialize_statics(network: Network) -> Result<(), AppError> {
-    match AppPathInner::get_application_root_directory() {
+    match AppPathInner::new() {
         Err(err) => return Err(AppError::Fatal(err.to_string())),
-        Ok(_) => AppPath::get(),
+        Ok(_) => {},
     };
 
     radix_gateway_sdk::Client::new(network.into(), None, None)
