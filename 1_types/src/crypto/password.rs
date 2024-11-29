@@ -88,7 +88,7 @@ impl Password {
     }
 
     pub fn derive_db_encryption_key_hash_from_salt(&self, salt: &Salt) -> HashedPassword {
-        HashedPassword::db_key_hash(salt, self)
+        HashedPassword::new(salt, self)
     }
 
     pub fn derive_new_mnemonic_encryption_key(&self) -> Result<(Key, Salt), PasswordError> {
@@ -141,7 +141,7 @@ impl HashedPassword {
     const LENGTH: usize = 64;
     const HASH_ITERATIONS: u32 = 50000;
 
-    pub fn db_key_hash(salt: &Salt, password: &Password) -> Self {
+    pub fn new(salt: &Salt, password: &Password) -> Self {
         let mut hash = [0u8; Self::LENGTH];
         let iterations = NonZeroU32::new(Self::HASH_ITERATIONS).unwrap_unreachable(debug_info!(
             "Zero value supplied for password hash iterations"

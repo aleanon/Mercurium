@@ -126,7 +126,7 @@ impl Ed25519KeyPair {
         //We know the data we pass to encode is of type ComponentAddress, this will always be a valid Bech32 address so we call unwrap
         let address = encoder
             .encode(virtual_account_address.as_ref())
-            .expect("Unreachable error, invalid Bech32 address");
+            .unwrap_unreachable(debug_info!("invalid Bech32 address"));
 
         address
     }
@@ -156,6 +156,7 @@ mod test {
             "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis", 
             Language::English
         ).unwrap();
+
         let (keypair, _) = Ed25519KeyPair::new(
             &mnemonic,
             None,
@@ -164,8 +165,10 @@ mod test {
             Bip32Entity::Account,
             Bip32KeyKind::TransactionSigning,
         );
+
         let account_address = keypair.bech32_address();
         println!("account_address: {}", account_address);
+
         let (keypair2, _) = Ed25519KeyPair::new(
             &mnemonic,
             None,
@@ -174,6 +177,7 @@ mod test {
             Bip32Entity::Account,
             Bip32KeyKind::TransactionSigning,
         );
+        
         let account_address2 = keypair2.bech32_address();
         println!("account_address2: {}", account_address2);
 

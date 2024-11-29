@@ -70,8 +70,8 @@ impl NonceSequence for MnemonicNonceSequence {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedMnemonic {
-    cipher_text: Vec<u8>,
-    seed_password: Vec<u8>,
+    encrypted_seed_phrase: Vec<u8>,
+    encrypted_seed_password: Vec<u8>,
     salt: Salt,
     nonce_bytes: [u8; NONCE_LEN],
 }
@@ -103,12 +103,12 @@ impl EncryptedMnemonic {
             .seal_in_place_append_tag(Aad::empty(), &mut seed_password_encrypted)
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
 
-        //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
+        //TODO: Investigate zeroizing of the sealing key.
         key.zeroize();
 
         Ok(Self {
-            cipher_text: mnemonic_encrypted,
-            seed_password: seed_password_encrypted,
+            encrypted_seed_phrase: mnemonic_encrypted,
+            encrypted_seed_password: seed_password_encrypted,
             salt: salt,
             nonce_bytes: nonce,
         })
@@ -138,12 +138,12 @@ impl EncryptedMnemonic {
             .seal_in_place_append_tag(Aad::empty(), &mut seed_password_encrypted)
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
 
-        //TODO: Investigate if the unbound key and sealing key gets overwritten when going out of scope.
+        //TODO: See if there is a way to zeroize the sealing key
         encryption_key.zeroize();
 
         Ok(Self {
-            cipher_text: mnemonic_encrypted,
-            seed_password: seed_password_encrypted,
+            encrypted_seed_phrase: mnemonic_encrypted,
+            encrypted_seed_password: seed_password_encrypted,
             salt: salt,
             nonce_bytes: nonce,
         })
@@ -161,7 +161,7 @@ impl EncryptedMnemonic {
         ));
         let mut opening_key = OpeningKey::new(unbound_key, nonce_sequence);
 
-        let mut mnemonic_encrypted = self.cipher_text.clone();
+        let mut mnemonic_encrypted = self.encrypted_seed_phrase.clone();
 
         let phrase = opening_key
             .open_in_place(Aad::empty(), &mut mnemonic_encrypted)
@@ -173,7 +173,7 @@ impl EncryptedMnemonic {
         let mnemonic = Mnemonic::from_phrase(&phrase, bip39::Language::English)
             .map_err(|_| EncryptedMnemonicError::FailedToConstructMnemonic)?;
 
-        let mut seed_password_encrypted = self.seed_password.clone();
+        let mut seed_password_encrypted = self.encrypted_seed_password.clone();
 
         let seed_password_slice = opening_key
             .open_in_place(Aad::empty(), &mut seed_password_encrypted)
@@ -185,7 +185,7 @@ impl EncryptedMnemonic {
         let seed_password = Password::from(seed_pw_as_str);
 
         //Zeroize the plaintext mnemonic and encryption key before dropping it
-        //Todo: Investigate zeroizing of the unbound and opening keys
+        //Todo: Investigate zeroizing of the opening key
         mnemonic_encrypted.zeroize();
         seed_password_encrypted.zeroize();
         phrase.zeroize();
@@ -200,7 +200,7 @@ mod test {
 
     impl EncryptedMnemonic {
         pub fn get_cypher_text(&self) -> Vec<u8> {
-            self.cipher_text.clone()
+            self.encrypted_seed_phrase.clone()
         }
     }
 
@@ -231,7 +231,7 @@ mod test {
         println!(
             "{} \n{:?}",
             mnemonic.phrase(),
-            encrypted_mnemonic.cipher_text
+            encrypted_mnemonic.encrypted_seed_phrase
         );
 
         let (decrypted_mnemonic, decrypted_password) = encrypted_mnemonic
