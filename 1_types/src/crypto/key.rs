@@ -15,6 +15,7 @@ impl Key {
     const DB_KEY_ITERATIONS: u32 = 200000;
     const MNEMONIC_KEY_ITERATIONS: u32 = 2000000;
 
+
     pub fn new(password: &str, salt: &Salt, iterations: NonZeroU32) -> Self {
         let mut key = [0u8; Self::LENGTH];
 
