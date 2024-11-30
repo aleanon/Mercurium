@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use async_sqlite::rusqlite::{self, CachedStatement, Connection, Params, Result, Row};
+use async_sqlite::rusqlite::{self, CachedStatement, Connection, OpenFlags, Params, Result, Row};
 use debug_print::debug_println;
 use thiserror::Error;
 use types::{crypto::DataBaseKey, AppPathError};

@@ -119,7 +119,7 @@ impl Ed25519KeyPair {
         };
 
         let virtual_account_address =
-            ComponentAddress::virtual_account_from_public_key(&self.radixdlt_public_key());
+            ComponentAddress::preallocated_account_from_public_key(&self.radixdlt_public_key());
 
         // TODO! Lag en lazy static for address encoder
         let encoder = AddressBech32Encoder::new(&network_definition);

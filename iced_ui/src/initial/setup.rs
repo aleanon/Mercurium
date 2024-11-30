@@ -10,9 +10,7 @@ use crate::{
 };
 
 use super::{
-    new_wallet::{self, NewWallet, NewWalletStage},
-    restore_from_seed::{self, RestoreFromSeed},
-    restore_wallet::{self, RestoreFromBackup},
+    new_wallet::{self, NewWallet, NewWalletStage}, restore_from_seed::{self, RestoreFromSeed}, restore_wallet::{self, RestoreFromBackup}
 };
 
 #[derive(Debug, Clone)]
@@ -34,7 +32,7 @@ impl Into<AppMessage> for Message {
 
 #[derive(Debug)]
 pub enum Setup {
-    SelectCreation,
+    SelectSetup,
     RestoreFromBackup(RestoreFromBackup),
     RestoreFromSeed(RestoreFromSeed),
     NewWallet(NewWallet),
@@ -42,7 +40,7 @@ pub enum Setup {
 
 impl<'a> Setup {
     pub fn new() -> Self {
-        Self::SelectCreation
+        Self::SelectSetup
     }
 
     pub fn update(
@@ -53,12 +51,12 @@ impl<'a> Setup {
         match message {
             Message::Back => self.back(),
             Message::NewWallet => {
-                if let Setup::SelectCreation = self {
+                if let Setup::SelectSetup = self {
                     *self = Setup::NewWallet(NewWallet::new_with_mnemonic())
                 }
             }
             Message::FromSeed => {
-                *self = Setup::RestoreFromSeed(RestoreFromSeed::new(app_data.settings.network))
+                *self = Setup::RestoreFromSeed(RestoreFromSeed::new())
             }
             Message::NewWalletMessage(new_wallet_message) => {
                 if let Setup::NewWallet(new_wallet) = self {
@@ -78,7 +76,7 @@ impl<'a> Setup {
     fn back(&mut self) {
         match self {
             Setup::NewWallet(new_wallet_state) => match new_wallet_state.stage {
-                NewWalletStage::EnterPassword => *self = Setup::SelectCreation,
+                NewWalletStage::EnterPassword => *self = Setup::SelectSetup,
                 NewWalletStage::VerifyPassword => {
                     new_wallet_state.stage = NewWalletStage::EnterPassword;
                     new_wallet_state.verify_password.clear();
@@ -105,14 +103,14 @@ impl<'a> Setup {
                     new_wallet_state.seed_phrase = SeedPhrase::new();
                 }
             },
-            Setup::RestoreFromSeed(_) => *self = Self::SelectCreation,
+            Setup::RestoreFromSeed(_) => *self = Self::SelectSetup,
             _ => {}
         };
     }
 
     pub fn view(&'a self, app: &'a App) -> Element<'a, AppMessage> {
         let content: Element<'a, AppMessage> = match self {
-            Setup::SelectCreation => self.select_creation_view(),
+            Setup::SelectSetup => self.select_creation_view(),
             Setup::RestoreFromBackup(restore_from_backup) => restore_from_backup.view(app),
             Setup::NewWallet(new_wallet) => new_wallet.view(app),
             Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view(app),

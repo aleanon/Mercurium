@@ -6,11 +6,10 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-slint = []
+
 
 [dependencies]
 iced_ui = { path = "../iced_ui" }
-slint_ui = { path = "../slint_ui" }
 
 [dev-dependencies]
 # hot-lib-reloader = { workspace = true }

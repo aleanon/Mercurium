@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod app;
 mod common;
 mod common_elements;

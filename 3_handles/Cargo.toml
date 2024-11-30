@@ -27,6 +27,7 @@ radix-gateway-sdk = { workspace = true }
 once_cell = { workspace = true }
 iced = { workspace = true, features = ["image"] }
 futures = { workspace = true }
+async-sqlite = { workspace = true }
 
 
 [target.'cfg(windows)'.dependencies]

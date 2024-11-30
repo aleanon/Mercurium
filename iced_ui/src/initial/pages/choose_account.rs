@@ -1,20 +1,28 @@
-use super::set_password::SetPassword;
+use super::{name_accounts::NameAccounts, set_password::SetPassword};
 use bip39::Mnemonic;
 use iced::{
-    widget::{self, column, row, Column},
-    Length,
+    widget::{self, column, row, Text}, Element, Length, Task
 };
-use types::{address::Address, crypto::Password, Account};
+use types::{address::Address, crypto::Password, Account, AccountSummary, AppError};
 
 use crate::{
     app::AppMessage,
-    initial::{common::{nav_button, nav_row}, restore_from_seed::AccountSummary},
+    initial::{restore_from_seed, setup},
 };
 
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ToggleAccountSelection,
+    ToggleAccountSelection(usize),
+    SetAccountsStartIndex(usize),
+}
+
+impl Into<AppMessage> for Message {
+    fn into(self) -> AppMessage {
+        AppMessage::Setup(
+            setup::Message::RestoreFromSeedMessage(
+                restore_from_seed::Message::ChooseAccountMessage(self)))
+    }
 }
 
 
@@ -24,99 +32,122 @@ pub struct ChooseAccounts {
     pub mnemonic: Mnemonic,
     pub seed_password: Option<Password>,
     pub password: Password,
-    pub accounts: Vec<(Account, bool, AccountSummary)>,
     pub show_from_current_index: usize,
 }
 
 impl ChooseAccounts {
+    const ACCOUNTS_PER_PAGE: usize = 20;
+
     pub fn from_page_set_password(page: SetPassword) -> Self {
         Self {
             notification: "",
             mnemonic: page.mnemonic,
             seed_password: page.seed_password,
             password: page.password,
-            accounts: Vec::new(),
             show_from_current_index: 0,
         }
     }
-
-
-    pub fn update_account_selected(&mut self, account_index: usize) {
-        if let Some((_, is_selected, _)) = self.accounts.get_mut(account_index) {
-            *is_selected =!*is_selected
-        };
-    }
-
-    pub fn goto_page_name_accounts(&mut self) {
-        self.accounts_data.selected_accounts = self
-            .accounts_data
-            .accounts
-            .iter()
-            .flatten()
-            .filter_map(|(account, selected, _)| selected.then_some(account.clone()))
-            .collect();
-
-        self.stage = Stage::NameAccounts;
-    }
+    
+    pub fn from_page_name_accounts(name_accounts: NameAccounts) -> ChooseAccounts {
+        Self {
+            notification: "",
+            mnemonic: name_accounts.mnemonic,
+            seed_password: name_accounts.seed_password,
+            password: name_accounts.password,
+            show_from_current_index: 0,
+        }
+    }    
 }
 
 
 impl<'a> ChooseAccounts {
-    pub fn choose_accounts_view(&'a self) -> Column<'a, AppMessage> {
+    pub fn update(&mut self, message: Message, accounts: Option<&'a mut Vec<(Account, bool, AccountSummary)>>) -> Result<Task<AppMessage>, AppError> {
+        match message {
+            Message::ToggleAccountSelection(account_index) => self.toggle_account_selection(account_index, accounts),
+            Message::SetAccountsStartIndex(start_index) => self.show_from_current_index = start_index,
+        }
+
+        Ok(Task::none())
+    }
+    
+    fn toggle_account_selection(&mut self, account_index: usize, accounts: Option<&'a mut Vec<(Account, bool, AccountSummary)>>) {
+        let Some(accounts) = accounts else {return};
+        let Some((_, is_selected, _)) = accounts.get_mut(account_index) else {return};
+            
+        *is_selected =!*is_selected
+    }
+
+
+    pub fn view(&'a self, accounts_data:Option<&Vec<(Account, bool, AccountSummary)>> ) -> Element<'a, AppMessage> {
         let mut accounts = column!().height(400);
 
-        let accounts_pr_view = 20;
         let start_index = self.show_from_current_index;
-        let show_accounts = self
-            .accounts
-            .get(start_index..start_index + accounts_pr_view);
+        let accounts_data = match accounts_data{
+            Some(data) => data, 
+            None => {
+                return Text::new("Waiting for account generation...").into()
+            },
+        };
 
-        let Some(accounts_selection) = show_accounts else {return accounts};
+        if let Some(accounts_selection) = accounts_data.get(start_index..start_index + Self::ACCOUNTS_PER_PAGE) {
 
-        for (i, (account, is_selected, account_summary)) in
-            accounts_selection.iter().enumerate()
-        {
-            let account_address = widget::text(account.address.truncate());
-            let account_summary = widget::text(account_summary.to_string());
+            for (i, (account, is_selected, account_summary)) in
+                accounts_selection.iter().enumerate()
+            {
+                let account_address = widget::text(account.address.truncate_long());
+                let account_summary = widget::text(account_summary.to_string());
 
-            let is_selected = widget::checkbox("", *is_selected).on_toggle(move |_| {
-                Message::ToggleAccountSelection((self.accounts_data.page_index, i)).into()
-            });
+                let is_selected = widget::checkbox("", *is_selected).on_toggle(move |_| {
+                    Message::ToggleAccountSelection(start_index + i).into()
+                });
 
+                accounts = accounts.push(
+                    row![
+                        account_address.width(Length::FillPortion(10)),
+                        widget::Space::new(Length::Fill, 1),
+                        account_summary.width(Length::FillPortion(10)),
+                        widget::Space::new(Length::FillPortion(2), 1),
+                        is_selected.width(Length::FillPortion(2))
+                    ]
+                    .width(Length::Fill),
+                )
+            }
+        } else {
             accounts = accounts.push(
-                row![
-                    account_address.width(Length::FillPortion(10)),
-                    widget::Space::new(Length::Fill, 1),
-                    account_summary.width(Length::FillPortion(10)),
-                    widget::Space::new(Length::FillPortion(2), 1),
-                    is_selected.width(Length::FillPortion(2))
-                ]
-                .width(Length::Fill),
+                Text::new("No more accounts found")
             )
-        }
-        
+        };
 
         let row = row![
-            widget::button("Previous Page").on_press_maybe(if self.accounts_data.page_index == 0 {
-                None
-            } else {
-                Some(Message::NewPage(self.accounts_data.page_index - 1).into())
-            }),
+            widget::button("Previous Page").on_press_maybe(self.previous_accounts_chunk()),
             accounts.width(400),
-            widget::button("Next Page")
-                .on_press(Message::NewPage(self.accounts_data.page_index + 1).into())
+            widget::button("Next Page").on_press(self.next_accounts_chunk())
         ]
         .align_y(iced::Alignment::Center);
 
-        let nav_buttons = nav_row(
-            nav_button("Back").on_press(Message::Back.into()),
-            nav_button("Next").on_press(Message::Next.into()),
-        );
 
-        widget::column![row, nav_buttons]
+
+        widget::column![row]
             .align_x(iced::Alignment::Center)
             .width(Length::Shrink)
             .height(Length::Shrink)
             .spacing(50)
+            .into()
+    }
+
+
+    fn previous_accounts_chunk(&self) -> Option<AppMessage> {
+        if self.show_from_current_index == 0 {
+            None
+        } else {
+            Some(Message::SetAccountsStartIndex(self.show_from_current_index - Self::ACCOUNTS_PER_PAGE).into())
+        }
+    }
+
+    
+    fn next_accounts_chunk(&self) -> AppMessage {
+        // TODO: generer flere kontoer om det er mindre enn tre sider å vise
+
+        Message::SetAccountsStartIndex(self.show_from_current_index + Self::ACCOUNTS_PER_PAGE).into()
     }
 }

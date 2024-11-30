@@ -1,3 +1,4 @@
+use debug_print::debug_println;
 use iced::{
     widget::{self, text::LineHeight, text_input::Id},
     Element, Length, Task,
@@ -77,20 +78,24 @@ impl<'a> LoginScreen {
     }
 
     fn login(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+        debug_println!("Logging in");
+
         self.status = Status::LoggingIn;
-        let password = self.password.clone();
-        self.password.clear();
+        let password = std::mem::replace(&mut self.password, Password::new());
         let network = appdata.settings.network;
         Task::perform(
             async move { handles::wallet::perform_login_check(network, password).await },
             |result| match result {
                 Ok(_) => Message::LoginSuccess.into(),
-                Err(err) => match err {
-                    AppError::Fatal(_) => external_task_response::Message::Error(err).into(),
-                    AppError::NonFatal(notification) => {
-                        Message::LoginFailed(notification.to_string()).into()
+                Err(err) =>{
+                    debug_println!("failed login check: {err}");
+                    match err {
+                        AppError::Fatal(_) => external_task_response::Message::Error(err).into(),
+                        AppError::NonFatal(notification) => {
+                            Message::LoginFailed(notification.to_string()).into()
+                        }
                     }
-                },
+                } 
             },
         )
     }

@@ -1,6 +1,6 @@
 pub mod credentials;
-pub mod filesystem;
 pub mod image;
+pub mod app_settings;
 pub mod radix_dlt;
 pub mod statics;
 pub mod store;
