@@ -73,17 +73,16 @@ pub struct App {
     version: [u8; 3],
     pub app_state: AppState,
     pub app_data: AppData,
-    // Holds the gui unlocked state, not held in the AppState enum because we want to be able to return to last state on login
     pub appview: AppView,
     pub notification: Notification,
 }
 
 impl App {
     pub fn new() -> (Self, Task<AppMessage>) {
-        let settings = handles::filesystem::app_settings::get_app_settings();
+        let settings = handles::app_settings::get_app_settings();
 
         let app_state =
-            match handles::statics::initialize_statics::initialize_statics(Network::Mainnet) {
+            match handles::statics::initialize_statics::initialize_statics(settings.network) {
                 Err(err) => AppState::Error(err.to_string()),
                 Ok(_) => {
                     if AppDataDb::exists(settings.network) {
@@ -168,7 +167,7 @@ impl App {
     pub fn run() -> Result<(), iced::Error> {
         let icon = window::icon::from_file_data(
             WINDOW_LOGO,
-            Some(iced::advanced::graphics::image::image_rs::ImageFormat::Png),
+            None,
         )
         .unwrap();
 
@@ -189,6 +188,7 @@ impl App {
 
         application(types::consts::APPLICATION_NAME, App::update, App::view)
             .settings(settings)
+            .theme(|app|app.app_data.settings.theme.into())
             .window(window_settings)
             .run_with(|| App::new())?;
 

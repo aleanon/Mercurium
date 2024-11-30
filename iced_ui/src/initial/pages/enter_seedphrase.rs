@@ -1,9 +1,8 @@
 use bip39::Mnemonic;
-use iced::Task;
-use types::crypto::{Password, SeedPhrase};
+use iced::{Element, Task};
+use types::{crypto::{Password, SeedPhrase}, AppError};
 use zeroize::Zeroize;
-use crate::app::{AppData, AppMessage};
-use super::set_password::SetPassword;
+use crate::{app::{AppData, AppMessage}, initial::{restore_from_seed, setup}};
 use iced::{
     widget::{self, text_input::Id, Column, TextInput},
     Length,
@@ -14,12 +13,24 @@ use crate::{
     initial::common::{nav_button, nav_row, seed_word_field},
 };
 
+use super::set_password::SetPassword;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     UpdateSingleWordInSeedPhrase(usize, String),
-    UpdateMultipleWordsInSeedPhraseFromIndex(usize, Vec<String>),
+    UpdateMultipleWordsInSeedPhraseFromIndex(usize, String),
     ToggleSeedPassword,
     InputSeedPassword(String),
+}
+
+impl Into<AppMessage> for Message {
+    fn into(self) -> AppMessage {
+        AppMessage::Setup(
+            setup::Message::RestoreFromSeedMessage(
+                restore_from_seed::Message::EnterSeedPhraseMessage(self)
+            )
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -39,10 +50,30 @@ impl EnterSeedPhrase {
             mnemonic: None,
         }
     }
+
+    pub fn from_page_set_password(page: SetPassword) -> Self {
+        Self {
+            notification: "",
+            seed_phrase: SeedPhrase::from_str(page.mnemonic.phrase()),
+            seed_password: page.seed_password,
+            mnemonic: None,
+        }
+    }
 }
 
 // Update
 impl<'a> EnterSeedPhrase {
+    pub fn update(&mut self, message: Message) -> Result<Task<AppMessage>, AppError> {
+        match message {
+            Message::UpdateSingleWordInSeedPhrase(word_index, word) => self.update_single_word_in_seed_phrase(word_index, word),
+            Message::UpdateMultipleWordsInSeedPhraseFromIndex(word_index, words ) => self.update_multiple_words_in_seed_phrase_from_index(word_index, words),
+            Message::InputSeedPassword(input) => self.update_seed_password_field(input),
+            Message::ToggleSeedPassword => self.toggle_use_of_seed_password(),
+        }
+
+        Ok(Task::none())
+    }
+
     pub fn update_single_word_in_seed_phrase(&mut self, word_index: usize, mut word: String) {
         self.seed_phrase
             .update_word(word_index, word.as_str());
@@ -50,12 +81,14 @@ impl<'a> EnterSeedPhrase {
         self.notification = "";
     }
 
-    pub fn update_multiple_words_in_seed_phrase_from_index(&mut self, mut index: usize, words: Vec<String>) {
-        for mut word in words {
-            self.seed_phrase.update_word(index, &word);
-            word.zeroize();
-            index += 1;
+    pub fn update_multiple_words_in_seed_phrase_from_index(&mut self, mut word_index: usize, mut input: String) {
+        let mut words = input.split_ascii_whitespace();
+
+        while let Some(word) = words.next() && word_index < self.seed_phrase.nr_of_words() {
+            self.seed_phrase.update_word(word_index, &word);
+            word_index += 1;
         }
+        input.zeroize();
     }
 
     pub fn update_seed_password_field(&mut self, mut input: String) {
@@ -74,73 +107,23 @@ impl<'a> EnterSeedPhrase {
         }
     }
 
-    pub fn goto_page_enter_password(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
-        let mnemonic = Mnemonic::from_phrase(
-            self.seed_phrase.phrase().as_str(),
-            bip39::Language::English,
-        );
-        let Ok(mnemonic) = mnemonic else {
-            self.notification = "Invalid seed phrase";
-            return Task::none();
-        };
-
-        self.mnemonic = Some(mnemonic.clone());
-        self.stage = Stage::EnterPassword;
-        self.notification = "";
-
-        self.task_create_accounts_from_seed(appdata, mnemonic)
-    }
-
-    fn task_create_accounts_from_seed(
-        &self,
-        appdata: &'a mut AppData,
-        mnemonic: Mnemonic,
-    ) -> Task<AppMessage> {
-        let password = self.seed_password.clone();
-        let network = appdata.settings.network;
-        let task_id = self.accounts_data.create_accounts_task_nr + 1;
-        Task::perform(
-            async move {
-                let password_as_str = password
-                    .as_ref()
-                    .and_then(|password| Some(password.as_str()));
-
-                let accounts = handles::wallet::create_multiple_accounts_from_mnemonic::<Vec<_>>(
-                    &mnemonic,
-                    password_as_str,
-                    0,
-                    0,
-                    60,
-                    network,
-                );
-                (task_id, accounts)
-            },
-            |(task_id, accounts)| {
-                Message::TaskResponse(TaskResponse::AccountsCreated { task_id, accounts }).into()
-            },
-        )
-    }
 }
 
 // View
 impl<'a> EnterSeedPhrase {
-    pub fn view(&self) -> Column<'a, AppMessage> {
+    pub fn view(&self) -> Element<'a, AppMessage> {
         let header = common_elements::header_one("Enter seed phrase");
 
         let notification = widget::text(self.notification).size(12);
 
         let input_seed = self.input_seed();
 
-        let nav = nav_row(
-            nav_button("Back").on_press(Message::Back.into()),
-            nav_button("Next").on_press(Message::Next.into()),
-        );
-
-        widget::column![header, notification, input_seed, nav]
+        widget::column![header, notification, input_seed]
             .width(Length::Shrink)
             .height(Length::Shrink)
             .align_x(iced::Alignment::Center)
             .spacing(50)
+            .into()
     }
 
     fn input_seed(&self) -> Column<'a, AppMessage> {
@@ -153,7 +136,7 @@ impl<'a> EnterSeedPhrase {
             .height(Length::Shrink)
             .spacing(20);
 
-        for index in 0..self.inputs.seed_phrase.nr_of_words() {
+        for index in 0..self.seed_phrase.nr_of_words() {
             if index % 4 == 0 && index != 0 {
                 seed = seed.push(row);
                 row = widget::row![]
@@ -161,7 +144,7 @@ impl<'a> EnterSeedPhrase {
                     .height(Length::Shrink)
                     .spacing(20);
             }
-            let word = self.inputs.seed_phrase.reference_word(index).unwrap_or("");
+            let word = self.seed_phrase.reference_word(index).unwrap_or("");
 
             let text_field = Self::seed_word_text_field_with_id(index, word);
 
@@ -173,14 +156,7 @@ impl<'a> EnterSeedPhrase {
     fn seed_word_text_field_with_id(index: usize, word: &str) -> TextInput<'a, AppMessage> {
         seed_word_field(&format!("Word {}", index + 1), word)
             .id(Id::new(format!("{index}")))
-            .on_input(move |input| Message::InputSeedWord((index, input)).into())
-            .on_paste(move |mut string| {
-                let input = string
-                    .split_ascii_whitespace()
-                    .map(|s| String::from(s))
-                    .collect::<Vec<String>>();
-                string.zeroize();
-                Message::PasteSeedPhrase((index, input)).into()
-            })
+            .on_input(move |input| Message::UpdateSingleWordInSeedPhrase(index, input).into())
+            .on_paste(move |input| Message::UpdateMultipleWordsInSeedPhraseFromIndex(index, input).into())
     }
 }

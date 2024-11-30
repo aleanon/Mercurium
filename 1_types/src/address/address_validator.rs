@@ -18,22 +18,22 @@ impl AddressValidator {
                 let Ok((entity_type, _)) = MAINNET_DECODER.validate_and_decode(address) else {
                     return false;
                 };
-                match entity_type {
-                    EntityType::GlobalVirtualEd25519Account
-                    | EntityType::GlobalVirtualSecp256k1Account => true,
-                    _ => false,
-                }
+                Self::is_entity_type_account(entity_type)
             }
             Network::Stokenet => {
                 let Ok((entity_type, _)) = STOKENET_DECODER.validate_and_decode(address) else {
                     return false;
                 };
-                match entity_type {
-                    EntityType::GlobalVirtualEd25519Account
-                    | EntityType::GlobalVirtualSecp256k1Account => true,
-                    _ => false,
-                }
+                Self::is_entity_type_account(entity_type)
             }
+        }
+    }
+
+    fn is_entity_type_account(entity_type: EntityType) -> bool {
+        match entity_type {
+            EntityType::GlobalPreallocatedEd25519Account
+            | EntityType::GlobalPreallocatedSecp256k1Account => true,
+            _ => false,
         }
     }
 
@@ -43,22 +43,22 @@ impl AddressValidator {
                 let Ok((entity_type, _)) = MAINNET_DECODER.validate_and_decode(address) else {
                     return false;
                 };
-                match entity_type {
-                    EntityType::GlobalVirtualEd25519Identity
-                    | EntityType::GlobalVirtualSecp256k1Identity => true,
-                    _ => false,
-                }
+                Self::is_entity_type_identity(entity_type)
             }
             Network::Stokenet => {
                 let Ok((entity_type, _)) = STOKENET_DECODER.validate_and_decode(address) else {
                     return false;
                 };
-                match entity_type {
-                    EntityType::GlobalVirtualEd25519Identity
-                    | EntityType::GlobalVirtualSecp256k1Identity => true,
-                    _ => false,
-                }
+                Self::is_entity_type_identity(entity_type)
             }
+        }
+    }
+
+    fn is_entity_type_identity(entity_type: EntityType) -> bool {
+        match entity_type {
+            EntityType::GlobalPreallocatedEd25519Identity
+            | EntityType::GlobalPreallocatedSecp256k1Identity => true,
+            _ => false,
         }
     }
 }

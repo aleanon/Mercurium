@@ -1,7 +1,6 @@
 mod delete;
 mod get_credentials;
 mod store_credentials;
-
 #[cfg(test)]
 mod tests;
 

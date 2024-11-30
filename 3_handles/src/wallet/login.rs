@@ -1,5 +1,6 @@
 use debug_print::debug_println;
-use store::AppDataDb;
+use futures::TryFutureExt;
+use store::{AppDataDb, DbError, IconsDb};
 use types::{crypto::Password, AppError, Network};
 
 pub async fn perform_login_check(network: Network, password: Password) -> Result<(), AppError> {
@@ -10,9 +11,9 @@ pub async fn perform_login_check(network: Network, password: Password) -> Result
 
     debug_println!("Key created");
 
-    let db = AppDataDb::get_or_init(network, key)
+    let db = AppDataDb::get_or_init(network, key.clone())
         .await
-        .map_err(|err| AppError::Fatal(err.to_string()))?;
+        .map_err(|err| AppError::NonFatal(types::Notification::Info(err.to_string())))?;
 
     debug_println!("Database successfully loaded");
 
@@ -23,6 +24,7 @@ pub async fn perform_login_check(network: Network, password: Password) -> Result
 
     if password_hash == target_hash {
         debug_println!("Correct password");
+        IconsDb::load(network, key).map_err(|err| AppError::Fatal(err.to_string())).await?;
         return Ok(());
     } else {
         return Err(AppError::NonFatal(types::Notification::Info(
