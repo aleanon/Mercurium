@@ -74,4 +74,3 @@ windows = { version = "*", features = [
   "Win32_Security_Credentials",
 ] }
 # Experimantal
-slint = { version = "1.8.0" }
