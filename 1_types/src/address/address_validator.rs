@@ -41,7 +41,7 @@ impl AddressValidator {
         match network {
             Network::Mainnet => {
                 let Ok((entity_type, _)) = MAINNET_DECODER.validate_and_decode(address) else {
-                    return false;
+                    return false; 
                 };
                 Self::is_entity_type_identity(entity_type)
             }

@@ -9,18 +9,13 @@ pub enum Network {
 }
 
 impl Network {
-    pub const MAINNET_PREFIX: [u8; Self::MAINNET_PREFIX_LENGTH] = [b'r', b'd', b'x', b'1'];
-    pub const MAINNET_PREFIX_LENGTH: usize = 4;
-    pub const STOKENET_PREFIX: [u8; Self::STOKENET_PREFIX_LENGTH] =
-        [b't', b'd', b'x', b'_', b'2', b'_', b'1'];
-    pub const STOKENET_PREFIX_LENGTH: usize = 7;
-    pub const MAINNET_PREFIX_STR: &'static str = "rdx1";
-    pub const STOKENET_PREFIX_STR: &'static str = "tdx_2_1";
+    pub const MAINNET_PREFIX: &'static str = "rdx1";
+    pub const STOKENET_PREFIX: &'static str = "tdx_2_1";
 
     pub fn prefix(&self) -> &'static str {
         match self {
-            Self::Mainnet => Self::MAINNET_PREFIX_STR,
-            Self::Stokenet => Self::STOKENET_PREFIX_STR,
+            Self::Mainnet => Self::MAINNET_PREFIX,
+            Self::Stokenet => Self::STOKENET_PREFIX,
         }
     }
 }

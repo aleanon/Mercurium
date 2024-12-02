@@ -12,7 +12,7 @@ impl AppSettings {
     pub fn new() -> Self {
         Self {
             theme: Theme::Dark,
-            network: Network::Mainnet,
+            network: Network::default(),
         }
     }
 }
