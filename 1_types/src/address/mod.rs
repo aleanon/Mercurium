@@ -56,12 +56,12 @@ pub trait Address: Sized + FromStr {
     const MAINNET_REGEX_PATTERN: &'static str;
     const STOKENET_REGEX_PATTERN: &'static str;
     const ADDRESS_TYPE_PREFIX: &'static str = get_address_type_prefix(Self::ADDRESS_TYPE);
-    const MAINNET_PREFIX: &'static str = Network::MAINNET_PREFIX_STR;
-    const STOKENET_PREFIX: &'static str = Network::STOKENET_PREFIX_STR;
+    const MAINNET_PREFIX: &'static str = Network::MAINNET_PREFIX;
+    const STOKENET_PREFIX: &'static str = Network::STOKENET_PREFIX;
     const MAINNET_LENGTH: usize =
-        Self::ADDRESS_TYPE_PREFIX_LENGTH + Network::MAINNET_PREFIX_LENGTH + Self::ADDRESS_LENGTH;
+        Self::ADDRESS_TYPE_PREFIX_LENGTH + Network::MAINNET_PREFIX.len() + Self::ADDRESS_LENGTH;
     const STOKENET_LENGTH: usize =
-        Self::ADDRESS_TYPE_PREFIX_LENGTH + Network::STOKENET_PREFIX_LENGTH + Self::ADDRESS_LENGTH;
+        Self::ADDRESS_TYPE_PREFIX_LENGTH + Network::STOKENET_PREFIX.len() + Self::ADDRESS_LENGTH;
     const ADDRESS_TYPE_PREFIX_LENGTH: usize = Self::ADDRESS_TYPE_PREFIX.len();
     const ADDRESS_LENGTH: usize = get_address_length(Self::ADDRESS_TYPE);
     const MAINNET_ADDRESS_START_INDEX: usize = Self::MAINNET_LENGTH - Self::ADDRESS_LENGTH;
