@@ -2,25 +2,34 @@ use std::ops::{Deref, DerefMut};
 
 /// [Ur](Unsafe Reference) wrapps an immutable raw pointer to type `T` and implements [Send]
 /// so a reference can be sent across threads/async boundaries without reference counting.
-/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated.
-#[derive(Clone)]
-pub struct Ur<T>(*const T);
+/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated 
+/// while the [UnsafeRef] is in use.
 
-impl<T> Ur<T> {
+pub struct UnsafeRef<T: ?Sized>(*const T);
+
+impl<T: ?Sized> UnsafeRef<T> {
     pub unsafe fn new(value: &T) -> Self {
         let ptr: *const T = value;
         Self(ptr)
     }
 }
 
-impl<T> Deref for Ur<T> {
+impl<T: ?Sized> Deref for UnsafeRef<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.0 }
     }
 }
 
-unsafe impl<T> Send for Ur<T> {}
+impl<T: ?Sized> Clone for UnsafeRef<T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
+
+impl<T: ?Sized> Copy for UnsafeRef<T>{}
+
+unsafe impl<T: ?Sized> Send for UnsafeRef<T> {}
 
 /// [Us] (Unsafe Slice) wrapps an immutable raw pointer to type `[T]` and implements [Send]
 /// so the slice can be sent across threads/async boundaries without reference counting.
@@ -51,7 +60,7 @@ unsafe impl<T> Send for Us<T> {}
 
 /// [MutUr] (Mutable Unsafe Reference) wrapps a mutable raw pointer to type `T` and implements [Send]
 /// so a mutable reference can be sent across threads/async boundaries without reference counting.
-/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and has no colliding reads or writes while the MutUr is in use,
+/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and has no colliding reads/writes while the MutUr is in use,
 pub struct MutUr<T>(*mut T);
 
 impl<T> MutUr<T> {
