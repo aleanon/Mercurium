@@ -20,26 +20,15 @@ pub struct IconsDb {
 impl IconsDb {
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         let app_path = AppPath::get();
-        match network {
-            Network::Mainnet => {
-                let path = app_path.icon_cache_ref(network);
-                let db = DataBase::load(path, key).await?;
-                let icons_db = Self { db };
-                icons_db.create_tables_if_not_exist().await?;
-                let icons_db = MAINNET_ICONCACHE.get_or_init(|| icons_db);
-                Ok(icons_db)
-            }
-            Network::Stokenet => {
-                let path = app_path.icon_cache_ref(network);
-                let db = DataBase::load(path, key).await?;
-                let icons_db = Self { db };
-                icons_db.create_tables_if_not_exist().await?;
+        let path = app_path.icon_cache_ref(network);
+        let db = DataBase::load(path, key).await?;
+        let icons_db = Self { db };
+        icons_db.create_tables_if_not_exist().await?;
 
-                let icons_db = STOKENET_ICONCACHE.get_or_init(|| icons_db);
-                Ok(icons_db)
-            }
-        }
+        Ok(Self::get_static(network).get_or_init(|| icons_db))
     }
+
+
 
     pub async fn get_or_init(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
         match Self::get(network) {
@@ -52,6 +41,13 @@ impl IconsDb {
         match network {
             Network::Mainnet => MAINNET_ICONCACHE.get(),
             Network::Stokenet => STOKENET_ICONCACHE.get(),
+        }
+    }
+
+    fn get_static(network: Network) -> &'static OnceCell<IconsDb> {
+        match network {
+            Network::Mainnet => &MAINNET_ICONCACHE,
+            Network::Stokenet => &STOKENET_ICONCACHE,
         }
     }
 }

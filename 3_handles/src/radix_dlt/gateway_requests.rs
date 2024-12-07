@@ -1,4 +1,4 @@
-use std::future::IntoFuture;
+use std::{cell::UnsafeCell, future::IntoFuture, ops::Deref};
 
 use futures::future::join_all;
 use radix_gateway_sdk::{
@@ -13,7 +13,7 @@ use radix_gateway_sdk::{
     },
     Client,
 };
-use types::Network;
+use types::{Network, UnsafeRef};
 
 pub const ENTITY_DETAILS_MAX_ADDRESSES: usize = 20;
 
@@ -117,14 +117,14 @@ pub async fn get_non_fungible_data(
     non_fungible_ids: &[String],
 ) -> Result<StateNonFungibleDataResponse, radix_gateway_sdk::Error> {
     let tasks = non_fungible_ids.chunks(100).map(|chunk| {
-        let resource_address = resource_address.to_string();
+        let resource_address = unsafe{UnsafeRef::new(resource_address)};
         let chunk = chunk.to_owned();
 
         tokio::task::spawn(async move {
             let addresses: Vec<&str> = chunk.iter().map(|address| address.as_str()).collect();
             Client::new(network.into(), None, None)?
                 .get_inner_client()
-                .non_fungible_data(addresses.as_slice(), resource_address.as_str())
+                .non_fungible_data(addresses.as_slice(), &*resource_address)
                 .into_future()
                 .await
         })

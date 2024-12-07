@@ -8,7 +8,7 @@ use iced::{
 };
 use store::AppDataDb;
 use types::crypto::{EncryptedMnemonic, Password, SeedPhrase};
-use types::MutUr;
+use types::UnsafeRefMut;
 use types::{AppError, Network};
 use zeroize::Zeroize;
 
@@ -201,8 +201,8 @@ impl<'a> NewWallet {
     fn create_wallet(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
         let network = appdata.settings.network.clone();
 
-        let mut new_wallet = unsafe { MutUr::new(self) };
-        let mut appdata = unsafe { MutUr::new(appdata) };
+        let mut new_wallet = unsafe { UnsafeRefMut::new(self) };
+        let mut appdata = unsafe { UnsafeRefMut::new(appdata) };
         Task::perform(
             async move {
                 if let None = new_wallet.mnemonic {
