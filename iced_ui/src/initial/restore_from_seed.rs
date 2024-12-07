@@ -9,7 +9,7 @@ use iced::{
 };
 use store::IconsDb;
 use types::{
-    address::ResourceAddress, collections::AccountsUpdate, crypto::{DataBaseKey, HashedPassword, Key, Password, PasswordError, Salt}, debug_info, Account, AccountSummary, AppError, AppPath, AppPathInner, MutUr, Network, TaskResponse, Ur
+    address::ResourceAddress, collections::AccountsUpdate, crypto::{DataBaseKey, HashedPassword, Key, Password, PasswordError, Salt}, debug_info, Account, AccountSummary, AppError, AppPath, AppPathInner, UnsafeRefMut, Network, TaskResponse, UnsafeRef
 };
 
 use crate::{
@@ -309,7 +309,12 @@ impl<'a> RestoreFromSeed {
         )
     }
     
-    fn process_response_accounts_updated(&mut self, task_response: TaskResponse<AccountsUpdate>, appdata: &'a AppData) -> Task<AppMessage> {
+    fn process_response_accounts_updated(&mut self, mut task_response: TaskResponse<AccountsUpdate>, appdata: &'a AppData) -> Task<AppMessage> {
+        if let Some(accounts_update) = task_response.ref_mut_data() {
+            accounts_update.account_updates.retain(|account_update| 
+                !account_update.fungibles.is_empty() || !account_update.non_fungibles.is_empty())
+        }
+
         self.accounts_update.new_response(task_response);
 
         let Some(accounts_update) = self.accounts_update.ref_data() else {
@@ -377,7 +382,7 @@ impl<'a> RestoreFromSeed {
         let key_and_salt = self.key_and_salt.take_data();
         let icons = self.icons_data.take_data().unwrap_or(HashMap::new());
 
-        let mut appdata = unsafe { MutUr::new(appdata) };
+        let mut appdata = unsafe { UnsafeRefMut::new(appdata) };
 
         Task::perform(
             async move {
@@ -420,21 +425,25 @@ impl<'a> RestoreFromSeed {
                 IconsDb::load(network, db_key).await
                     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-                for account_update in accounts_update.account_updates {
-                    let fungibles = account_update.fungibles.into_values().collect();
-                    appdata
-                        .fungibles
-                        .insert(account_update.account.address.clone(), fungibles);
+                for account in setup_data.accounts {
+                    for account_update in accounts_update.account_updates.clone() {
+                        if account_update.account.address != account.address {continue};
+                        
+                        let fungibles = account_update.fungibles.into_values().collect();
+                        appdata
+                            .fungibles
+                            .insert(account_update.account.address.clone(), fungibles);
 
-                    let non_fungibles = account_update.non_fungibles.into_values().collect();
-                    appdata
-                        .non_fungibles
-                        .insert(account_update.account.address.clone(), non_fungibles);
+                        let non_fungibles = account_update.non_fungibles.into_values().collect();
+                        appdata
+                            .non_fungibles
+                            .insert(account_update.account.address.clone(), non_fungibles);
 
-                    appdata.accounts.insert(
-                        account_update.account.address.clone(),
-                        account_update.account,
-                    );
+                        appdata.accounts.insert(
+                            account_update.account.address.clone(),
+                            account_update.account,
+                        );
+                    }
                 }
 
                 appdata.resources = accounts_update.new_resources;

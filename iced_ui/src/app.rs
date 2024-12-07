@@ -13,7 +13,7 @@ use types::assets::{FungibleAsset, NonFungibleAsset};
 use types::Notification;
 use types::{
     address::{AccountAddress, ResourceAddress},
-    Account, AppError, AppSettings, Network, Resource, Theme,
+    Account, AppError, AppSettings, Resource, Theme,
 };
 // use iced_futures::futures::channel::mpsc::Sender as MpscSender;
 // use iced_futures::futures::SinkExt;
@@ -70,7 +70,6 @@ pub enum AppState {
 }
 
 pub struct App {
-    version: [u8; 3],
     pub app_state: AppState,
     pub app_data: AppData,
     pub appview: AppView,
@@ -94,7 +93,6 @@ impl App {
             };
 
         let app = App {
-            version: [0, 0, 1],
             app_state,
             app_data: AppData::new(settings),
             appview: AppView::new(),

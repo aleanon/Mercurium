@@ -9,7 +9,7 @@ use types::{
     address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset, NFID},
     collections::{AccountUpdate, AccountsUpdate},
-    Account, AppError, Network, Resource, Ur,
+    Account, AppError, Network, Resource, UnsafeRef,
 };
 
 #[derive(Debug, Error)]
@@ -43,7 +43,7 @@ pub async fn update_accounts(
     // `resources` is inside an Arc to make sure it is valid for the duration of this task
     // From this point we know that the resources will be valid until all tasks within this function are finished,
     // therefore we pass around a non reference counted unsafe reference to resources to sub tasks
-    let resources = unsafe { Ur::new(&*resources) };
+    let resources = unsafe { UnsafeRef::new(&*resources) };
 
     let tasks = accounts.into_iter().map(|account| {
         let resources = resources.clone();
@@ -86,7 +86,7 @@ fn get_successful_task_value<T, E: Display>(result: Result<T, E>) -> Option<T> {
 
 async fn update_account(
     network: Network,
-    resources: Ur<HashMap<ResourceAddress, Resource>>,
+    resources: UnsafeRef<HashMap<ResourceAddress, Resource>>,
     mut account: Account,
 ) -> (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>) {
     let balances_last_updated_at_state_version = account.balances_last_updated.unwrap_or(0);
@@ -94,28 +94,24 @@ async fn update_account(
     let transactions_last_updated = account.transactions_last_updated;
 
     // The account address should be used througout tasks and is never mutated or removed from the Account struct.
-    // by the end of this function all tasks will be completed, so the Ur will never be used while the reference is not valid
-    let account_address_ur = unsafe { Ur::new(&account.address) };
+    // by the end of this function all tasks will be completed, so the UsafeRef will never be used while the reference is not valid
+    let account_address = unsafe { UnsafeRef::new(&account.address) };
 
-    let account_address = account_address_ur.clone();
-    let stored_resources = resources.clone();
     let fungible_assets_task = tokio::spawn(async move {
         update_fungible_assets_and_resources_for_account(
             network,
             account_address,
-            stored_resources,
+            resources,
             balances_last_updated_at_state_version,
         )
         .await
     });
 
-    let account_address = account_address_ur.clone();
-    let stored_resources = resources.clone();
     let non_fungible_assets_task = tokio::spawn(async move {
         update_non_fungible_assets_and_resources_for_account(
             network,
             account_address,
-            stored_resources,
+            resources,
             balances_last_updated_at_state_version,
         )
         .await
@@ -201,8 +197,8 @@ pub async fn update_resources(
 
 pub async fn update_fungible_assets_and_resources_for_account(
     network: Network,
-    account_address: Ur<AccountAddress>,
-    stored_resources: Ur<HashMap<ResourceAddress, Resource>>,
+    account_address: UnsafeRef<AccountAddress>,
+    stored_resources: UnsafeRef<HashMap<ResourceAddress, Resource>>,
     last_updated_at_state_version: i64,
 ) -> Result<
     (
@@ -327,8 +323,8 @@ pub async fn update_fungible_balances_for_account(
 
 pub async fn update_non_fungible_assets_and_resources_for_account(
     network: Network,
-    account_address: Ur<AccountAddress>,
-    stored_resources: Ur<HashMap<ResourceAddress, Resource>>,
+    account_address: UnsafeRef<AccountAddress>,
+    stored_resources: UnsafeRef<HashMap<ResourceAddress, Resource>>,
     last_updated_at_state_version: i64,
 ) -> Result<
     (

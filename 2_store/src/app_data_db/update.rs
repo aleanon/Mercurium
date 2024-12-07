@@ -5,7 +5,7 @@ use types::{
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, Resource, Transaction, Us,
+    Account, Resource, Transaction, UnsafeSlice,
 };
 
 use super::AppDataDb;
@@ -39,7 +39,7 @@ impl AppDataDb {
     }
 
     pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), DbError> {
-        let accounts = unsafe { Us::new(accounts) };
+        let accounts = unsafe { UnsafeSlice::new(accounts) };
         self.transaction(accounts::UPSERT_ACCOUNT, move |cached_stmt| {
             for account in accounts.iter() {
                 cached_stmt.execute(params![
@@ -102,7 +102,7 @@ impl AppDataDb {
         account_address: AccountAddress,
         non_fungibles: &[NonFungibleAsset],
     ) -> Result<(), DbError> {
-        let non_fungibles = unsafe { Us::new(non_fungibles) };
+        let non_fungibles = unsafe { UnsafeSlice::new(non_fungibles) };
 
         self.transaction(
             non_fungible_assets::UPSERT_NON_FUNGIBLE_ASSET,

@@ -2,7 +2,7 @@ use iced::{
     border::Radius,
     widget::{
         self,
-        scrollable::{default, Rail, Scrollbar, Scroller, Status, Style},
+        scrollable::{default, Rail, Scroller, Status, Style},
     },
     Border, Theme,
 };

@@ -82,6 +82,7 @@ impl AppPathInner {
         })
     }
 
+
     pub fn create_directories_if_not_exists(&self) -> Result<&Self, AppPathError> {
         if !self.db_directory.exists() {
             std::fs::DirBuilder::new()

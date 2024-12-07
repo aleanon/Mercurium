@@ -126,15 +126,13 @@ impl IconsDb {
         let mut nfid_param = nfid.clone();
         nfid_param.push_str(resource_address.checksum_as_str());
 
-        let nfid_with_imaga_data = self.query_row(
+        self.query_row(
             "SELECT * FROM nft_images WHERE nfid =?",
             [nfid_param],
             Self::get_nfid_and_image_data_from_row
         )
-        .await;
-    
-        nfid_with_imaga_data
-            .map(|(nfid, image)| (resource_address, nfid, image))
+        .await
+        .map(|(nfid, image)| (resource_address, nfid, image))
     }
 
     fn get_resource_address_and_image_data_from_row(row: &Row<'_>) -> Result<(ResourceAddress, Vec<u8>), rusqlite::Error> {

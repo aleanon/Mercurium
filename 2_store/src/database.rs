@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use async_sqlite::rusqlite::{self, CachedStatement, Connection, OpenFlags, Params, Result, Row};
+use async_sqlite::rusqlite::{self, ffi, CachedStatement, Connection, ErrorCode, OpenFlags, Params, Result, Row};
 use debug_print::debug_println;
 use thiserror::Error;
 use types::{crypto::DataBaseKey, AppPathError};
@@ -8,7 +8,9 @@ use types::{crypto::DataBaseKey, AppPathError};
 #[derive(Debug, Error)]
 pub enum DbError {
     #[error("{0}")]
-    AsyncSqliteError(#[from] async_sqlite::Error),
+    AsyncSqliteError(async_sqlite::Error),
+    #[error("Wrong password")]
+    IncorrectKey,
     #[error("Database not loaded")]
     DatabaseNotLoaded,
     #[error("Database not found")]
@@ -17,9 +19,25 @@ pub enum DbError {
     PathError(#[from] AppPathError),
 }
 
+
+
 impl From<rusqlite::Error> for DbError {
     fn from(value: rusqlite::Error) -> Self {
         Self::AsyncSqliteError(async_sqlite::Error::Rusqlite(value))
+    }
+}
+
+impl From<async_sqlite::Error> for DbError {
+    fn from(value: async_sqlite::Error) -> Self {
+        match value {
+            async_sqlite::Error::Rusqlite(
+                rusqlite::Error::SqliteFailure(
+                    ffi::Error{code: ErrorCode::NotADatabase, extended_code: _}, None)
+                ) => {
+                        Self::IncorrectKey
+            }
+            _ => Self::AsyncSqliteError(value)
+        }
     }
 }
 
