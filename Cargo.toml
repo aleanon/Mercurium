@@ -53,13 +53,13 @@ slip10_ed25519 = "*"
 ed25519-dalek-fiat = "*"
 rand = "*"
 ring = "*"
-zeroize = { version = "1.8.1", features = ["zeroize_derive"] }
+zeroize = { version = "*", features = ["zeroize_derive"] }
 debug_print = "*"
 regex = { version = "*" }
 once_cell = "*"
 lazy_static = { version = "*" }
 const_format = "*"
-radix-gateway-sdk = { git = "https://github.com/borderline-labs/radix-gateway-sdk.git" }
+radix-gateway-sdk = { git = "https://github.com/aleanon/radix-gateway-sdk-fork.git" }
 asynciter = "*"
 futures = "*"
 
