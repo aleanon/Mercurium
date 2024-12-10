@@ -121,30 +121,6 @@ impl From<iced::Theme> for Theme {
 
 impl Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Theme::Light => f.write_str("Light"),
-            Theme::Dark => f.write_str("Dark"),
-            Theme::Dracula => f.write_str("Dracula"),
-            Theme::Nord => f.write_str("Nord"),
-            Theme::SolarizedLight => f.write_str("Solarized Light"),
-            Theme::SolarizedDark => f.write_str("Solarized Dark"),
-            Theme::CatppuccinFrappe => f.write_str("CatppuccinFrappe"),
-            Theme::CatppuccinLatte => f.write_str("CatppuccinLatte"),
-            Theme::CatppuccinMacchiato => f.write_str("CatppuccinMacchiato"),
-            Theme::CatppuccinMocha => f.write_str("CatppuccinMocha"),
-            Theme::GruvboxLight => f.write_str("Gruvbox Light"),
-            Theme::GruvboxDark => f.write_str("Gruvbox Dark"),
-            Theme::TokyoNight => f.write_str("Tokyo Night"),
-            Theme::TokyoNightStorm => f.write_str("Tokyo Night Storm"),
-            Theme::TokyoNightLight => f.write_str("Tokyo Night Light"),
-            Theme::KanagawaDragon => f.write_str("KanagawaDragon"),
-            Theme::KanagawaLotus => f.write_str("KanagawaLotus"),
-            Theme::KanagawaWave => f.write_str("KanagawaWave"),
-            Theme::Moonfly => f.write_str("Moonfly"),
-            Theme::Nightfly => f.write_str("Nightfly"),
-            Theme::Oxocarbon => f.write_str("Oxocarbon"),
-            Theme::Ferra => f.write_str("Ferra"),
-            Theme::Custom => f.write_str("Custom"),
-        }
+        f.write_str(self.as_str())
     }
 }

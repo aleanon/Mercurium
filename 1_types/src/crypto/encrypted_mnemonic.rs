@@ -59,12 +59,6 @@ impl NonceSequence for MnemonicNonceSequence {
     fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
         let nonce = Nonce::assume_unique_for_key(self.get_current_as_bytes());
         Ok(nonce)
-
-        // let nonce = Nonce::assume_unique_for_key(self.get_current());
-        // let mut new_nonce = [0u8; NONCE_LEN];
-        // SystemRandom::new().fill(&mut new_nonce)?;
-        // self.0 = Nonce::assume_unique_for_key(new_nonce);
-        // Ok(nonce)
     }
 }
 
