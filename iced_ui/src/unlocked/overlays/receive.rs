@@ -9,7 +9,7 @@ use types::{
     debug_info, UnwrapUnreachable,
 };
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, unlocked::app_view};
 
 use super::overlay;
 
@@ -65,7 +65,7 @@ impl<'a> Receive {
         }
     }
 
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message) -> Task<AppMessage> {
         match message {
             Message::CopyAddress(address) => {
                 self.notification =
@@ -75,7 +75,7 @@ impl<'a> Receive {
         }
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self) -> Element<'a, AppMessage> {
         let close = button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).size(18))
             .on_press(app_view::Message::CloseOverlay.into())
             .style(button::text);

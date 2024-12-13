@@ -13,8 +13,8 @@ use crate::{
     unlocked::app_view,
 };
 
-pub static INPUT_ACCOUNT_NAME: &'static str = "input_account_name";
-pub static INPUT_PASSWORD: &'static str = "input_password";
+pub const INPUT_ACCOUNT_NAME: &'static str = "input_account_name";
+pub const INPUT_PASSWORD: &'static str = "input_password";
 
 use super::overlay;
 

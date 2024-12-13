@@ -40,17 +40,17 @@ impl<'a> Overlay {
             }
             Message::ReceiveMessage(message) => {
                 if let Self::Receive(receive) = self {
-                    command = receive.update(message, appdata)
+                    command = receive.update(message)
                 }
             }
         }
         command
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, _appdata: &'a AppData) -> Element<'a, AppMessage> {
         match self {
             Self::AddAccount(add_account_view) => add_account_view.view(),
-            Self::Receive(receive) => receive.view(appdata),
+            Self::Receive(receive) => receive.view(),
         }
     }
 }
