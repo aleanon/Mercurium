@@ -34,6 +34,7 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
             is_horizontal_scrollbar_hovered,
             is_vertical_scrollbar_hovered,
         } => {
+            _ = is_horizontal_scrollbar_hovered;
             let palette = theme.extended_palette();
             let border_width;
             let color;
