@@ -105,7 +105,7 @@ impl<'a> AccountsView {
         let accounts = appdata
             .accounts
             .iter()
-            .map(|(_, account)| account)
+            .map(|(_, account)| account )
             .collect::<BTreeSet<&Account>>();
 
         let mut children: Vec<Element<'a, AppMessage>> = Vec::new();
@@ -120,6 +120,7 @@ impl<'a> AccountsView {
 
             children.push(summary.into())
         }
+
 
         let col = iced::widget::Column::with_children(children)
             .spacing(30)
