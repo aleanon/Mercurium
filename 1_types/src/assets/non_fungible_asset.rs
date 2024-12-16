@@ -32,11 +32,14 @@ impl NonFungibleAsset {
     }
 
     pub fn take_nfids(&mut self) -> NFIDs {
-        self.nfids.drain(..).collect()
+        std::mem::replace(&mut self.nfids, NFIDs::new())
     }
 
     pub fn nfids_as_string(&mut self) -> Vec<String> {
-        self.nfids.drain(..).map(|nfid| nfid.get_id()).collect()
+        std::mem::replace(&mut self.nfids, NFIDs::new())
+            .into_iter()
+            .map(|nfid|nfid.id)
+            .collect()
     }
 
     #[cfg(test)]
@@ -203,9 +206,10 @@ impl NFID {
         Self { id, nfdata }
     }
 
-    pub fn get_id(self) -> String {
+    pub fn into_id(self) -> String {
         self.id
     }
+
 }
 
 impl PartialEq<String> for NFID {
