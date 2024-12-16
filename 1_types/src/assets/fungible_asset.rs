@@ -4,7 +4,6 @@ use crate::address::{AccountAddress, ResourceAddress};
 
 use super::AssetId;
 
-/// Consists of the symbol for the resource and the account address
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FungibleAsset {
     pub id: AssetId,

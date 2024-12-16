@@ -59,9 +59,9 @@ impl Theme {
     }
 }
 
-impl Into<iced::Theme> for Theme {
-    fn into(self) -> iced::Theme {
-        match self {
+impl From<Theme> for iced::Theme {
+    fn from(value: Theme) -> Self {
+        match value {
             Theme::Light => iced::Theme::Light,
             Theme::Dark => iced::Theme::Dark,
             Theme::Dracula => iced::Theme::Dracula,
@@ -85,8 +85,36 @@ impl Into<iced::Theme> for Theme {
             Theme::Oxocarbon => iced::Theme::Oxocarbon,
             Theme::Ferra => iced::Theme::Ferra,
             Theme::Custom => iced::Theme::Dark,
-        }
     }
+}
+
+// fn into(self) -> iced::Theme {
+//     match self {
+//         Theme::Light => iced::Theme::Light,
+//         Theme::Dark => iced::Theme::Dark,
+//         Theme::Dracula => iced::Theme::Dracula,
+//         Theme::Nord => iced::Theme::Nord,
+//         Theme::SolarizedLight => iced::Theme::SolarizedLight,
+//         Theme::SolarizedDark => iced::Theme::SolarizedDark,
+//         Theme::GruvboxLight => iced::Theme::GruvboxLight,
+//         Theme::GruvboxDark => iced::Theme::GruvboxDark,
+//         Theme::CatppuccinLatte => iced::Theme::CatppuccinLatte,
+//         Theme::CatppuccinFrappe => iced::Theme::CatppuccinFrappe,
+//         Theme::CatppuccinMacchiato => iced::Theme::CatppuccinMacchiato,
+//         Theme::CatppuccinMocha => iced::Theme::CatppuccinMocha,
+//         Theme::TokyoNight => iced::Theme::TokyoNight,
+//         Theme::TokyoNightStorm => iced::Theme::TokyoNightStorm,
+//         Theme::TokyoNightLight => iced::Theme::TokyoNightLight,
+//         Theme::KanagawaWave => iced::Theme::KanagawaWave,
+//         Theme::KanagawaDragon => iced::Theme::KanagawaDragon,
+//         Theme::KanagawaLotus => iced::Theme::KanagawaLotus,
+//         Theme::Moonfly => iced::Theme::Moonfly,
+//         Theme::Nightfly => iced::Theme::Nightfly,
+//         Theme::Oxocarbon => iced::Theme::Oxocarbon,
+//         Theme::Ferra => iced::Theme::Ferra,
+//         Theme::Custom => iced::Theme::Dark,
+//     }
+//     }
 }
 
 impl From<iced::Theme> for Theme {

@@ -48,6 +48,7 @@ pub struct Ed25519KeyPair {
     key_kind: Bip32KeyKind,
 }
 
+
 impl Ed25519KeyPair {
     pub fn new(
         mnemonic: &Mnemonic,
@@ -153,7 +154,7 @@ mod test {
     #[test]
     fn test_address_from_mnemonic_with_index_mainnet() {
         let mnemonic = Mnemonic::from_phrase(
-            "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis", 
+            "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis",
             Language::English
         ).unwrap();
 
@@ -177,7 +178,7 @@ mod test {
             Bip32Entity::Account,
             Bip32KeyKind::TransactionSigning,
         );
-        
+
         let account_address2 = keypair2.bech32_address();
         println!("account_address2: {}", account_address2);
 
@@ -194,7 +195,7 @@ mod test {
     #[test]
     fn test_address_from_mnemonic_with_index_stokenet() {
         let mnemonic = Mnemonic::from_phrase(
-            "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis", 
+            "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis",
             Language::English
         ).unwrap();
         let (keypair, _) = Ed25519KeyPair::new(
