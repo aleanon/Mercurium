@@ -32,7 +32,6 @@ iced = { version = "0.13.1", features = [
   "image",
   "qr_code",
   "advanced",
-  "tiny-skia",
 ] }
 scrypto = { version = "1.3.0" }
 tokio = { version = "*", features = ["full"] }
