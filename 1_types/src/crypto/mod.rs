@@ -6,8 +6,13 @@ pub(crate) mod password;
 pub(crate) mod public_key;
 pub(crate) mod salt;
 pub(crate) mod seedphrase;
+pub(crate) mod bip32_entity;
+pub(crate) mod bip32_key_kind;
+pub(crate) mod derivation_path_indexes;
 
-pub use ed25519::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair};
+pub use bip32_entity::Bip32Entity;
+pub use bip32_key_kind::Bip32KeyKind;
+pub use ed25519::Ed25519KeyPair;
 pub use encrypted_mnemonic::{EncryptedMnemonic, EncryptedMnemonicError};
 pub use encryption_error::EncryptionError;
 pub use key::{DataBaseKey, Key};

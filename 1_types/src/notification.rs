@@ -1,4 +1,4 @@
-use std::{fmt::Display, mem};
+use std::{fmt::{write, Display}, mem};
 
 #[derive(Debug, Clone)]
 pub enum Notification {
@@ -12,10 +12,10 @@ pub enum Notification {
 impl Notification {
     /// Takes the message if any and leaves Notification::None in its place
     pub fn take_message(&mut self) -> Option<String> {
-        mem::replace(self, Self::None).get_string()
+        mem::replace(self, Self::None).get_message()
     }
 
-    fn get_string(self) -> Option<String> {
+    fn get_message(self) -> Option<String> {
         match self {
             Self::None => None,
             Self::Success(message)
@@ -25,6 +25,7 @@ impl Notification {
         }
     }
 }
+
 
 impl Display for Notification {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
