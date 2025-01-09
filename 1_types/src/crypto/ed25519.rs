@@ -11,28 +11,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
 
-const BIP32_LEAD_WORD: u32 = 44; // 0
-const BIP32_COIN_TYPE_RADIX: u32 = 1022; // 1
-const BIP32_NETWORK_ID_MAINNET: u32 = 1; //2
-const BIP32_NETWORK_ID_STOKENET: u32 = 2; //2
-const BIP32_ENTITY_ACCOUNT: u32 = 525; // 3
-const BIP32_ENTITY_IDENTITY: u32 = 618; //3
-const BIP32_KEY_KIND_TRANSACTION_SIGNING: u32 = 1460; // 4
-const BIP32_KEY_KIND_AUTHENTICATION_SIGNING: u32 = 1678; // 4
-const BIP32_KEY_KIND_MESSAGE_ENCRYPTION: u32 = 1391; // 4
+use super::{bip32_entity::Bip32Entity, bip32_key_kind::Bip32KeyKind, derivation_path_indexes::{BIP32_COIN_TYPE_RADIX, BIP32_LEAD_WORD}};
 
-#[derive(Debug)]
-pub enum Bip32Entity {
-    Account,
-    Identity,
-}
-
-#[derive(Debug)]
-pub enum Bip32KeyKind {
-    TransactionSigning,
-    AuthenticationSigning,
-    MessageEncryption,
-}
 
 ///A key-pair from the dalek_ed25519_fiat crate.
 #[derive(ZeroizeOnDrop)]
@@ -60,29 +40,13 @@ impl Ed25519KeyPair {
     ) -> (Self, [u32; 6]) {
         let seed = Seed::new(mnemonic, password.unwrap_or(""));
 
-        let network_id = match network {
-            Network::Mainnet => BIP32_NETWORK_ID_MAINNET,
-            Network::Stokenet => BIP32_NETWORK_ID_STOKENET,
-        };
-
-        let bip32_entity = match entity {
-            Bip32Entity::Account => BIP32_ENTITY_ACCOUNT,
-            Bip32Entity::Identity => BIP32_ENTITY_IDENTITY,
-        };
-
-        let bip32_key_kind = match key_kind {
-            Bip32KeyKind::TransactionSigning => BIP32_KEY_KIND_TRANSACTION_SIGNING,
-            Bip32KeyKind::AuthenticationSigning => BIP32_KEY_KIND_AUTHENTICATION_SIGNING,
-            Bip32KeyKind::MessageEncryption => BIP32_KEY_KIND_MESSAGE_ENCRYPTION,
-        };
-
         //The starting "m/" is omitted from the derivation path with this implementation
         let derivation_path = [
             BIP32_LEAD_WORD,
             BIP32_COIN_TYPE_RADIX,
-            network_id,
-            bip32_entity,
-            bip32_key_kind,
+            network.id(),
+            entity.path_index(),
+            key_kind.path_index(),
             index,
         ];
 
@@ -114,10 +78,7 @@ impl Ed25519KeyPair {
     }
 
     pub fn bech32_address(&self) -> String {
-        let network_definition = match self.network {
-            Network::Mainnet => NetworkDefinition::mainnet(),
-            Network::Stokenet => NetworkDefinition::stokenet(),
-        };
+        let network_definition= self.network.definition(); 
 
         let virtual_account_address =
             ComponentAddress::preallocated_account_from_public_key(&self.radixdlt_public_key());

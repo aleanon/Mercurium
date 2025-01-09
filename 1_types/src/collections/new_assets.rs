@@ -19,7 +19,7 @@ impl NewAssets {
     pub fn extend(&mut self, other: NewAssets) {
         self.new_fungibles.extend(other.new_fungibles);
         self.new_non_fungibles
-            .extend(other.new_non_fungibles.inner());
+            .extend(other.new_non_fungibles.into_inner());
     }
 }
 
@@ -40,10 +40,10 @@ impl NewNonFungibles {
     }
 
     pub fn extend(&mut self, other: HashMap<ResourceAddress, Vec<String>>) {
-        self.0.extend(other.into_iter())
+        self.0.extend(other)
     }
 
-    pub fn inner(self) -> HashMap<ResourceAddress, Vec<String>> {
+    pub fn into_inner(self) -> HashMap<ResourceAddress, Vec<String>> {
         self.0
     }
 }

@@ -12,7 +12,7 @@ impl SeedPhrase {
     const MAX_WORD_LENGTH: usize = 8;
     const WORD_COUNT: usize = 24;
 
-    pub fn new() -> Self {
+        pub fn new() -> Self {
         Self([[b' '; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT])
     }
 
@@ -61,7 +61,7 @@ impl SeedPhrase {
             }
 
             //The SeedPhrase words can only be created from a &str, it is therefore not possible
-            //to have a non-utf8 byte slice
+            //to have a non-utf8 byte slice, so unwrap is called
             let trimmed_str = std::str::from_utf8(trimmed)
                 .unwrap_unreachable(debug_info!("Invalid utf8 in byte slice"));
 

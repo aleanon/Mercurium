@@ -1,4 +1,4 @@
-use std::num::NonZeroU32;
+use std::{fmt::Debug, num::NonZeroU32};
 
 use async_sqlite::rusqlite::{self, types::FromSql, ToSql};
 use ring::pbkdf2::{self, PBKDF2_HMAC_SHA512};
@@ -19,7 +19,7 @@ pub enum PasswordError {
 ///A secure wrapper around a `String` that implements `ZeroizeOnDrop` to make sure the password is cleaned from memory before it is dropped.
 ///It allocates with the max password size once, to make sure the `zeroize` method works. `Zeroize` can not guarantee data is properly removed
 ///if the memory has been reallocated.
-#[derive(Debug, Clone, ZeroizeOnDrop, PartialEq)]
+#[derive(Clone, ZeroizeOnDrop, PartialEq)]
 pub struct Password(String);
 
 impl Password {
@@ -103,6 +103,18 @@ impl Password {
     }
 }
 
+impl Debug for Password {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Password length: {}", self.0.len())
+    }
+}
+
+impl Default for Password {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<&str> for Password {
     fn from(value: &str) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
@@ -120,16 +132,11 @@ impl From<String> for Password {
     fn from(mut value: String) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
         match value.len() {
-            len if len > 0 && len <= Self::MAX_LEN => {
-                string.push_str(&value[..len]);
-                value.zeroize()
-            }
+            len @ 1..=Self::MAX_LEN => string.push_str(&value[..len]),
             0 => {}
-            _ => {
-                string.push_str(&value[..Self::MAX_LEN]);
-                value.zeroize()
-            }
+            _ => string.push_str(&value[..Self::MAX_LEN]),
         }
+        value.zeroize();
         Self(string)
     }
 }
