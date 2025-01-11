@@ -370,6 +370,4 @@ impl AppDataDb {
             amount: row.get(4)?,
         })
     }
-
-
 }

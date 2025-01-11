@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use async_sqlite::rusqlite::{self, ffi, CachedStatement, Connection, ErrorCode, OpenFlags, Params, Result, Row};
+use async_sqlite::rusqlite::{self, ffi, CachedStatement, Connection, ErrorCode, Params, Result, Row};
 use debug_print::debug_println;
 use thiserror::Error;
 use types::{crypto::DataBaseKey, AppPathError};
@@ -18,7 +18,6 @@ pub enum DbError {
     #[error("Unable to establish path {0}")]
     PathError(#[from] AppPathError),
 }
-
 
 
 impl From<rusqlite::Error> for DbError {
@@ -52,7 +51,7 @@ impl DataBase {
         db.set_database_key(key).await?;
 
         debug_println!("AsyncDb connection up");
-
+        
         Ok(db)
     }
 
