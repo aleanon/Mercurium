@@ -19,15 +19,18 @@ pub struct IconsDb {
 
 impl IconsDb {
     pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
-        let app_path = AppPath::get();
-        let path = app_path.icon_cache_ref(network);
-        let db = DataBase::load(path, key).await?;
-        let icons_db = Self { db };
+        let icons_db = Self::initialize(network, key).await?;
         icons_db.create_tables_if_not_exist().await?;
 
         Ok(Self::get_static(network).get_or_init(|| icons_db))
     }
 
+    pub async fn initialize(network: Network, key: DataBaseKey) -> Result<Self, DbError> {
+        let app_path = AppPath::get();
+        let path = app_path.icon_cache_ref(network);
+        let db = DataBase::load(path, key).await?;
+        Ok(Self { db })
+    }
 
 
     pub async fn get_or_init(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
