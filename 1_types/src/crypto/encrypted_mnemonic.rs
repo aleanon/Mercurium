@@ -1,6 +1,7 @@
 use core::str;
+use std::num::NonZeroU32;
 
-use super::{Key, Password, Salt};
+use super::{Key, KeyAndSalt, KeyType, Password, Salt};
 use bip39::Mnemonic;
 use ring::aead::{
     Aad, BoundKey, Nonce, NonceSequence, OpeningKey, UnboundKey, AES_256_GCM, NONCE_LEN,
@@ -71,6 +72,9 @@ pub struct EncryptedMnemonic {
 }
 
 impl EncryptedMnemonic {
+
+    /// Slow constructor, the derived key uses a high iteration count, it may stall for a significant amount of time.
+    /// This should be run in an async operation if called from a used interface
     pub fn new(
         mnemonic: &Mnemonic,
         seed_password: &str,
@@ -78,14 +82,13 @@ impl EncryptedMnemonic {
     ) -> Result<Self, EncryptedMnemonicError> {
         let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
         let mut seed_password_encrypted: Vec<u8> = seed_password.into();
-        let (mut key, salt) = password
-            .derive_new_mnemonic_encryption_key()
+        let key_and_salt: KeyAndSalt<EncryptedMnemonic> = KeyAndSalt::new(password.as_str())
             .map_err(|_err| EncryptedMnemonicError::FailedToCreateRandomValue)?;
 
         let nonce_sequence = MnemonicNonceSequence::new()?;
         let nonce = nonce_sequence.get_current_as_bytes();
 
-        let unbound_key = UnboundKey::new(&AES_256_GCM, key.as_bytes())
+        let unbound_key = UnboundKey::new(&AES_256_GCM, key_and_salt.key().as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
 
@@ -98,21 +101,20 @@ impl EncryptedMnemonic {
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
 
         //TODO: Investigate zeroizing of the sealing key.
-        key.zeroize();
 
         Ok(Self {
             encrypted_seed_phrase: mnemonic_encrypted,
             encrypted_seed_password: seed_password_encrypted,
-            salt: salt,
+            salt: key_and_salt.into_salt(),
             nonce_bytes: nonce,
         })
     }
 
+    /// Fast constructor with a pre generated encryption key
     pub fn new_with_key_and_salt(
         mnemonic: &Mnemonic,
         seed_password: &str,
-        mut encryption_key: Key,
-        salt: Salt,
+        encryption_key_salt: KeyAndSalt<EncryptedMnemonic>,
     ) -> Result<Self, EncryptedMnemonicError> {
         let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
         let mut seed_password_encrypted: Vec<u8> = seed_password.into();
@@ -120,7 +122,7 @@ impl EncryptedMnemonic {
         let nonce_sequence = MnemonicNonceSequence::new()?;
         let nonce = nonce_sequence.get_current_as_bytes();
 
-        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key.as_bytes())
+        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key_salt.key().as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
 
@@ -133,12 +135,12 @@ impl EncryptedMnemonic {
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
 
         //TODO: See if there is a way to zeroize the sealing key
-        encryption_key.zeroize();
+        
 
         Ok(Self {
             encrypted_seed_phrase: mnemonic_encrypted,
             encrypted_seed_password: seed_password_encrypted,
-            salt: salt,
+            salt: encryption_key_salt.into_salt(),
             nonce_bytes: nonce,
         })
     }
@@ -147,7 +149,7 @@ impl EncryptedMnemonic {
         &self,
         password: &Password,
     ) -> Result<(Mnemonic, Password), EncryptedMnemonicError> {
-        let encryption_key = password.derive_mnemonic_encryption_key_from_salt(&self.salt);
+        let encryption_key: Key<EncryptedMnemonic> = Key::new(password.as_str(), &self.salt);
         let unbound_key = UnboundKey::new(&AES_256_GCM, &encryption_key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let nonce_sequence = MnemonicNonceSequence::with_nonce(&Nonce::assume_unique_for_key(
@@ -186,6 +188,11 @@ impl EncryptedMnemonic {
 
         Ok((mnemonic, seed_password))
     }
+}
+
+impl KeyType for EncryptedMnemonic {
+    const LENGTH: usize = 32;
+    const ITERATIONS: std::num::NonZeroU32 = NonZeroU32::new(2000000).unwrap();
 }
 
 #[cfg(test)]

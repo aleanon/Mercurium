@@ -8,12 +8,12 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use crate::debug_info;
 use crate::unwrap_unreachable::UnwrapUnreachable;
 
-use super::{encryption_error::EncryptionError, key::Key, salt::Salt, DataBaseKey};
+use super::{encryption_error::CryptoError, key::Key, salt::Salt};
 
 #[derive(Debug, Error)]
 pub enum PasswordError {
     #[error("Failed to derive Encryption key: {0}")]
-    EncryptionKeyError(#[from] EncryptionError),
+    EncryptionKeyError(#[from] CryptoError),
 }
 
 ///A secure wrapper around a `String` that implements `ZeroizeOnDrop` to make sure the password is cleaned from memory before it is dropped.
@@ -42,11 +42,8 @@ impl Password {
 
     /// Replaces the current password with the supplied [&str]
     pub fn replace(&mut self, s: &str) {
-        if s.len() <= Self::MAX_LEN {
-            self.0.replace_range(..s.len(), s)
-        } else {
-            self.0.replace_range(..Self::MAX_LEN, &s[..Self::MAX_LEN])
-        }
+        self.0.clear();
+        self.push_str(s);
     }
 
     pub fn push_str(&mut self, s: &str) {
@@ -76,31 +73,31 @@ impl Password {
         &self.0
     }
 
-    pub fn derive_new_db_encryption_key(&self) -> Result<(DataBaseKey, Salt), PasswordError> {
-        let salt = Salt::new()?;
-        let key = Key::db_encryption_key(&salt, &self);
+    // pub fn derive_new_db_encryption_key(&self) -> Result<(Key<DataBaseKey>, Salt), PasswordError> {
+    //     let salt = Salt::new()?;
+    //     let key = Key::new(&self.as_str(), &salt);
 
-        Ok((key.into_database_key(), salt))
-    }
+    //     Ok((key, salt))
+    // }
 
-    pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> DataBaseKey {
-        Key::db_encryption_key(salt, &self).into_database_key()
-    }
+    // pub fn derive_db_encryption_key_from_salt(&self, salt: &Salt) -> Key<DataBaseKey> {
+    //     Key::new(&self.as_str(), salt)
+    // }
 
     pub fn derive_db_encryption_key_hash_from_salt(&self, salt: &Salt) -> HashedPassword {
         HashedPassword::new(salt, self)
     }
 
-    pub fn derive_new_mnemonic_encryption_key(&self) -> Result<(Key, Salt), PasswordError> {
-        let salt = Salt::new()?;
-        let key = Key::mnemonic_encryption_key(&salt, &self);
+    // pub fn derive_new_mnemonic_encryption_key(&self) -> Result<(Key<MnemonicKey>, Salt), PasswordError> {
+    //     let salt = Salt::new()?;
+    //     let key = Key::new(&self.as_str(), &salt);
 
-        Ok((key, salt))
-    }
+    //     Ok((key, salt))
+    // }
 
-    pub fn derive_mnemonic_encryption_key_from_salt(&self, salt: &Salt) -> Key {
-        Key::mnemonic_encryption_key(salt, &self)
-    }
+    // pub fn derive_mnemonic_encryption_key_from_salt(&self, salt: &Salt) -> Key<MnemonicKey> {
+    //     Key::new(&self.as_str(), salt)
+    // }
 }
 
 impl Debug for Password {

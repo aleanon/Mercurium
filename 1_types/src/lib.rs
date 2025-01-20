@@ -1,3 +1,7 @@
+// #![feature(generic_const_exprs)]
+// #![feature(generic_const_items)]
+// #![feature(associated_type_defaults)]
+
 pub(crate) mod account;
 pub(crate) mod app_error;
 pub(crate) mod app_path;

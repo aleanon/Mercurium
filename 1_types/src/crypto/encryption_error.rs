@@ -3,7 +3,7 @@ use thiserror::Error;
 
 
 #[derive(Error, Debug)]
-pub enum EncryptionError {
+pub enum CryptoError {
     #[error("Failed to create random value")]
     FailedToCreateRandomValue,
 }
