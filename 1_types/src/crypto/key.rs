@@ -9,6 +9,7 @@ pub trait KeyType {
     const ITERATIONS: NonZeroU32;
 }
 
+const KEY_LENGTH: usize = 32;
 
 #[derive(Clone, ZeroizeOnDrop, Zeroize)]
 pub struct Key<T> 
@@ -16,7 +17,7 @@ pub struct Key<T>
         T: KeyType,
         
 {
-    inner: Vec<u8>,
+    inner: [u8; KEY_LENGTH],
     _marker: std::marker::PhantomData<T>,
 }
 
@@ -25,14 +26,15 @@ impl<T> Key<T>
     where 
         T: KeyType,
 {
-    // pub const LENGTH: usize = 32;
+    pub const LENGTH: usize = 32;
     // //Iteration counts needs to be > 0 else the program will panic
     // const DB_KEY_ITERATIONS: u32 = 200000;
     // const MNEMONIC_KEY_ITERATIONS: u32 = 2000000;
 
 
     pub fn new(source: &str, salt: &Salt) -> Self {
-        let mut key = Vec::with_capacity(T::LENGTH);
+        // Change to generic array length through the KeyType trait when the functionality is stable
+        let mut key = [0u8;KEY_LENGTH];
 
         pbkdf2::derive(
             PBKDF2_HMAC_SHA256,
@@ -85,7 +87,7 @@ impl<T> Key<T>
     //     DataBaseKey::from_key(self)
     // }
 
-    pub fn into_inner(mut self) -> Vec<u8> {
+    pub fn into_inner(mut self) -> [u8; KEY_LENGTH] {
         std::mem::take(&mut self.inner)
     }
 }
@@ -96,7 +98,7 @@ impl<T> Default for Key<T>
 {
     fn default() -> Self {
         Self {
-            inner: vec![0; T::LENGTH],
+            inner: [0; KEY_LENGTH],
             _marker: PhantomData,
         }
     }

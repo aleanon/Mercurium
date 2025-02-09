@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
+
 /// [UnsafeRef] wrapps an immutable raw pointer to type `T` and implements [Send]
 /// so a reference can be sent across threads/async boundaries without reference counting.
 /// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated 
@@ -9,10 +10,10 @@ pub struct UnsafeRef<T: ?Sized>(*const T);
 
 impl<T: ?Sized> UnsafeRef<T> {
     pub unsafe fn new(value: &T) -> Self {
-        let ptr: *const T = value;
-        Self(ptr)
+        Self(value as *const T)
     }
 }
+
 
 impl<T: ?Sized> Deref for UnsafeRef<T> {
     type Target = T;
@@ -60,27 +61,27 @@ unsafe impl<T> Send for UnsafeSlice<T> {}
 
 /// [UnsafeRefMut] (Mutable Unsafe Reference) wrapps a mutable raw pointer to type `T` and implements [Send]
 /// so a mutable reference can be sent across threads/async boundaries without reference counting.
-/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and has no colliding reads/writes while the MutUr is in use,
-pub struct UnsafeRefMut<T>(*mut T);
+/// The user needs to make sure that the value pointed to is not dropped, not moved in memory and still only has one mutable reference at any time.
+/// Be careful not to compare references returned from this type, use only for reading and writing through the wrapped pointer.
+pub struct UnsafeRefMut<T: ?Sized>(*mut T);
 
-impl<T> UnsafeRefMut<T> {
+impl<T: ?Sized> UnsafeRefMut<T> {
     pub unsafe fn new(value: &mut T) -> Self {
-        let ptr: *mut T = value;
-        Self(&mut *ptr)
+        Self(value as *mut T)
     }
 }
 
-impl<T> Deref for UnsafeRefMut<T> {
+impl<T: ?Sized> Deref for UnsafeRefMut<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.0 }
     }
 }
 
-impl<T> DerefMut for UnsafeRefMut<T> {
+impl<T: ?Sized> DerefMut for UnsafeRefMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.0 }
     }
 }
 
-unsafe impl<T> Send for UnsafeRefMut<T> {}
+unsafe impl<T: ?Sized + Send> Send for UnsafeRefMut<T> {}
