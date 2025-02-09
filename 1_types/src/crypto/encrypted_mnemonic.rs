@@ -63,7 +63,7 @@ impl NonceSequence for MnemonicNonceSequence {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedMnemonic {
     encrypted_seed_phrase: Vec<u8>,
     encrypted_seed_password: Vec<u8>,
@@ -73,8 +73,8 @@ pub struct EncryptedMnemonic {
 
 impl EncryptedMnemonic {
 
-    /// Slow constructor, the derived key uses a high iteration count, it may stall for a significant amount of time.
-    /// This should be run in an async operation if called from a used interface
+    /// Slow constructor, the key derivation uses a high iteration count, it may stall for a significant amount of time.
+    /// This should be run as an async operation
     pub fn new(
         mnemonic: &Mnemonic,
         seed_password: &str,

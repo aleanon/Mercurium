@@ -5,7 +5,7 @@ use zeroize::ZeroizeOnDrop;
 
 use super::{CryptoError, Key, KeyType, Salt};
 
-#[derive(Debug, ZeroizeOnDrop)]
+#[derive(Debug, Clone, ZeroizeOnDrop)]
 pub struct KeyAndSalt<T> 
     where 
         T: KeyType,
