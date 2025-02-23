@@ -45,10 +45,11 @@ pub async fn update_accounts(
     // therefore we pass around a non reference counted unsafe reference to resources to sub tasks
     let resources = unsafe { UnsafeRef::new(&*resources) };
 
-    let tasks = accounts.into_iter().map(|account| {
-        let resources = resources.clone();
-        tokio::spawn(async move { update_account(network, resources, account).await })
-    });
+    let tasks = accounts
+        .into_iter()
+        .map(|account| tokio::spawn(async move { 
+            update_account(network, resources, account).await 
+        }));
 
     join_all(tasks)
         .await
@@ -94,7 +95,7 @@ async fn update_account(
     let transactions_last_updated = account.transactions_last_updated;
 
     // The account address should be used througout tasks and is never mutated or removed from the Account struct.
-    // by the end of this function all tasks will be completed, so the UsafeRef will never be used while the reference is not valid
+    // by the end of this function all tasks will be completed, so the UnsafeRef will never be used while the reference is not valid
     let account_address = unsafe { UnsafeRef::new(&account.address) };
 
     let fungible_assets_task = tokio::spawn(async move {

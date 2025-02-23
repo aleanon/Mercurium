@@ -1,7 +1,7 @@
 use bip39::Mnemonic;
-use store::AppDataDb;
+use store::{AppDataDb, DataBase};
 use types::{
-    crypto::{DataBaseKey, EncryptedMnemonic, HashedPassword, Key, Salt},
+    crypto::{EncryptedMnemonic, HashedPassword, Key, KeySaltPair, Salt},
     Account, AppError, Network,
 };
 
@@ -10,8 +10,8 @@ use types::{
 pub async fn create_new_wallet_with_accounts(
     mnemonic: &Mnemonic,
     seed_password: Option<&str>,
-    db_key_salt: (DataBaseKey, Salt),
-    mnemonic_key_salt: (Key, Salt),
+    mut db_key_salt: KeySaltPair<DataBase>,
+    mnemonic_key_salt: KeySaltPair<EncryptedMnemonic>,
     password_hash: HashedPassword,
     accounts: &[Account],
     network: Network,
@@ -19,17 +19,16 @@ pub async fn create_new_wallet_with_accounts(
     let encrypted_mnemonic = EncryptedMnemonic::new_with_key_and_salt(
         mnemonic,
         seed_password.unwrap_or(""),
-        mnemonic_key_salt.0,
-        mnemonic_key_salt.1,
+        mnemonic_key_salt,
     )
     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     crate::credentials::store_encrypted_mnemonic(&encrypted_mnemonic)
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    crate::credentials::store_db_encryption_salt(db_key_salt.1)?;
+    crate::credentials::store_db_encryption_salt(db_key_salt.take_salt())?;
 
-    let db = AppDataDb::load(network, db_key_salt.0)
+    let db = AppDataDb::load(network, db_key_salt.take_key())
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 

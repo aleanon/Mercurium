@@ -17,21 +17,19 @@ pub fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(
 ) -> T {
     let end_index = account_index + number_of_accounts;
 
-    (account_index..end_index)
-        .into_iter()
-        .map(|i| {
-            let account = create_account_from_mnemonic(
-                mnemonic,
-                password,
-                start_id,
-                i,
-                String::new(),
-                network,
-            );
-            start_id += 1;
-            account
-        })
-        .collect()
+    (account_index..end_index).map(|i| {
+        let account = create_account_from_mnemonic(
+            mnemonic,
+            password,
+            start_id,
+            i,
+            String::new(),
+            network,
+        );
+        start_id += 1;
+        account
+    })
+    .collect()
 }
 
 pub fn create_account_from_mnemonic(

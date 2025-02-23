@@ -9,6 +9,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod text;
 pub mod text_input;
+pub mod password_input;
 
 // pub use button::*;
 // pub use container::*;

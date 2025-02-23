@@ -1,7 +1,7 @@
 use core::str;
 use std::num::NonZeroU32;
 
-use super::{Key, KeyAndSalt, KeyType, Password, Salt};
+use super::{Key, KeySaltPair, KeyType, Password, Salt};
 use bip39::Mnemonic;
 use ring::aead::{
     Aad, BoundKey, Nonce, NonceSequence, OpeningKey, UnboundKey, AES_256_GCM, NONCE_LEN,
@@ -82,7 +82,7 @@ impl EncryptedMnemonic {
     ) -> Result<Self, EncryptedMnemonicError> {
         let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
         let mut seed_password_encrypted: Vec<u8> = seed_password.into();
-        let key_and_salt: KeyAndSalt<EncryptedMnemonic> = KeyAndSalt::new(password.as_str())
+        let key_and_salt: KeySaltPair<EncryptedMnemonic> = KeySaltPair::new(password.as_str())
             .map_err(|_err| EncryptedMnemonicError::FailedToCreateRandomValue)?;
 
         let nonce_sequence = MnemonicNonceSequence::new()?;
@@ -114,7 +114,7 @@ impl EncryptedMnemonic {
     pub fn new_with_key_and_salt(
         mnemonic: &Mnemonic,
         seed_password: &str,
-        encryption_key_salt: KeyAndSalt<EncryptedMnemonic>,
+        encryption_key_salt: KeySaltPair<EncryptedMnemonic>,
     ) -> Result<Self, EncryptedMnemonicError> {
         let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
         let mut seed_password_encrypted: Vec<u8> = seed_password.into();
@@ -191,7 +191,7 @@ impl EncryptedMnemonic {
 }
 
 impl KeyType for EncryptedMnemonic {
-    const LENGTH: usize = 32;
+    const KEY_LENGTH: usize = 32;
     const ITERATIONS: std::num::NonZeroU32 = NonZeroU32::new(2000000).unwrap();
 }
 

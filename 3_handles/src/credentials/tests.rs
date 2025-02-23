@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 use bip39::Mnemonic;
-use types::crypto::{EncryptedMnemonic, Password};
+use store::DataBase;
+use types::crypto::{EncryptedMnemonic, KeySaltPair, Password};
 
 
 use crate::credentials::{delete_encrypted_mnemonic, delete_salt, get_db_encryption_salt, get_encrypted_mnemonic, store_db_encryption_salt, store_encrypted_mnemonic};
@@ -24,9 +25,10 @@ fn test_store_get_delete_blob() {
 fn test_store_get_delete_salt() {
     for i in 0..TEST_PASSWORDS.len() {
         let password = Password::from(TEST_PASSWORDS[i]);
-        let (_, salt) = password
-            .derive_new_db_encryption_key()
-            .expect("Unable to derive key and salt from password");
+        let salt = KeySaltPair::<DataBase>::new(password.as_str())
+            .expect("Unable to derive key and salt from password")
+            .into_salt();
+
         store_db_encryption_salt(salt.clone()).expect("Failed to store salt");
 
         let retrieved_salt = get_db_encryption_salt().expect("Failed when retrieving salt");

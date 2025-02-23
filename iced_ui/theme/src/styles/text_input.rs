@@ -23,3 +23,13 @@ pub fn asset_amount(theme: &Theme, status: Status) -> Style {
 
     style
 }
+
+pub fn borderless(theme: &Theme, status: Status) -> Style {
+    let mut style = default(theme, status);
+    style.border = Border {
+        width: 0.,
+        color: Color::TRANSPARENT,
+        ..Default::default()
+    };
+    style
+}

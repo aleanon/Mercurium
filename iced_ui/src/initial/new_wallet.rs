@@ -6,8 +6,8 @@ use iced::{
     widget::{self, text_input::Id, Button, Column, Row},
     Element, Length,
 };
-use store::AppDataDb;
-use types::crypto::{EncryptedMnemonic, Password, SeedPhrase};
+use store::{AppDataDb, DataBase};
+use types::crypto::{EncryptedMnemonic, KeySaltPair, Password, SeedPhrase};
 use types::UnsafeRefMut;
 use types::{AppError, Network};
 use zeroize::Zeroize;
@@ -222,8 +222,8 @@ impl<'a> NewWallet {
                     unreachable!("{}:{} Mnemonic not found", module_path!(), line!())
                 });
 
-                let (key, salt) = match new_wallet.password.derive_new_db_encryption_key() {
-                    Ok((key, salt)) => (key, salt),
+                let (key, salt) = match KeySaltPair::<DataBase>::new(new_wallet.password.as_str()) {
+                    Ok(key_and_salt) => key_and_salt.into_inner(),
                     Err(_) => {
                         new_wallet.notification =
                             "Unable to create random value for key derivation, please try again";

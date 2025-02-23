@@ -5,3 +5,4 @@ pub mod radix_dlt;
 pub mod statics;
 pub mod store;
 pub mod wallet;
+pub mod database_handle;

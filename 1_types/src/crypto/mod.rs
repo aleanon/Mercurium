@@ -9,7 +9,8 @@ pub(crate) mod seedphrase;
 pub(crate) mod bip32_entity;
 pub(crate) mod bip32_key_kind;
 pub(crate) mod derivation_path_indexes;
-pub(crate) mod key_and_salt;
+pub(crate) mod key_salt_pair;
+pub(crate) mod encryption;
 
 pub use bip32_entity::Bip32Entity;
 pub use bip32_key_kind::Bip32KeyKind;
@@ -21,7 +22,7 @@ pub use password::{HashedPassword, Password, PasswordError};
 pub use public_key::PublicKey;
 pub use salt::Salt;
 pub use seedphrase::{Phrase, SeedPhrase};
-pub use key_and_salt::KeyAndSalt;
+pub use key_salt_pair::KeySaltPair;
 
 // Re export
 pub use bip39;

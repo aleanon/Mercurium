@@ -1,22 +1,25 @@
+use std::mem;
+
 use debug_print::debug_println;
+use font_and_icons::images::MENU_LOGO;
 use iced::{
-    widget::{self, text::LineHeight, text_input::Id},
+    widget::{self, image::Handle},
     Element, Length, Task,
 };
 use types::{crypto::Password, AppError};
 use zeroize::Zeroize;
 
 use crate::{
-    app::{AppData, AppMessage},
-    external_task_response, external_tasks,
+    app::{AppData, AppMessage}, components::password_input::password_input, external_task_response, external_tasks
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    TextInputChanged(String),
     Login,
     LoginFailed(String),
     LoginSuccess,
+    PasswordInput(String),
+    ToggleShowPassword,
 }
 
 impl Into<AppMessage> for Message {
@@ -24,6 +27,7 @@ impl Into<AppMessage> for Message {
         AppMessage::Login(self)
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Status {
@@ -37,6 +41,7 @@ pub struct LoginScreen {
     pub application_is_starting: bool,
     pub notification: String,
     pub password: Password,
+    pub show_password: bool,
 }
 
 impl<'a> LoginScreen {
@@ -46,20 +51,22 @@ impl<'a> LoginScreen {
             application_is_starting: on_application_statup,
             notification: String::new(),
             password: Password::new(),
+            show_password: false,
         }
     }
 
-    pub fn password(&self) -> &Password {
-        &self.password
+    fn toggle_view(&mut self) {
+        self.show_password = !self.show_password;
+    }
+
+    fn input(&mut self, mut input: String) {
+        self.password.clear();
+        self.password.push_str(&input);
+        input.zeroize();
     }
 
     pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
         match message {
-            Message::TextInputChanged(mut string) => {
-                self.password.clear();
-                self.password.push_str(string.as_str());
-                string.zeroize()
-            }
             Message::Login => {
                 self.status = Status::LoggingIn;
                 return self.login(appdata);
@@ -73,6 +80,8 @@ impl<'a> LoginScreen {
                     return external_tasks::initial_login_tasks(appdata.settings.network);
                 };
             }
+            Message::PasswordInput(input) => self.input(input),
+            Message::ToggleShowPassword => self.toggle_view(),
         }
         Task::none()
     }
@@ -81,10 +90,10 @@ impl<'a> LoginScreen {
         debug_println!("Logging in");
 
         self.status = Status::LoggingIn;
-        let password = std::mem::replace(&mut self.password, Password::new());
+        let password = mem::take(&mut self.password);
         let network = appdata.settings.network;
         Task::perform(
-            async move { handles::wallet::perform_login_check(network, password).await },
+                async move { handles::wallet::perform_login_check(network, &password).await },
             |result| match result {
                 Ok(_) => Message::LoginSuccess.into(),
                 Err(err) =>{
@@ -95,35 +104,46 @@ impl<'a> LoginScreen {
                             Message::LoginFailed(notification.to_string()).into()
                         }
                     }
-                } 
+                }
             },
         )
     }
 
-    pub fn view(&self) -> Element<'a, AppMessage> {
-        let text_field = widget::text_input("Enter Password", &self.password.as_str())
-            .secure(true)
-            .width(250)
-            .line_height(LineHeight::Relative(2.))
-            .on_submit(Message::Login.into())
-            .size(15)
-            .id(Id::new("password_input"))
-            .on_input(|value| Message::TextInputChanged(value).into());
+    pub fn view(&self) -> Element<'a, Message> {
+        // if self.status == Status::LoggingIn {
+        //     return
+        // }
+
+        let logo = widget::image(Handle::from_bytes(MENU_LOGO)).width(100).height(100);
+
+        let info_text  = widget::text("Enter password to continue")
+            .size(15);
+
+        let space = widget::vertical_space().height(15);
+
+        let password_input = password_input(
+            self.password.as_str(),
+            self.show_password,
+            Message::ToggleShowPassword,
+            Message::PasswordInput,
+            Message::PasswordInput,
+            Message::Login)
+                .width(200)
+                .height(30);
 
         let login_button = widget::Button::new(
             widget::text("Login")
                 .size(15)
-                .align_x(iced::alignment::Horizontal::Center)
+                .center()
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .align_y(iced::alignment::Vertical::Center),
         )
         .height(30)
         .width(100)
         .style(widget::button::primary)
-        .on_press(Message::Login.into());
+        .on_press(Message::Login);
 
-        let col = widget::column![text_field, login_button]
+        let col = widget::column![logo, space, info_text, password_input, login_button]
             .height(Length::Shrink)
             .width(Length::Shrink)
             .align_x(iced::Alignment::Center)
