@@ -15,8 +15,6 @@ use types::{
     address::{AccountAddress, ResourceAddress},
     Account, AppError, AppSettings, Resource, Theme,
 };
-// use iced_futures::futures::channel::mpsc::Sender as MpscSender;
-// use iced_futures::futures::SinkExt;
 
 use crate::common::Message;
 use crate::error::errorscreen::ErrorMessage;
@@ -124,7 +122,7 @@ impl App {
                     return task;
                 }
                 _ => {
-                    if let AppState::Locked(ref mut loginscreen) = &mut self.app_state {
+                    if let AppState::Locked(loginscreen) = &mut self.app_state {
                         return loginscreen.update(login_message, &mut self.app_data);
                     }
                 }
@@ -148,7 +146,7 @@ impl App {
     fn view(&self) -> iced::Element<AppMessage> {
         match &self.app_state {
             AppState::Initial(setup) => setup.view(self),
-            AppState::Locked(loginscreen) => loginscreen.view(),
+            AppState::Locked(loginscreen) => loginscreen.view().map(AppMessage::Login),
             AppState::Unlocked => self.appview.view(&self.app_data),
             AppState::Error(error) => container(text(error))
                 .center_x(Length::Fill)
@@ -170,7 +168,7 @@ impl App {
         .unwrap();
 
         let mut settings = Settings {
-            antialiasing: false,
+            antialiasing: true,
             ..Default::default()
         };
         settings.fonts.push(Cow::Borrowed(BOOTSTRAP_FONT_BYTES));

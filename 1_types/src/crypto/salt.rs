@@ -1,18 +1,23 @@
 use super::encryption_error::CryptoError;
+use once_cell::sync::OnceCell;
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
 use std::{array::TryFromSliceError, fmt::Debug};
 use zeroize::ZeroizeOnDrop;
+
+static SYSTEM_RANDOM: OnceCell<SystemRandom> = OnceCell::new();
 
 #[cfg_attr(debug_assertions, derive(PartialEq, Eq))]
 #[derive(Clone, ZeroizeOnDrop, Serialize, Deserialize)]
 pub struct Salt([u8; Self::LENGTH]);
 
 impl Salt {
+
     pub const LENGTH: usize = 32;
 
     pub fn new() -> Result<Self, CryptoError> {
         let mut salt = [0u8; Self::LENGTH];
+        // make into a static
         SystemRandom::new()
             .fill(&mut salt)
             .map_err(|_| CryptoError::FailedToCreateRandomValue)?;

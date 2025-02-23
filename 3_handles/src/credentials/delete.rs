@@ -28,7 +28,7 @@ mod mswindows {
 
         let result: Result<(), AppError>;
         unsafe {
-            match CredDeleteW(PCWSTR(target_name.as_mut_ptr()), CRED_TYPE_GENERIC, 0) {
+            match CredDeleteW(PCWSTR(target_name.as_mut_ptr()), CRED_TYPE_GENERIC, Some(0)) {
                 Ok(_) => result = Ok(()),
                 Err(err) => result = Err(AppError::Fatal(err.to_string())),
             }

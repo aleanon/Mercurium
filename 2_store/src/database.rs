@@ -1,9 +1,11 @@
-use std::path::Path;
+use std::{fmt::Debug, num::NonZeroU32, path::Path};
 
 use async_sqlite::rusqlite::{self, ffi, CachedStatement, Connection, ErrorCode, Params, Result, Row};
 use debug_print::debug_println;
 use thiserror::Error;
-use types::{crypto::DataBaseKey, AppPathError};
+use types::{crypto::{Key, KeyType}, AppPathError};
+
+use crate::sqlite_key::SqliteKey;
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -40,13 +42,15 @@ impl From<async_sqlite::Error> for DbError {
     }
 }
 
+
+
 #[derive(Clone)]
 pub struct DataBase {
     pub(crate) client: async_sqlite::Client,
 }
 
 impl DataBase {
-    pub(crate) async fn load(path: &Path, key: DataBaseKey) -> Result<Self, DbError> {
+    pub(crate) async fn load(path: &Path, key: Key<DataBase>) -> Result<Self, DbError> {
         let db = Self::new_with_async_client(path).await?;
         db.set_database_key(key).await?;
 
@@ -64,8 +68,8 @@ impl DataBase {
         Ok(Self { client })
     }
 
-    async fn set_database_key(&self, key: DataBaseKey) -> Result<(), DbError> {
-        self.conn(move |conn| conn.pragma_update(None, "key", key))
+    async fn set_database_key(&self, key: Key<DataBase>) -> Result<(), DbError> {
+        self.conn(move |conn| conn.pragma_update(None, "key", SqliteKey::from_key(&key)))
             .await
     }
 
@@ -170,11 +174,24 @@ impl DataBase {
     }
 }
 
+impl Debug for DataBase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DataBase")
+    }
+}
+
+impl KeyType for DataBase {
+    const KEY_LENGTH: usize = 32;
+    const ITERATIONS: std::num::NonZeroU32 = NonZeroU32::new(200000).unwrap();
+}
+
+
+
 #[cfg(test)]
 pub mod test {
     use std::{fs::File, io::Write};
 
-    use types::crypto::Password;
+    use types::crypto::{KeySaltPair, Password};
 
     use crate::app_data_db::statements::{accounts, fungible_assets, non_fungible_assets};
 
@@ -200,10 +217,9 @@ pub mod test {
     async fn test_set_database_key() {
         File::create("./mock.db").unwrap().write(&[]).unwrap();
 
-        let key = Password::from("SomePasswordtype")
-            .derive_new_db_encryption_key()
+        let key = KeySaltPair::new(Password::from("SomePasswordtype").as_str())
             .unwrap()
-            .0;
+            .into_key();
         {
             let client = async_sqlite::ClientBuilder::new()
                 .path("./mock.db")

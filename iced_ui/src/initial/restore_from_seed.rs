@@ -7,9 +7,9 @@ use debug_print::debug_println;
 use iced::{
     widget::{self, column, container, image::Handle, Text}, Element, Length, Task
 };
-use store::IconsDb;
+use store::{DataBase, IconsDb};
 use types::{
-    address::ResourceAddress, collections::AccountsUpdate, crypto::{DataBaseKey, HashedPassword, Key, Password, PasswordError, Salt}, debug_info, Account, AccountSummary, AppError, AppPath, AppPathInner, UnsafeRefMut, Network, TaskResponse, UnsafeRef
+    address::ResourceAddress, collections::AccountsUpdate, crypto::{EncryptedMnemonic, HashedPassword, Key, KeySaltPair, KeyType, Password, PasswordError, Salt}, debug_info, Account, AccountSummary, AppError, AppPath, AppPathInner, Network, TaskResponse, UnsafeRef, UnsafeRefMut
 };
 
 use crate::{
@@ -37,7 +37,7 @@ pub struct AccountsData {
 pub enum Message {
     Next,
     Back,
-    DbAndMnemonicKeySaltReceived(TaskResponse<KeyAndSalt>),
+    DbAndMnemonicKeySaltReceived(TaskResponse<KeysWithSalt>),
     AccountsCreated(TaskResponse<Vec<(Account, bool, AccountSummary)>>),
     AccountsUpdated(TaskResponse<AccountsUpdate>),
     IconsReceived(TaskResponse<HashMap<ResourceAddress, Handle>>),
@@ -66,20 +66,16 @@ pub enum Page {
 
 
 #[derive(Debug, Clone)]
-pub struct KeyAndSalt {
-    pub db_key: DataBaseKey, 
-    pub db_salt: Salt,
-    pub mnemonic_key: Key,
-    pub mnemonic_salt: Salt,
+pub struct KeysWithSalt {
+    pub db_key_salt: KeySaltPair<DataBase>, 
+    pub mnemonic_key_salt: KeySaltPair<EncryptedMnemonic>,
 }
 
-impl KeyAndSalt {
-    pub fn new((db_key, db_salt): (DataBaseKey, Salt), (mnemonic_key, mnemonic_salt): (Key, Salt)) -> Self {
+impl KeysWithSalt {
+    pub fn new(db_key_salt: KeySaltPair<DataBase>, mnemonic_key_salt: KeySaltPair<EncryptedMnemonic>) -> Self {
         Self {
-            db_key,
-            db_salt,
-            mnemonic_key,
-            mnemonic_salt,
+           db_key_salt,
+           mnemonic_key_salt
         }
     }
 }
@@ -88,7 +84,7 @@ impl KeyAndSalt {
 #[derive(Debug)]
 pub struct RestoreFromSeed {
     pub page: Page,
-    key_and_salt: TaskResponse<KeyAndSalt>,
+    key_and_salt: TaskResponse<KeysWithSalt>,
     accounts: TaskResponse<Vec<(Account, bool, AccountSummary)>>,
     accounts_update: TaskResponse<AccountsUpdate>,
     icons_data: TaskResponse<HashMap<ResourceAddress, Handle>>,
@@ -222,9 +218,9 @@ impl<'a> RestoreFromSeed {
     ) -> Task<AppMessage> {
         Task::perform(
             async move {
-                let db_key_salt = password.derive_new_db_encryption_key()?;
-                let mnemonic_key_salt = password.derive_new_mnemonic_encryption_key()?;
-                let key_and_salt = KeyAndSalt::new(db_key_salt, mnemonic_key_salt);
+                let db_key_salt = KeySaltPair::new(password.as_str())?;
+                let mnemonic_key_salt = KeySaltPair::<EncryptedMnemonic>::new(password.as_str())?;
+                let key_and_salt = KeysWithSalt::new(db_key_salt, mnemonic_key_salt);
 
                 Ok::<_, PasswordError>(TaskResponse::new(task_id, Some(key_and_salt)))
             },
@@ -386,22 +382,20 @@ impl<'a> RestoreFromSeed {
 
         Task::perform(
             async move {
-                let (db_key, db_salt, mnemonic_key, mnemonic_salt) = match key_and_salt {
-                    Some(key_and_salt) => (key_and_salt.db_key, key_and_salt.db_salt, key_and_salt.mnemonic_key, key_and_salt.mnemonic_salt),
+                let (db_key_salt, mnemonic_key_salt) = match key_and_salt {
+                    Some(key_and_salt) => (key_and_salt.db_key_salt, key_and_salt.mnemonic_key_salt),
                     None => {
-                        let (db_key, db_salt) = setup_data
-                        .password
-                        .derive_new_db_encryption_key()
-                        .map_err(|err| AppError::Fatal(err.to_string()))?;
-
-                        let (mnemonic_key, mnemonic_salt) = setup_data.password
-                            .derive_new_mnemonic_encryption_key()
+                        let db_key_salt = KeySaltPair::<DataBase>::new(setup_data.password.as_str())
                             .map_err(|err| AppError::Fatal(err.to_string()))?;
-                        (db_key, db_salt, mnemonic_key, mnemonic_salt)
+
+                        let mnemonic_key_salt = KeySaltPair::<EncryptedMnemonic>::new(setup_data.password.as_str())
+                            .map_err(|err| AppError::Fatal(err.to_string()))?;
+
+                        (db_key_salt, mnemonic_key_salt)
                     }
                 };
 
-                let password_hash = setup_data.password.derive_db_encryption_key_hash_from_salt(&db_salt);
+                let password_hash = setup_data.password.derive_db_encryption_key_hash_from_salt(db_key_salt.salt());
 
                 let seed_pw_as_str = setup_data
                     .seed_password
@@ -411,11 +405,13 @@ impl<'a> RestoreFromSeed {
                 AppPath::get().create_directories_if_not_exists()
                     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
+                let db_key = db_key_salt.key().clone();
+
                 handles::wallet::create_new_wallet_with_accounts(
                     &setup_data.mnemonic,
                     seed_pw_as_str,
-                    (db_key.clone(), db_salt),
-                    (mnemonic_key, mnemonic_salt),
+                    db_key_salt,
+                    mnemonic_key_salt,
                     password_hash,
                     &setup_data.accounts,
                     network,

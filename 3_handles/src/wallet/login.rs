@@ -1,13 +1,13 @@
 use debug_print::debug_println;
 use futures::TryFutureExt;
 use store::{AppDataDb, DbError, IconsDb};
-use types::{crypto::Password, AppError, Network};
+use types::{crypto::{Key, Password}, AppError, Network};
 
-pub async fn perform_login_check(network: Network, password: Password) -> Result<(), AppError> {
+pub async fn perform_login_check(network: Network, password: &Password) -> Result<(), AppError> {
     let salt = crate::credentials::get_db_encryption_salt()?;
     let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
 
-    let key = password.derive_db_encryption_key_from_salt(&salt);
+    let key = Key::new(password.as_str(), &salt);
 
     debug_println!("Key created");
 

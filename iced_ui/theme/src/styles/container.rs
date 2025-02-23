@@ -143,3 +143,17 @@ pub fn notification_error(theme: &Theme) -> Style {
         ..Default::default()
     }
 }
+
+
+pub fn password_input(theme: &Theme) -> Style {
+    Style {
+        background: None,
+        border: Border {
+            radius: Radius::from(10),
+            color: Color::TRANSPARENT,
+            width: 0.,
+        },
+        shadow: Shadow::default(),
+        text_color: None,
+    }
+}

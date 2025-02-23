@@ -45,7 +45,7 @@ mod mswindows {
             CredReadW(
                 PCWSTR(target_name.as_ptr()),
                 CRED_TYPE_GENERIC,
-                0,
+                Some(0),
                 &mut cred_ptr,
             )
             .and_then(|_| {

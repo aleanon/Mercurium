@@ -6,7 +6,7 @@ pub mod update;
 use std::ops::Deref;
 
 use once_cell::sync::OnceCell;
-use types::{crypto::DataBaseKey, AppPath, Network};
+use types::{crypto::Key, AppPath, Network};
 
 use crate::database::{DataBase, DbError};
 
@@ -18,14 +18,14 @@ pub struct IconsDb {
 }
 
 impl IconsDb {
-    pub async fn load(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
+    pub async fn load(network: Network, key: Key<DataBase>) -> Result<&'static Self, DbError> {
         let icons_db = Self::initialize(network, key).await?;
         icons_db.create_tables_if_not_exist().await?;
 
         Ok(Self::get_static(network).get_or_init(|| icons_db))
     }
 
-    pub async fn initialize(network: Network, key: DataBaseKey) -> Result<Self, DbError> {
+    pub async fn initialize(network: Network, key: Key<DataBase>) -> Result<Self, DbError> {
         let app_path = AppPath::get();
         let path = app_path.icon_cache_ref(network);
         let db = DataBase::load(path, key).await?;
@@ -33,7 +33,7 @@ impl IconsDb {
     }
 
 
-    pub async fn get_or_init(network: Network, key: DataBaseKey) -> Result<&'static Self, DbError> {
+    pub async fn get_or_init(network: Network, key: Key<DataBase>) -> Result<&'static Self, DbError> {
         match Self::get(network) {
             Some(db) => Ok(db),
             None => Self::load(network, key).await,
