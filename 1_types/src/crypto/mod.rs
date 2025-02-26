@@ -10,7 +10,6 @@ pub(crate) mod bip32_entity;
 pub(crate) mod bip32_key_kind;
 pub(crate) mod derivation_path_indexes;
 pub(crate) mod key_salt_pair;
-pub(crate) mod encryption;
 
 pub use bip32_entity::Bip32Entity;
 pub use bip32_key_kind::Bip32KeyKind;

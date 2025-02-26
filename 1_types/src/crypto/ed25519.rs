@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use bip39::{Mnemonic, Seed};
 use ed25519_dalek_fiat::{PublicKey, SecretKey};
 use scrypto::{
-    address::AddressBech32Encoder, crypto::Ed25519PublicKey, network::NetworkDefinition,
+    address::AddressBech32Encoder, crypto::Ed25519PublicKey,
     types::ComponentAddress,
 };
 use slip10_ed25519::derive_ed25519_private_key;
