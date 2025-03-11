@@ -1,6 +1,5 @@
-use types::Network;
+use types::{AppSettings, Network};
 
-use crate::settings::Settings;
 
 use super::resource_data::ResourceData;
 
@@ -12,21 +11,21 @@ use super::resource_data::ResourceData;
 
 pub struct WalletData {
     pub resource_data: ResourceData,
-    pub settings: Settings,
+    pub settings: AppSettings,
 }
 
 
 impl WalletData {
-    pub fn new(settings: Settings) -> Self {
+    pub fn new(settings: AppSettings) -> Self {
         Self { resource_data: ResourceData::new(), settings }
     }
 
-    pub fn get_settings(&self) -> &Settings {
+    pub fn get_settings(&self) -> &AppSettings {
         &self.settings
     }
 
     pub fn network(&self) -> Network {
-        self.settings.network()
+        self.settings.network
     }
 
     pub fn set_network(&mut self, network: Network) {
