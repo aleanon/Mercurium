@@ -1,7 +1,7 @@
 
-pub trait WalletState{
+pub trait WalletState {
     
 }
-pub trait AppStateData{
+pub trait AppStateData {
     type AppData;
 }
