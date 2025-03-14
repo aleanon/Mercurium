@@ -11,8 +11,7 @@ members = [
   "iced_ui",
   "mercurium",
 ]
-default-members = ["mercurium"]
-workspace.resolver = "2"
+workspace.resolver = "3"
 
 package.edition = "2024"
 
