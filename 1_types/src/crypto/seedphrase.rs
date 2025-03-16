@@ -3,7 +3,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 /// Stack allocated wrapper around [[[u8]]] that implements `ZeroizeOnDrop`
-#[derive(Debug, ZeroizeOnDrop, Zeroize)]
+#[derive(Debug, Clone, ZeroizeOnDrop, Zeroize)]
 pub struct SeedPhrase([[u8; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT]);
 
 impl SeedPhrase {
