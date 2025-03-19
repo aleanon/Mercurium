@@ -19,6 +19,7 @@ types = { path = "../1_types" }
 store = { path = "../2_store" }
 handles = { path = "../3_handles" }
 font_and_icons = { path = "../4_font_and_icons" }
+wallet = { path = "../5_wallet" }
 ravault_iced_theme = { path = "./theme" }
 ravault_widgets = { path = "./widgets" }
 iced = { workspace = true }
