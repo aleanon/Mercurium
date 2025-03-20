@@ -8,7 +8,7 @@ use super::resource_data::ResourceData;
 
 
 
-
+#[derive(Debug, Clone)]
 pub struct WalletData {
     pub resource_data: ResourceData,
     pub settings: AppSettings,

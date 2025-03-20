@@ -2,7 +2,7 @@ use types::crypto::Password;
 
 use crate::app_state::WalletState;
 
-use super::{unlocked::Unlocked, InnerWallet};
+use super::{unlocked::Unlocked, Wallet};
 
 pub enum LoginError {
     IncorrectPassword,
@@ -10,8 +10,8 @@ pub enum LoginError {
 }
 
 pub enum LoginResponse {
-    Success(InnerWallet<Unlocked>),
-    Failed(InnerWallet<Locked>, LoginError)
+    Success(Wallet<Unlocked>),
+    Failed(Wallet<Locked>, LoginError)
 }
 
 pub struct Locked {
@@ -26,14 +26,14 @@ impl Locked {
 
 impl WalletState for Locked{}
 
-impl InnerWallet<Locked> {
+impl Wallet<Locked> {
     pub async fn login_with_password(self, password: Password) -> LoginResponse {
         if self.state.attempts >= self.max_login_attempts() {
             return LoginResponse::Failed(self, LoginError::MaxAttemptsReached)
         }
 
         match handles::wallet::perform_login_check(self.wallet_data.network(), &password).await {
-            Ok(_) => LoginResponse::Success(InnerWallet { state: Unlocked, wallet_data: self.wallet_data}),
+            Ok(_) => LoginResponse::Success(Wallet { state: Unlocked, wallet_data: self.wallet_data}),
             Err(_) => {
                 LoginResponse::Failed(self, LoginError::IncorrectPassword)
             }

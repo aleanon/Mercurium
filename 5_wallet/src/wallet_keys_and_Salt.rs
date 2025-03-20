@@ -1,8 +1,9 @@
 use store::DataBase;
 use types::crypto::{EncryptedMnemonic, KeySaltPair, Password};
 
-use crate::wallet::initial::SetupError;
+use super::wallet::wallet_setup::setup_error::SetupError;
 
+#[derive(Clone)]
 pub struct WalletEncryptionKeys {
     pub mnemonic_key_salt: KeySaltPair<EncryptedMnemonic>,
     pub db_key_salt: KeySaltPair<DataBase>,
