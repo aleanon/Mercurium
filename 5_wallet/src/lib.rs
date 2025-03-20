@@ -6,4 +6,7 @@ pub mod settings;
 
 
 pub use wallet::Wallet;
-pub use wallet::initial::Initial;
+pub use wallet::wallet_setup::setup::Setup;
+pub use wallet::wallet_setup::setup_error::SetupError;
+pub use wallet::unlocked::Unlocked;
+pub use wallet::locked::Locked;

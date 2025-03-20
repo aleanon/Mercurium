@@ -3,13 +3,13 @@ use std::collections::{BTreeSet, HashMap};
 use bytes::Bytes;
 use types::{address::{AccountAddress, ResourceAddress}, assets::{FungibleAsset, NonFungibleAsset}, Account, Resource};
 
-
+#[derive(Debug, Clone)]
 pub struct ResourceData {
-    accounts: HashMap<AccountAddress, Account>,
-    fungibles: HashMap<AccountAddress, BTreeSet<FungibleAsset>>,
-    non_fungibles: HashMap<AccountAddress, BTreeSet<NonFungibleAsset>>,
-    resources: HashMap<ResourceAddress, Resource>,
-    resource_icons: HashMap<ResourceAddress, Bytes>,
+    pub accounts: HashMap<AccountAddress, Account>,
+    pub fungibles: HashMap<AccountAddress, BTreeSet<FungibleAsset>>,
+    pub non_fungibles: HashMap<AccountAddress, BTreeSet<NonFungibleAsset>>,
+    pub resources: HashMap<ResourceAddress, Resource>,
+    pub resource_icons: HashMap<ResourceAddress, Bytes>,
 }
 
 
