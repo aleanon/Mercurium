@@ -1,7 +1,8 @@
-use std::{fmt::{write, Display}, mem};
+use std::{fmt::Display, mem};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Notification {
+    #[default]
     None,
     Success(String),
     Info(String),
@@ -12,16 +13,26 @@ pub enum Notification {
 impl Notification {
     /// Takes the message if any and leaves Notification::None in its place
     pub fn take_message(&mut self) -> Option<String> {
-        mem::replace(self, Self::None).get_message()
+        mem::take(self).into_message()
     }
 
-    fn get_message(self) -> Option<String> {
+    fn into_message(self) -> Option<String> {
         match self {
             Self::None => None,
             Self::Success(message)
             | Self::Info(message)
             | Self::Warn(message)
             | Self::Danger(message) => Some(message),
+        }
+    }
+    
+    pub fn message(&self) -> &str {
+        match self {
+            Self::None => "",
+            Self::Success(message)
+            | Self::Info(message)
+            | Self::Warn(message)
+            | Self::Danger(message) => message.as_str(),
         }
     }
 }
