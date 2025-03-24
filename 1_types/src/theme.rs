@@ -2,9 +2,10 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Theme {
     Light,
+    #[default]
     Dark,
     Dracula,
     Nord,
