@@ -12,7 +12,6 @@ members = [
   "mercurium",
 ]
 workspace.resolver = "3"
-
 package.edition = "2024"
 
 
