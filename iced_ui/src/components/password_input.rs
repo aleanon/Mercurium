@@ -1,5 +1,5 @@
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
-use iced::{alignment::Vertical, widget::{self, button, column, container, row, text, text_input}, Length};
+use iced::{alignment::Vertical, border::Radius, widget::{self, button, column, container::{self, Style}, row, text, text_input}, Border, Color, Length, Shadow, Theme};
 use ravault_iced_theme::styles;
 
 
@@ -51,6 +51,20 @@ where
 
     let content = column![input_and_button, rule];
 
-    container(content)
-        .style(styles::container::password_input)
+    widget::container(content)
+        .style(password_input_style)
+}
+
+
+pub fn password_input_style(theme: &Theme) -> Style {
+    Style {
+        background: None,
+        border: Border {
+            radius: Radius::from(10),
+            color: Color::TRANSPARENT,
+            width: 0.,
+        },
+        shadow: Shadow::default(),
+        text_color: None,
+    }
 }
