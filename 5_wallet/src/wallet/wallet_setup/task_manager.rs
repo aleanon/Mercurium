@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, HashMap}, sync::Arc};
+use std::{collections::{BTreeMap, HashMap}, fmt::Debug, sync::Arc};
 
 use bytes::Bytes;
 use debug_print::debug_eprintln;
@@ -8,12 +8,17 @@ use crate::{wallet_keys_and_salt::WalletEncryptionKeys, SetupError};
 
 use super::task_runner::TaskRunner;
 
-
 pub struct TaskManager {
     pub wallet_keys_and_salt: TaskRunner<WalletEncryptionKeys, SetupError>,
     pub accounts: TaskRunner<Vec<(Account, AccountSummary)>, SetupError>,
     pub accounts_update: TaskRunner<AccountsUpdate, SetupError>,
     pub icons_data: TaskRunner<HashMap<ResourceAddress, Bytes>, SetupError>,
+}
+
+impl Debug for TaskManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TaskManager")
+    }
 }
 
 impl TaskManager {

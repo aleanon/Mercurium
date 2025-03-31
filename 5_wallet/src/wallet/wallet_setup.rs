@@ -24,9 +24,17 @@ impl Wallet<Setup> {
         self.state.set_mnemonic_and_password(mnemonic, seed_password);
         Ok(())
     }
+
+    pub fn create_random_mnemonic(&mut self) {
+        self.state.create_random_seed_phrase();
+    }
  
     pub fn set_password(&mut self, password: Password) {
         self.state.set_password(password);
+    }
+
+    pub fn set_seed_password(&mut self, password: Password) {
+        self.state.set_seed_password(password);
     }
 
     pub fn set_accounts(&mut self, accounts: Vec<Account>) {
@@ -53,12 +61,20 @@ impl Wallet<Setup> {
         self.state.accounts.clone()
     }
 
-    pub fn finalize_setup(&mut self) -> JoinHandle<Result<Wallet<Unlocked>, SetupError>> {
+    pub fn reset(&mut self) {
+        self.state.reset();
+    }
+
+    pub fn get_setup(&self) -> Setup {
+        self.state.clone()
+    }
+
+    pub fn finalize_setup(&mut self) -> impl Future<Output = Result<Wallet<Unlocked>, SetupError>> {
         let setup = self.state.clone();
         let network = self.wallet_data.settings.network;
         let mut wallet_data = self.wallet_data.clone();
 
-        tokio::spawn(async move {
+        async move {
             let wallet_keys = setup.get_keys_with_salt().await?;
 
             let password_hash =  setup.get_password().ok_or(SetupError::NoPasswordProvided)?
@@ -111,7 +127,6 @@ impl Wallet<Setup> {
             wallet_data.resource_data.resource_icons = setup.get_icons().await;
             
             Ok(Wallet { state: Unlocked, wallet_data })
-        })
-
+        }
     }
 }
