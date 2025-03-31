@@ -6,7 +6,7 @@ use tokio::{sync::Mutex, task::JoinHandle};
 #[derive(Debug, Clone, Error)]
 pub enum TaskError {
     #[error("Task was never started")]
-    TaskNotInitialized,
+    TaskNotStarted,
     #[error("Failed to join task")]
     FailedToJoinTask,
     #[error("Task failed to complete")]
@@ -85,7 +85,7 @@ impl<T, E> Task<T, E> where
 
     async fn get_result(&mut self) -> Result<T, E> {
         match &mut self.state {
-            TaskState::NotStarted => return Err(TaskError::TaskNotInitialized.into()),
+            TaskState::NotStarted => return Err(TaskError::TaskNotStarted.into()),
             TaskState::Running(handle) => {
                 match handle.await {
                     Ok(result) => {
