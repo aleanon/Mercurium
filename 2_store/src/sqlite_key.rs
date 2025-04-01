@@ -9,7 +9,6 @@ pub struct SqliteKey(Vec<u8>);
 impl SqliteKey {
     const KEY_START: &[u8] = b"x\'";
     const KEY_END: u8 = b'\'';
-    const PADDING_LENGTH: u8 = 3; 
 
     pub fn from_key(key: &Key<DataBase>) -> Self {
         let key_length = key.as_bytes().len() * 2;
@@ -19,7 +18,7 @@ impl SqliteKey {
             db_hex_key[i * 2] = Self::to_hex_digit(byte >> 4);
             db_hex_key[i * 2 + 1] = Self::to_hex_digit(byte & 0x0F);
         }
-        
+
         db_hex_key.insert(0, Self::KEY_START[1]);
         db_hex_key.insert(0, Self::KEY_START[0]);
         db_hex_key.push(Self::KEY_END);

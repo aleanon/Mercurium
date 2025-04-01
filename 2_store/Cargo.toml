@@ -21,3 +21,7 @@ zeroize = { workspace = true }
 [dev-dependencies]
 tiny-bip39 = { workspace = true }
 tokio = { workspace = true }
+
+
+# [lib]
+# crate-type = ["rlib"]
