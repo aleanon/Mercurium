@@ -12,3 +12,7 @@ thiserror = { workspace = true }
 bytes = { workspace = true }
 tokio = { workspace = true }
 debug_print = { workspace = true }
+
+
+# [lib]
+# crate-type = ["rlib"]

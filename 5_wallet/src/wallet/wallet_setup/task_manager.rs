@@ -4,7 +4,7 @@ use bytes::Bytes;
 use debug_print::debug_eprintln;
 use types::{address::ResourceAddress, collections::AccountsUpdate, crypto::{bip39::Mnemonic, Password}, Account, AccountSummary, Network};
 
-use crate::{wallet_keys_and_salt::WalletEncryptionKeys, SetupError};
+use crate::{wallet_encryption_keys::WalletEncryptionKeys, SetupError};
 
 use super::task_runner::TaskRunner;
 

@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use bytes::Bytes;
 use types::{address::{AccountAddress, ResourceAddress}, assets::{FungibleAsset, NonFungibleAsset}, Account, Resource};
 
-use crate::app_state::WalletState;
+use crate::wallet::WalletState;
 
 use super::{locked::Locked, wallet_data::WalletData, Wallet};
 

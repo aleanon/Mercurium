@@ -10,7 +10,6 @@ use setup::Setup;
 use setup_error::SetupError;
 use store::IconsDb;
 use task_manager::TaskManager;
-use tokio::task::JoinHandle;
 use types::{crypto::{bip39::{Language, Mnemonic}, Password, Phrase}, Account, AppPath};
 
 

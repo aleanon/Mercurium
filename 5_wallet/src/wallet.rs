@@ -4,14 +4,10 @@ pub(crate) mod locked;
 pub(crate) mod unlocked;
 pub(crate) mod wallet_data;
 
-use wallet_setup::setup::Setup;
-use locked::Locked;
-use store::AppDataDb;
-use types::AppError;
-use unlocked::Unlocked;
+use types::AppSettings;
 use wallet_data::WalletData;
 
-use crate::app_state::WalletState;
+
 
 // pub enum Wallet {
 //     Initial(InnerWallet<Setup>),
@@ -37,7 +33,9 @@ use crate::app_state::WalletState;
 //     }
 // }
 
-#[derive(Clone)]
+pub trait WalletState {}
+
+#[derive(Debug, Clone)]
 pub struct Wallet<State: WalletState> {
     state: State,
     wallet_data: WalletData
@@ -46,5 +44,9 @@ pub struct Wallet<State: WalletState> {
 impl<State> Wallet<State> where State: WalletState {
     pub fn new(state: State, wallet_data: WalletData) -> Self {
         Self {state, wallet_data}
+    }
+
+    pub fn settings(&self) -> &AppSettings {
+        &self.wallet_data.settings
     }
 }
