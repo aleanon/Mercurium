@@ -4,7 +4,7 @@ use bytes::Bytes;
 use store::IconsDb;
 use types::{address::ResourceAddress, collections::AccountsUpdate, crypto::{bip39::{Language, Mnemonic, MnemonicType}, Password}, Account, AppPath, AppSettings, Network, UnwrapUnreachable};
 
-use crate::{app_state::WalletState, wallet_keys_and_salt::WalletEncryptionKeys, Unlocked, Wallet, WalletData};
+use crate::{wallet::WalletState, wallet_encryption_keys::WalletEncryptionKeys, Unlocked, Wallet, WalletData};
 
 use super::{setup_error::SetupError, task_manager::TaskManager};
 

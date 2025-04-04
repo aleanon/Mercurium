@@ -1,4 +1,4 @@
-use crate::app_state::WalletState;
+use crate::wallet::WalletState;
 
 
 pub struct Error;

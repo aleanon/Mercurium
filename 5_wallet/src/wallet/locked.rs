@@ -1,7 +1,7 @@
 use thiserror::Error;
 use types::{crypto::Password, AppSettings};
 
-use crate::{app_state::WalletState, WalletData};
+use crate::{wallet::WalletState, WalletData};
 
 use super::{unlocked::Unlocked, Wallet};
 
