@@ -1,12 +1,15 @@
+use deps::*;
+use no_mangle_if_debug::no_mangle_if_debug;
 
-pub use iced::{
+use iced::{
     border::Radius,
-    widget::button::{Status, Style},
-    Background, Border, Color, Shadow, Theme, Vector,
+    Background, Border, Color, Shadow, Vector,
 };
 
+pub use iced::{widget::button::{Status, Style}, Theme};
 
-#[no_mangle]
+
+#[no_mangle_if_debug]
 pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -22,7 +25,7 @@ pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn general_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -43,7 +46,7 @@ pub fn general_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn choose_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let background;
@@ -71,7 +74,7 @@ pub fn choose_account(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn menu_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -100,7 +103,7 @@ pub fn menu_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn selected_menu_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -111,25 +114,30 @@ pub fn selected_menu_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn account_button(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-    let mut background_color = palette.background.base.color;
+    let ext_palette = theme.extended_palette();
+    let mut background_color = ext_palette.background.base.color;
+    let mut shadow_color = background_color.clone();
+    shadow_color.r -= 0.1;
+    shadow_color.g -= 0.1;
+    shadow_color.b -= 0.1;
+
     match status {
         Status::Active | Status::Pressed | Status::Disabled => {
             background_color.a -= 0.1;
             Style {
                 background: Some(iced::Background::Color(background_color)),
-                text_color: palette.background.base.text,
+                text_color: ext_palette.background.base.text,
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 1.,
-                    radius: Radius::new(10),
+                    radius: Radius::new(5),
                 },
                 shadow: Shadow {
-                    color: palette.background.weak.color,
-                    offset: Vector::new(2., 2.),
-                    blur_radius: 3.,
+                    color: shadow_color,
+                    offset: Vector::new(0.5, 0.5),
+                    blur_radius: 5.,
                 },
             }
         }
@@ -143,7 +151,7 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -164,38 +172,6 @@ pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
             Style {
                 background: Some(Background::Color(background_color)),
                 ..asset_list_button(theme, Status::Active)
-            }
-        }
-    }
-}
-
-#[no_mangle]
-pub fn account_button_two(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
-    let mut background_color = palette.background.strong.color;
-    match status {
-        Status::Active | Status::Pressed | Status::Disabled => {
-            background_color.a -= 0.1;
-            Style {
-                background: Some(iced::Background::Color(background_color)),
-                text_color: palette.background.base.text,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 1.,
-                    radius: Radius::new(10),
-                },
-                shadow: Shadow {
-                    color: palette.background.weak.color,
-                    offset: Vector::new(2., 2.),
-                    blur_radius: 3.,
-                },
-            }
-        }
-        Status::Hovered => {
-            background_color.a = 0.1;
-            Style {
-                background: Some(Background::Color(background_color)),
-                ..account_button(theme, Status::Active)
             }
         }
     }

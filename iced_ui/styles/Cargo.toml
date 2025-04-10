@@ -1,0 +1,42 @@
+cargo-features = ["profile-rustflags"]
+
+[package]
+name = "styles"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+reload = ["dep:hot-lib-reloader"]
+
+
+[profile.dev.package."*"]
+opt-level = 3
+codegen-units = 1
+
+[profile.reload]
+inherits = "dev"
+rustflags = ["-C", "prefer-dynamic"]
+opt-level = 0
+lto = false
+codegen-units = 1
+debug-assertions = true
+debug = 1
+features = ["reload"]
+
+[profile.reload.package."*"]
+opt-level = 3
+codegen-units = 1
+
+[dependencies]
+hot-lib-reloader = { workspace = true, optional = true }
+dynbutton = { path = "./button" }
+dyncontainer = { path = "./container" }
+dynpick_list = { path = "./pick_list" }
+dynrule = { path = "./rule" }
+dynscrollable = { path = "./scrollable" }
+dyntext_input = { path = "./text_input" }
+dyntext = { path = "./text" }

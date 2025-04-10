@@ -1,4 +1,7 @@
-use iced::{
+use deps::*;
+use no_mangle_if_debug::no_mangle_if_debug;
+
+pub use iced::{
     border::Radius,
     widget::{
         self,
@@ -7,6 +10,7 @@ use iced::{
     Border, Theme,
 };
 
+#[no_mangle_if_debug]
 pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active {

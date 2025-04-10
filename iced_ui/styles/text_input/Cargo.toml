@@ -4,7 +4,7 @@ cargo-features = ["profile-rustflags"]
 reload = []
 
 [package]
-name = "dynstyles"
+name = "dyntext_input"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,15 +15,14 @@ lto = false
 codegen-units = 1
 debug-assertions = true
 debug = 1
+rustflags = ["-C", "prefer-dynamic"]
 
 [profile.reload.package."*"]
 opt-level = 3
 codegen-units = 1
 
 [dependencies]
-iced = { workspace = true }
-no-mangle-if-debug = "0.1.0"
-
+deps = { path = "../deps" }
 
 [lib]
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib", "cdylib"]
