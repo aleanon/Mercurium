@@ -1,58 +1,56 @@
-pub use iced::{
+use deps::{iced::{gradient::{ColorStop, Linear}, Gradient, Radians}, *};
+use no_mangle_if_debug::no_mangle_if_debug;
+
+use iced::{
     border::Radius,
-    gradient::{ColorStop, Linear},
-    widget::container::Style,
-    Background, Border, Color, Gradient, Radians, Shadow, Theme, Vector,
+    Background, Border, Color, Shadow, Vector,
 };
 
-#[no_mangle]
+//re export for the hot reloading module
+pub use iced::{widget::container::Style, Theme};
+
+
+#[no_mangle_if_debug]
 pub fn main_window(theme: &Theme) -> Style {
-    // Style {
-    //     background: Some(Background::Color(
-    //         theme.extended_palette().background.base.color.inverse(),
-    //     )),
-    //     ..Default::default()
-    // }
     Style::default()
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn menu_container(theme: &Theme) -> Style {
-    // const BACKGROUND_ALPHA_STEP: f32 = 0.001;
-    // const MENU_ALPHA: f32 = 0.1;
-    // const STOPS_LEN: usize = 8;
+    const BACKGROUND_ALPHA_STEP: f32 = 0.001;
+    const MENU_ALPHA: f32 = 0.1;
+    const STOPS_LEN: usize = 8;
 
-    // let background_color = theme.extended_palette().background.base.color;
-    // let mut stops: [Option<ColorStop>; STOPS_LEN] = [None; STOPS_LEN];
-    // let mut current_alpha = background_color.a;
-    // let mut current_offset = 0.;
+    let background_color = theme.extended_palette().background.base.color;
+    let mut stops: [Option<ColorStop>; STOPS_LEN] = [None; STOPS_LEN];
+    let mut current_alpha = background_color.a;
+    let mut current_offset = 0.;
 
-    // for i in 0..STOPS_LEN {
-    //     let mut color = background_color.clone();
-    //     color.a = current_alpha;
-    //     stops[i] = Some(ColorStop {
-    //         color,
-    //         offset: current_offset,
-    //     });
-    //     current_offset += 0.12;
-    //     current_alpha -= BACKGROUND_ALPHA_STEP
-    // }
+    for i in 0..STOPS_LEN {
+        let mut color = background_color.clone();
+        color.a = current_alpha;
+        stops[i] = Some(ColorStop {
+            color,
+            offset: current_offset,
+        });
+        current_offset += 0.12;
+        current_alpha -= BACKGROUND_ALPHA_STEP
+    }
 
-    // let background = Some(Background::Gradient(Gradient::Linear(Linear {
-    //     angle: Radians(1.570796),
-    //     stops,
-    // })));
+    let background = Some(Background::Gradient(Gradient::Linear(Linear {
+        angle: Radians(1.570796),
+        stops,
+    })));
 
-    // Style {
-    //     text_color: None,
-    //     background,
-    //     border: Border::default(),
-    //     shadow: Shadow::default(),
-    // }
-    Style::default().background(Color::WHITE)
+    Style {
+        text_color: None,
+        background,
+        border: Border::default(),
+        shadow: Shadow::default(),
+    }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn center_panel(theme: &Theme) -> Style {
     // let mut background = theme.extended_palette().background.base.color;
     // background.a -= 0.004;
@@ -62,10 +60,10 @@ pub fn center_panel(theme: &Theme) -> Style {
     //     ..Default::default()
     // }
 
-    Style::default().background(Color::WHITE)
+    Style::default()
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn seed_word_wrapper(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     let background_color = palette.secondary.base.color.scale_alpha(0.1);
@@ -80,7 +78,7 @@ pub fn seed_word_wrapper(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn account_overview(theme: &Theme) -> Style {
     let extended_palette = theme.extended_palette();
     let background_base = extended_palette.background.base;
@@ -113,7 +111,7 @@ pub fn account_overview(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn asset_list_item(theme: &Theme) -> Style {
     let background = theme.extended_palette().background.base;
     let mut background_color = background.color;
@@ -131,7 +129,7 @@ pub fn asset_list_item(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn overlay_container(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.base.color;
@@ -143,7 +141,7 @@ pub fn overlay_container(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn overlay_inner(theme: &Theme) -> Style {
     let mut style = center_panel(theme);
     style.border.radius = Radius::from(10.);
@@ -152,7 +150,7 @@ pub fn overlay_inner(theme: &Theme) -> Style {
     style
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn notification_success(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     Style {
@@ -162,7 +160,7 @@ pub fn notification_success(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn notification_error(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     Style {
@@ -173,7 +171,7 @@ pub fn notification_error(theme: &Theme) -> Style {
 }
 
 
-#[no_mangle]
+#[no_mangle_if_debug]
 pub fn password_input(theme: &Theme) -> Style {
     Style {
         background: None,

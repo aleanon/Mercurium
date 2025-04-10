@@ -1,9 +1,13 @@
-use iced::{
+use deps::*;
+use no_mangle_if_debug::no_mangle_if_debug;
+
+pub use iced::{
     border::Radius,
     widget::text_input::{default, Status, Style},
     Background, Border, Color, Theme,
 };
 
+#[no_mangle_if_debug]
 pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     style.border = style.border.color(Color::TRANSPARENT);
@@ -11,12 +15,14 @@ pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
 }
 
 
+#[no_mangle_if_debug]
 pub fn general_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     style.border.radius = (5.).into();
     style
 }
 
+#[no_mangle_if_debug]
 pub fn asset_amount(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     let palette = theme.extended_palette();
@@ -31,6 +37,7 @@ pub fn asset_amount(theme: &Theme, status: Status) -> Style {
     style
 }
 
+#[no_mangle_if_debug]
 pub fn borderless(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     style.border = Border {

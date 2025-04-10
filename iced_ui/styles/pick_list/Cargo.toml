@@ -1,0 +1,29 @@
+cargo-features = ["profile-rustflags"]
+
+[features]
+reload = []
+
+[package]
+name = "dynpick_list"
+version = "0.1.0"
+edition = "2021"
+
+[profile.reload]
+inherits = "dev"
+opt-level = 0
+lto = false
+codegen-units = 1
+debug-assertions = true
+debug = 1
+rustflags = ["-C", "prefer-dynamic"]
+
+[profile.reload.package."*"]
+opt-level = 3
+codegen-units = 1
+
+[dependencies]
+deps = { path = "../deps" }
+# iced = { workspace = true }
+
+[lib]
+crate-type = ["rlib", "cdylib"]
