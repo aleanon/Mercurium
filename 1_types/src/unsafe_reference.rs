@@ -5,7 +5,6 @@ use std::ops::{Deref, DerefMut};
 /// so a reference can be sent across threads/async boundaries without reference counting.
 /// The user needs to make sure that the value pointed to is not dropped, not moved in memory and not mutated 
 /// while the [UnsafeRef] is in use.
-
 pub struct UnsafeRef<T: ?Sized>(*const T);
 
 impl<T: ?Sized> UnsafeRef<T> {

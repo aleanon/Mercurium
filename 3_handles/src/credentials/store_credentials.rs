@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use super::ENCRYPTED_MNEMONIC_TARGET_NAME;
 use super::SALT_TARGET_NAME;
 use types::{crypto::Salt, AppError};

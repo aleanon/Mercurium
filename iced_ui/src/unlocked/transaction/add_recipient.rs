@@ -4,8 +4,8 @@ use iced::{
     widget::{self, button, column, container, row, text},
     Element, Length, Padding, Task,
 };
-use ravault_iced_theme::styles;
 use types::address::{AccountAddress, Address};
+use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -52,10 +52,10 @@ impl<'a> AddRecipient {
         &mut self,
         message: Message,
         recipients: &'a mut Vec<Recipient>,
-        appdata: &'a mut AppData,
+        wallet: &'a mut Wallet<Unlocked>,
     ) -> Task<AppMessage> {
         match message {
-            Message::RecipientInput(input) => self.recipient_input(input, appdata),
+            Message::RecipientInput(input) => self.recipient_input(input, wallet),
             Message::SelectRadioButton(address) => self.chosen_account = Some(address),
             Message::Submit => return self.submit(recipients),
         }
@@ -63,7 +63,7 @@ impl<'a> AddRecipient {
         Task::none()
     }
 
-    fn recipient_input(&mut self, input: String, appdata: &'a mut AppData) {
+    fn recipient_input(&mut self, input: String, wallet: &'a mut Wallet<Unlocked>) {
         if let Ok(account_address) = AccountAddress::from_str(input.as_str()) {
             if let Some(address) = &self.from_account {
                 if &account_address != address {
@@ -84,7 +84,7 @@ impl<'a> AddRecipient {
         Task::perform(async {}, |_| transaction_view::Message::OverView.into())
     }
 
-    pub fn view(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         let header = widget::text("Add recipient")
             .line_height(2.)
             .size(20)
@@ -104,8 +104,8 @@ impl<'a> AddRecipient {
 
         let mut buttons = column!();
 
-        for (i, (_, account)) in appdata
-            .accounts
+        for (i, (_, account)) in wallet
+            .accounts()
             .iter()
             .filter(|(account_address, _)| Some(*account_address) != self.from_account.as_ref())
             .enumerate()

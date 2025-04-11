@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]

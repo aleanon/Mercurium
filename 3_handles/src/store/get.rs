@@ -1,7 +1,9 @@
+use deps_two::*;
+
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use debug_print::debug_println;
-use iced::widget::image::Handle;
 use store::{AppDataDb, DbError, IconsDb};
 use types::address::ResourceAddress;
 use types::{collections::AppdataFromDisk, AppError, Network};
@@ -43,7 +45,7 @@ pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk,
 
 pub async fn resource_icons(
     network: Network,
-) -> Result<(Network, HashMap<ResourceAddress, Handle>), AppError> {
+) -> Result<(Network, HashMap<ResourceAddress, Bytes>), AppError> {
     let Some(icon_cache) = IconsDb::get(network) else {
         return Err(AppError::Fatal("Icon cache not initialized".to_owned()));
     };
@@ -59,11 +61,11 @@ pub async fn resource_icons(
     let icons = icons_data
         .into_iter()
         .map(|(resource_address, data)| {
-            let handle = Handle::from_bytes(data);
+            let bytes = Bytes::from_owner(data);
 
-            (resource_address, handle)
+            (resource_address, bytes)
         })
-        .collect::<HashMap<ResourceAddress, Handle>>();
+        .collect::<HashMap<ResourceAddress, Bytes>>();
 
     Ok((network, icons))
 }

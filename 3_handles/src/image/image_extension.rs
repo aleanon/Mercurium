@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use image::ImageFormat;
 
 pub fn get_extension(format: &ImageFormat) -> &str {

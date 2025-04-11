@@ -1,16 +1,16 @@
 use std::{collections::HashMap, str::FromStr};
 
 use iced::{
-    widget::{self, button, checkbox, column, container, row, text, Container, TextInput},
+    widget::{self, button, checkbox, column, container, image::Handle, row, text, Container, TextInput},
     Element, Length, Padding, Task,
 };
 
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
-use ravault_iced_theme::styles;
 use types::{
     address::{AccountAddress, Address, ResourceAddress},
     assets::FungibleAsset,
 };
+use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -73,7 +73,7 @@ impl<'a> AddAssets {
         &mut self,
         message: Message,
         recipients: &'a mut Vec<Recipient>,
-        appdata: &'a mut AppData,
+        wallet: &'a mut Wallet<Unlocked>,
     ) -> Task<AppMessage> {
         let mut command = Task::none();
 
@@ -83,8 +83,8 @@ impl<'a> AddAssets {
             Message::InputAmount(asset_address, symbol, amount) => {
                 self.change_asset_amount(asset_address, symbol, amount)
             }
-            Message::InputMaxSelected => self.set_max_amount_for_selected(appdata),
-            Message::SelectAllTokens => self.select_all_tokens(appdata),
+            Message::InputMaxSelected => self.set_max_amount_for_selected(wallet),
+            Message::SelectAllTokens => self.select_all_tokens(wallet),
             Message::SelectAsset(asset_address, symbol) => {
                 self.add_selected_asset(asset_address, symbol)
             }
@@ -106,9 +106,9 @@ impl<'a> AddAssets {
         self.filter = input
     }
 
-    fn set_max_amount_for_selected(&mut self, appdata: &mut AppData) {
-        let fungibles = appdata
-            .fungibles
+    fn set_max_amount_for_selected(&mut self, wallet: &mut Wallet<Unlocked>) {
+        let fungibles = wallet
+            .fungibles()
             .get(&self.from_account)
             .and_then(|fungibles| {
                 Some(
@@ -130,13 +130,13 @@ impl<'a> AddAssets {
         }
     }
 
-    fn select_all_tokens(&mut self, appdata: &mut AppData) {
-        let fungibles = appdata.fungibles.get(&self.from_account);
+    fn select_all_tokens(&mut self, wallet: &mut Wallet<Unlocked>) {
+        let fungibles = wallet.fungibles().get(&self.from_account);
 
         if let Some(fungibles) = fungibles {
             for fungible in fungibles {
                 if !self.selected.contains_key(&fungible.resource_address) {
-                    if let Some(resource) = appdata.resources.get(&fungible.resource_address) {
+                    if let Some(resource) = wallet.resources().get(&fungible.resource_address) {
                         self.selected.insert(
                             resource.address.clone(),
                             (resource.symbol.clone(), String::new()),
@@ -188,7 +188,7 @@ impl<'a> AddAssets {
         Task::perform(async {}, |_| transaction_view::Message::OverView.into())
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         let header = text("Add Assets")
             .width(Length::Fill)
             .line_height(2.)
@@ -237,8 +237,8 @@ impl<'a> AddAssets {
         let mut amounts_within_limits = true;
 
         let asset_tab = match self.tab {
-            AssetTab::Tokens => self.tokens_tab(appdata, &mut amounts_within_limits),
-            AssetTab::NFTs => self.nfts_tab(appdata, &mut amounts_within_limits),
+            AssetTab::Tokens => self.tokens_tab(wallet, &mut amounts_within_limits),
+            AssetTab::NFTs => self.nfts_tab(wallet, &mut amounts_within_limits),
         };
 
         let submit_button = button(
@@ -278,7 +278,7 @@ impl<'a> AddAssets {
 
     fn tokens_tab(
         &'a self,
-        appdata: &'a AppData,
+        wallet: &'a Wallet<Unlocked>,
         within_limits: &mut bool,
     ) -> Container<'a, AppMessage> {
         let headers: Element<'a, AppMessage> = {
@@ -322,14 +322,14 @@ impl<'a> AddAssets {
                 .into()
         };
 
-        let fungibles = appdata.fungibles.get(&self.from_account);
+        let fungibles = wallet.fungibles().get(&self.from_account);
 
         let elements: Vec<Element<'a, AppMessage>> = match fungibles {
             Some(fungibles) => {
                 fungibles
                     .into_iter()
                     .filter_map(|token| {
-                        if let Some(resource) = appdata.resources.get(&token.resource_address) {
+                        if let Some(resource) = wallet.resources().get(&token.resource_address) {
                             if resource.name.to_ascii_lowercase().contains(&self.filter)
                                 || resource.symbol.to_ascii_lowercase().contains(&self.filter)
                                 || resource.address.as_str().contains(&self.filter)
@@ -349,11 +349,11 @@ impl<'a> AddAssets {
                             .and_then(|selected| Some((true, selected.1.as_str())))
                             .unwrap_or((self.select_all, ""));
 
-                        let icon: Element<'a, AppMessage> = appdata
-                            .resource_icons
+                        let icon: Element<'a, AppMessage> = wallet
+                            .resource_icons()
                             .get(&token.resource_address)
-                            .and_then(|handle| {
-                                Some(widget::image(handle.clone()).width(40).height(40).into())
+                            .and_then(|bytes| {
+                                Some(widget::image(Handle::from_bytes(bytes.clone())).width(40).height(40).into())
                             })
                             .unwrap_or(
                                 container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))
@@ -465,7 +465,7 @@ impl<'a> AddAssets {
 
     fn nfts_tab(
         &self,
-        appdata: &'a AppData,
+        wallet: &'a Wallet<Unlocked>,
         within_limits: &mut bool,
     ) -> Container<'a, AppMessage> {
         let headers: Element<'a, AppMessage> = {

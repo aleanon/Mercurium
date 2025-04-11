@@ -4,8 +4,8 @@ use iced::{
     widget::{self, column, container, image::Handle, row, text, Button},
     Element, Length, Padding, Task,
 };
-use ravault_iced_theme::styles;
 use store::{DbError, IconsDb};
+use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 use types::{address::AccountAddress, assets::FungibleAsset};
@@ -49,10 +49,10 @@ impl<'a> Fungibles {
 }
 
 impl<'a> Fungibles {
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
         match message {
-            Message::Back => self.back(appdata),
-            Message::SelectFungible(fungible) => return self.select_fungible(fungible, appdata),
+            Message::Back => self.back(wallet),
+            Message::SelectFungible(fungible) => return self.select_fungible(fungible, wallet),
             Message::InsertFungibleImage(image_data) => self.insert_fungible_image(image_data),
             Message::ImageNotFound => {
                 if let Some(fungible) = &mut self.selected {
@@ -63,17 +63,17 @@ impl<'a> Fungibles {
         Task::none()
     }
 
-    fn back(&mut self, _appdata: &'a mut AppData) {}
+    fn back(&mut self, wallet: &'a mut Wallet<Unlocked>) {}
 
     fn select_fungible(
         &mut self,
         fungible: FungibleAsset,
-        appdata: &'a mut AppData,
+        wallet: &'a mut Wallet<Unlocked>,
     ) -> Task<AppMessage> {
         let address = fungible.resource_address.clone();
         self.selected = Some(FungibleView::new(fungible, Icon::Loading));
 
-        let network = appdata.settings.network;
+        let network = wallet.settings().network;
         Task::perform(
             async move {
                 let icon_cache = IconsDb::get(network).ok_or(DbError::DatabaseNotLoaded)?;
@@ -95,15 +95,15 @@ impl<'a> Fungibles {
         }
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> iced::Element<'a, AppMessage> {
+    pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
         match &self.selected {
-            Some(fungible_view) => fungible_view.view(appdata),
+            Some(fungible_view) => fungible_view.view(wallet),
             None => {
                 let mut elements: Vec<Element<'a, AppMessage>> = Vec::new();
 
-                if let Some(fungibles) = appdata.fungibles.get(&self.account_addr) {
+                if let Some(fungibles) = wallet.wallet_data().resource_data.fungibles.get(&self.account_addr) {
                     for fungible in fungibles {
-                        let button = Self::fungible_list_button(fungible, appdata)
+                        let button = Self::fungible_list_button(fungible, wallet)
                             .on_press(Message::SelectFungible(fungible.clone()).into());
 
                         let button_container =
@@ -114,7 +114,7 @@ impl<'a> Fungibles {
                         elements.push(column![button_container, rule].into())
                     }
                 } else {
-                    // Push no elements found widget to "elements"
+                    // Push no widget to "elements"
                 }
 
                 let column = column(elements)
@@ -136,17 +136,17 @@ impl<'a> Fungibles {
 
     fn fungible_list_button(
         fungible: &FungibleAsset,
-        appdata: &'a AppData,
+        wallet: &'a Wallet<Unlocked>,
     ) -> Button<'a, AppMessage> {
         let icon: iced::Element<'a, AppMessage> =
-            match appdata.resource_icons.get(&fungible.resource_address) {
-                Some(handle) => widget::image(handle.clone()).width(40).height(40).into(),
+            match wallet.resource_icons().get(&fungible.resource_address) {
+                Some(bytes) => widget::image(Handle::from_bytes(bytes.clone())).width(40).height(40).into(),
                 None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))
                     .center_x(40)
                     .center_y(40)
                     .into(),
             };
-        let (name, symbol) = match appdata.resources.get(&fungible.resource_address) {
+        let (name, symbol) = match wallet.resources().get(&fungible.resource_address) {
             Some(resource) => (resource.name.as_str(), resource.symbol.as_str()),
             None => ("NoName", ""),
         };

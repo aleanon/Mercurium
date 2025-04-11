@@ -71,6 +71,7 @@ where
     Renderer: renderer::Renderer,
     Theme: StyleSheet,
 {
+
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> Node {
         let limits = Limits::new(Size::ZERO, bounds);
         let mut content = self
@@ -88,68 +89,68 @@ where
         Node::with_children(max_size, vec![content])
     }
 
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor: Cursor,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<Message>,
-    ) -> event::Status {
-        let viewport = layout.bounds();
-        // TODO clean this up
-        let esc_status = self
-            .esc
-            .as_ref()
-            .map_or(event::Status::Ignored, |esc| match &event {
-                Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
-                    if *key == keyboard::Key::Named(keyboard::key::Named::Escape) {
-                        shell.publish(esc.to_owned());
-                        event::Status::Captured
-                    } else {
-                        event::Status::Ignored
-                    }
-                }
-                _ => event::Status::Ignored,
-            });
+    // fn on_event(
+    //     &mut self,
+    //     event: Event,
+    //     layout: Layout<'_>,
+    //     cursor: Cursor,
+    //     renderer: &Renderer,
+    //     clipboard: &mut dyn Clipboard,
+    //     shell: &mut Shell<Message>,
+    // ) -> event::Status {
+    //     let viewport = layout.bounds();
+    //     // TODO clean this up
+    //     let esc_status = self
+    //         .esc
+    //         .as_ref()
+    //         .map_or(event::Status::Ignored, |esc| match &event {
+    //             Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
+    //                 if *key == keyboard::Key::Named(keyboard::key::Named::Escape) {
+    //                     shell.publish(esc.to_owned());
+    //                     event::Status::Captured
+    //                 } else {
+    //                     event::Status::Ignored
+    //                 }
+    //             }
+    //             _ => event::Status::Ignored,
+    //         });
 
-        let backdrop_status = self.backdrop.as_ref().zip(layout.children().next()).map_or(
-            event::Status::Ignored,
-            |(backdrop, layout)| match &event {
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    if layout
-                        .bounds()
-                        .contains(cursor.position().unwrap_or_default())
-                    {
-                        event::Status::Ignored
-                    } else {
-                        shell.publish(backdrop.to_owned());
-                        event::Status::Captured
-                    }
-                }
-                _ => event::Status::Ignored,
-            },
-        );
+    //     let backdrop_status = self.backdrop.as_ref().zip(layout.children().next()).map_or(
+    //         event::Status::Ignored,
+    //         |(backdrop, layout)| match &event {
+    //             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+    //             | Event::Touch(touch::Event::FingerPressed { .. }) => {
+    //                 if layout
+    //                     .bounds()
+    //                     .contains(cursor.position().unwrap_or_default())
+    //                 {
+    //                     event::Status::Ignored
+    //                 } else {
+    //                     shell.publish(backdrop.to_owned());
+    //                     event::Status::Captured
+    //                 }
+    //             }
+    //             _ => event::Status::Ignored,
+    //         },
+    //     );
 
-        match esc_status.merge(backdrop_status) {
-            event::Status::Ignored => self.content.as_widget_mut().on_event(
-                self.state,
-                event,
-                layout
-                    .children()
-                    .next()
-                    .expect("Native: Layout should have a content layout."),
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-                &viewport,
-            ),
-            event::Status::Captured => event::Status::Captured,
-        }
-    }
+    //     match esc_status.merge(backdrop_status) {
+    //         event::Status::Ignored => self.content.as_widget_mut().on_event(
+    //             self.state,
+    //             event,
+    //             layout
+    //                 .children()
+    //                 .next()
+    //                 .expect("Native: Layout should have a content layout."),
+    //             cursor,
+    //             renderer,
+    //             clipboard,
+    //             shell,
+    //             &viewport,
+    //         ),
+    //         event::Status::Captured => event::Status::Captured,
+    //     }
+    // }
 
     fn mouse_interaction(
         &self,

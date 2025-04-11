@@ -1,5 +1,6 @@
 //! This file was automatically generated
 //! by [Mamba Bronze](https://github.com/Redhawk18/mamba-bronze)
+use deps_two::*;
 
 use std::{
     fmt::{Display, Formatter, Result},

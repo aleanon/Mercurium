@@ -1,3 +1,5 @@
+use deps_two::*;
+
 pub mod nft_images;
 pub mod resource_images;
 

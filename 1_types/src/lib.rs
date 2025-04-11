@@ -1,6 +1,7 @@
 // #![feature(generic_const_exprs)]
 // #![feature(generic_const_items)]
 // #![feature(associated_type_defaults)]
+pub(crate) use deps_two::*;
 
 pub(crate) mod account;
 pub(crate) mod app_error;

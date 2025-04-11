@@ -1,5 +1,6 @@
 use iced::{Element, Task};
 use types::address::AccountAddress;
+use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 
@@ -30,12 +31,12 @@ pub enum Overlay {
 }
 
 impl<'a> Overlay {
-    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
         let mut command = Task::none();
         match message {
             Message::AddAccountMessage(message) => {
                 if let Self::AddAccount(add_account) = self {
-                    command = add_account.update(message, appdata)
+                    command = add_account.update(message, wallet)
                 }
             }
             Message::ReceiveMessage(message) => {
@@ -47,7 +48,7 @@ impl<'a> Overlay {
         command
     }
 
-    pub fn view(&'a self, _appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, _wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         match self {
             Self::AddAccount(add_account_view) => add_account_view.view(),
             Self::Receive(receive) => receive.view(),

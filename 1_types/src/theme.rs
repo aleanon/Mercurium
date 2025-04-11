@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};

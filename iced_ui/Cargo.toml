@@ -1,3 +1,4 @@
+cargo-features = ["profile-rustflags"]
 
 [package]
 name = "iced_ui"
@@ -7,12 +8,26 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
-[lib]
-#crate-type = ["dylib"]
-
 [features]
 default = []
 noupdate = []
+reload = [
+    # "dep:hot-lib-reloader"
+]
+
+[profile.reload]
+inherits = "dev"
+rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
+opt-level = 0
+lto = false
+codegen-units = 1
+debug-assertions = true
+debug = 1
+features = ["reload"]
+
+[profile.reload.package."*"]
+opt-level = 3
+codegen-units = 1
 
 [dependencies]
 types = { path = "../1_types" }
@@ -20,8 +35,8 @@ store = { path = "../2_store" }
 handles = { path = "../3_handles" }
 font_and_icons = { path = "../4_font_and_icons" }
 wallet = { path = "../5_wallet" }
-ravault_iced_theme = { path = "./theme" }
-ravault_widgets = { path = "./widgets" }
+styles = { path = "styles" }
+widgets = { path = "widgets" }
 iced = { workspace = true }
 # iced_aw = { workspace = true, features = ["icons"] }
 zeroize = { workspace = true }
@@ -31,8 +46,8 @@ reqwest = { workspace = true }
 serde_json = { workspace = true }
 scrypto = { workspace = true }
 lazy_static = { workspace = true }
+bytes = { workspace = true }
+inline_tweak = { workspace = true, features = ["derive"] }
 
 debug_print.workspace = true
-# hot-lib-reloader = { workspace = true, optional = true }
-
-[dev-dependencies]
+hot-lib-reloader = { workspace = true }

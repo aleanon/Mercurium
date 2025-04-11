@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::fs::File;
 use std::io::BufReader;
 
@@ -11,6 +13,7 @@ pub fn get_app_settings() -> AppSettings {
         }
         Err(_) => AppSettings::new(),
     }
+
 }
 
 pub fn save_app_settings(app_settings: AppSettings) -> Result<(), AppError> {

@@ -1,6 +1,8 @@
 use iced::{widget::{self, container::Style, Container}, Background, Length, Theme};
 use types::Notification;
 
+
+#[inline_tweak::tweak_fn]
 pub fn notification<'a, Message: Clone>(notification: &'a Notification) -> Container<'a, Message> {
     Container::new(
         widget::Text::new(notification.message())
@@ -12,6 +14,7 @@ pub fn notification<'a, Message: Clone>(notification: &'a Notification) -> Conta
     .into()
 }
 
+#[inline_tweak::tweak_fn]
 fn notification_style(theme: &Theme, notification: &Notification) -> Style {
     let palette = theme.extended_palette();
     let text_color;

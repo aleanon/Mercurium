@@ -6,20 +6,21 @@ use iced::{
     widget::{self, image::Handle},
     Element, Length, Task,
 };
-use types::{crypto::Password, AppError};
+use types::{crypto::Password, debug_info};
+use wallet::{Locked, LoginResponse, Wallet};
 use zeroize::Zeroize;
 
 use crate::{
-    app::{AppData, AppMessage}, components::password_input::password_input, external_task_response, external_tasks
+    app::AppMessage, components::password_input::password_input
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Message {
     Login,
-    LoginFailed(String),
-    LoginSuccess,
     PasswordInput(String),
     ToggleShowPassword,
+    LoginFailed(Wallet<Locked>, String),
+    LoginSuccess(Wallet<wallet::Unlocked>, bool),
 }
 
 impl Into<AppMessage> for Message {
@@ -65,45 +66,41 @@ impl<'a> LoginScreen {
         input.zeroize();
     }
 
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Locked>) -> Task<Message> {
         match message {
             Message::Login => {
                 self.status = Status::LoggingIn;
-                return self.login(appdata);
+                return self.login(wallet);
             }
-            Message::LoginFailed(info) => {
+            Message::LoginFailed(wallet_locked, info) => {
                 self.status = Status::Input;
+                *wallet = wallet_locked;
                 self.notification = info;
-            }
-            Message::LoginSuccess => {
-                if self.application_is_starting {
-                    return external_tasks::initial_login_tasks(appdata.settings.network);
-                };
             }
             Message::PasswordInput(input) => self.input(input),
             Message::ToggleShowPassword => self.toggle_view(),
+            Message::LoginSuccess(_,_) => {/*Propagated*/}
         }
         Task::none()
     }
 
-    fn login(&mut self, appdata: &'a mut AppData) -> Task<AppMessage> {
+    fn login(&mut self, wallet: &'a mut Wallet<Locked>) -> Task<Message> {
         debug_println!("Logging in");
 
         self.status = Status::LoggingIn;
+        let wallet = mem::take(wallet);
         let password = mem::take(&mut self.password);
-        let network = appdata.settings.network;
+
         Task::perform(
-                async move { handles::wallet::perform_login_check(network, &password).await },
-            |result| match result {
-                Ok(_) => Message::LoginSuccess.into(),
-                Err(err) =>{
-                    debug_println!("failed login check: {err}");
-                    match err {
-                        AppError::Fatal(_) => external_task_response::Message::Error(err).into(),
-                        AppError::NonFatal(notification) => {
-                            Message::LoginFailed(notification.to_string()).into()
-                        }
-                    }
+                async move { wallet.login_with_password(password).await },
+            |response| match response {
+                LoginResponse::Success(wallet, is_initial_login) => {
+                    debug_println!("Login successful");
+                    Message::LoginSuccess(wallet, is_initial_login)
+                }
+                LoginResponse::Failed(wallet, error) => {
+                    debug_println!("Login Failed");
+                    Message::LoginFailed(wallet, error.to_string())
                 }
             },
         )
@@ -122,14 +119,13 @@ impl<'a> LoginScreen {
         let space = widget::vertical_space().height(15);
 
         let password_input = password_input(
+            "Enter Password",
             self.password.as_str(),
             self.show_password,
             Message::ToggleShowPassword,
             Message::PasswordInput,
-            Message::PasswordInput,
-            Message::Login)
-                .width(200)
-                .height(30);
+            Message::Login
+        );
 
         let login_button = widget::Button::new(
             widget::text("Login")

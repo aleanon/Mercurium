@@ -1,27 +1,35 @@
-use iced::{
-    widget::{self, text::LineHeight, Button},
-    Element, Length, Task,
+use {
+    iced::{
+        widget::{self, text::LineHeight, Button},
+        Element, Length, Task,
+    },
+    types::AppError,
+    wallet::{wallet::Wallet, Unlocked},
+    crate::{
+        app::AppMessage,
+        app::App,
+    },
+    super::{
+        new_wallet::{self, NewWallet}, restore, restore_from_backup::{self, RestoreFromBackup}
+    },
+    inline_tweak::*,
 };
-use types::{crypto::SeedPhrase, AppError};
 
-use crate::{
-    app::AppMessage,
-    app::{App, AppData},
-};
 
-use super::{
-    new_wallet::{self, NewWallet, NewWalletStage}, restore_from_seed::{self, RestoreFromSeed}, restore_wallet::{self, RestoreFromBackup}
-};
 
-#[derive(Debug, Clone)]
+
+#[derive(Clone)]
 pub enum Message {
-    Back,
+    SelectSetup,
     FromBackup,
     FromSeed,
     NewWallet,
     NewWalletMessage(new_wallet::Message),
-    RestoreFromSeedMessage(restore_from_seed::Message),
-    RestoreWalletMessage(restore_wallet::Message),
+    // RestoreFromSeedMessage(restore::Message),
+    RestoreFromBackupMessage(restore_from_backup::Message),
+    RestoreFromSeedMessage(restore::Message),
+    WalletCreated(Wallet<Unlocked>),
+    Error(AppError),
 }
 
 impl Into<AppMessage> for Message {
@@ -34,8 +42,9 @@ impl Into<AppMessage> for Message {
 pub enum Setup {
     SelectSetup,
     RestoreFromBackup(RestoreFromBackup),
-    RestoreFromSeed(RestoreFromSeed),
+    // RestoreFromSeed(RestoreFromSeed),
     NewWallet(NewWallet),
+    RestoreFromSeed(restore::RestoreFromSeed)
 }
 
 impl<'a> Setup {
@@ -46,103 +55,78 @@ impl<'a> Setup {
     pub fn update(
         &mut self,
         message: Message,
-        app_data: &'a mut AppData,
-    ) -> Result<Task<AppMessage>, AppError> {
+        wallet: &'a mut Wallet<wallet::Setup>,
+    ) -> Result<Task<Message>, AppError> {
         match message {
-            Message::Back => self.back(),
-            Message::NewWallet => {
-                if let Setup::SelectSetup = self {
-                    *self = Setup::NewWallet(NewWallet::new_with_mnemonic())
-                }
-            }
-            Message::FromSeed => {
-                *self = Setup::RestoreFromSeed(RestoreFromSeed::new())
-            }
+            Message::SelectSetup => *self = Self::SelectSetup,
+            Message::NewWallet => *self = Self::NewWallet(NewWallet::new(wallet)),
+            Message::FromSeed => *self = Self::RestoreFromSeed(restore::RestoreFromSeed::new(wallet)),
+            
             Message::NewWalletMessage(new_wallet_message) => {
                 if let Setup::NewWallet(new_wallet) = self {
-                    return new_wallet.update(new_wallet_message, app_data);
+                    return Ok(new_wallet.update(new_wallet_message, wallet).map(Message::NewWalletMessage));
                 }
             }
+            // Message::RestoreFromSeedMessage(message) => {
+            //     if let Setup::RestoreFromSeed(restore_from_seed) = self {
+            //         return restore_from_seed.update(message, app_data);
+            //     }
+            // }
             Message::RestoreFromSeedMessage(message) => {
                 if let Setup::RestoreFromSeed(restore_from_seed) = self {
-                    return restore_from_seed.update(message, app_data);
+                    return Ok(restore_from_seed.update(message, wallet).map(Message::RestoreFromSeedMessage))
+
                 }
             }
+            Message::Error(_) => {/*Propagate*/}
+            Message::WalletCreated(_) => {/*Propagate*/}
             _ => {}
         }
         Ok(Task::none())
     }
-
-    fn back(&mut self) {
+    
+    #[inline_tweak::tweak_fn]
+    pub fn view(&'a self, app: &'a App, wallet: &Wallet<wallet::Setup>) -> Element<'a, Message> {
         match self {
-            Setup::NewWallet(new_wallet_state) => match new_wallet_state.stage {
-                NewWalletStage::EnterPassword => *self = Setup::SelectSetup,
-                NewWalletStage::VerifyPassword => {
-                    new_wallet_state.stage = NewWalletStage::EnterPassword;
-                    new_wallet_state.verify_password.clear();
-                    new_wallet_state.notification = "";
+            Setup::SelectSetup => self.select_creation_view(),
+            Setup::RestoreFromBackup(restore_from_backup) => restore_from_backup.view(app).map(Message::RestoreFromBackupMessage),
+            Setup::NewWallet(new_wallet) => new_wallet.view(wallet).map(Message::NewWalletMessage),
+            Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view().map(|message| {
+                match message {
+                    restore::Message::SelectSetup => Message::SelectSetup,
+                    _ => Message::RestoreFromSeedMessage(message)
                 }
-                NewWalletStage::EnterAccountName => {
-                    new_wallet_state.stage = NewWalletStage::EnterPassword;
-                    new_wallet_state.password.clear();
-                    new_wallet_state.verify_password.clear();
-                    new_wallet_state.notification = "";
-                }
-                NewWalletStage::EnterSeedPhrase => {
-                    new_wallet_state.stage = NewWalletStage::EnterAccountName;
-                    new_wallet_state.mnemonic = None;
-                    new_wallet_state.notification = "";
-                }
-                NewWalletStage::ViewSeedPhrase => {
-                    new_wallet_state.stage = NewWalletStage::EnterAccountName;
-                    new_wallet_state.notification = "";
-                }
-                NewWalletStage::VerifySeedPhrase => {
-                    new_wallet_state.stage = NewWalletStage::ViewSeedPhrase;
-                    new_wallet_state.notification = "";
-                    new_wallet_state.seed_phrase = SeedPhrase::new();
-                }
-            },
-            Setup::RestoreFromSeed(_) => *self = Self::SelectSetup,
-            _ => {}
-        };
+            }),
+        }
     }
 
-    pub fn view(&'a self, app: &'a App) -> Element<'a, AppMessage> {
-        let content: Element<'a, AppMessage> = match self {
-            Setup::SelectSetup => self.select_creation_view(),
-            Setup::RestoreFromBackup(restore_from_backup) => restore_from_backup.view(app),
-            Setup::NewWallet(new_wallet) => new_wallet.view(app),
-            Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view(app),
-        };
+    #[inline_tweak::tweak_fn]
+    fn select_creation_view(&self) -> Element<'_, Message> {
+        let new_wallet =
+            Self::creation_button("Create new wallet").on_press(Message::NewWallet);
 
+        let restore_from_backup =
+            Self::creation_button("Restore from backup").on_press(Message::FromBackup);
+
+        let restore_from_seed =
+            Self::creation_button("Restore from seed").on_press(Message::FromSeed);
+
+        let content = widget::column![new_wallet, restore_from_backup, restore_from_seed]
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .spacing(40);
+        
         widget::container(content)
             .center_x(Length::Fill)
             .center_y(Length::Fill)
             .into()
     }
 
-    fn select_creation_view(&self) -> Element<'_, AppMessage> {
-        let restore_from_backup =
-            Self::creation_button("Restore from backup").on_press(Message::FromBackup.into());
-
-        let restore_from_seed =
-            Self::creation_button("Restore from seed").on_press(Message::FromSeed.into());
-
-        let new_wallet =
-            Self::creation_button("Create new wallet").on_press(Message::NewWallet.into());
-
-        widget::column![restore_from_backup, restore_from_seed, new_wallet]
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .spacing(40)
-            .into()
-    }
-
-    //todo: replace space with image from handle
-    pub fn creation_button(
+    //todo: replace space with svg
+    #[inline_tweak::tweak_fn] 
+    pub fn creation_button<Message: Clone + 'a>(
         text: &'a str, /*handle: iced::widget::image::Handle*/
-    ) -> Button<'a, AppMessage> {
+    ) -> Button<'a, Message> {
         Button::new(widget::column![
             widget::text(text)
                 .size(20)

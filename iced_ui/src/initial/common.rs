@@ -1,44 +1,49 @@
-use iced::{
-    widget::{self, text::LineHeight, Button, Row},
-    Length,
+use iced::{ widget::{self, text::LineHeight, Button, Row}, Length
 };
 
 use crate::app::AppMessage;
 
-pub fn nav_button<'a>(text: &'a str) -> Button<'a, AppMessage> {
+#[inline_tweak::tweak_fn]
+pub fn nav_button<'a, Message: Clone>(text: &'a str, on_press: Message) -> Button<'a, Message> {
     Button::new(
         widget::text(text)
-            .size(16)
-            .width(50)
+            .size(20)
+            .width(100)
             .align_x(iced::alignment::Horizontal::Center)
             .align_y(iced::alignment::Vertical::Center),
     )
+    .on_press(on_press)
+    .style(styles::button::general_button)
 }
 
-pub fn nav_row<'a>(
-    back: Button<'a, AppMessage>,
-    next: Button<'a, AppMessage>,
-) -> Row<'a, AppMessage> {
+#[inline_tweak::tweak_fn]
+pub fn nav_row<'a, Message: Clone + 'a>(
+    back: Button<'a, Message>,
+    next: Button<'a, Message>,
+) -> Row<'a, Message> {
     let space = widget::Space::with_width(Length::Fill);
     widget::row![back, space, next]
-        .width(Length::Fill)
         .align_y(iced::Alignment::Start)
 }
 
-pub fn seed_word_field<'a>(placeholder: &str, input: &str) -> widget::TextInput<'a, AppMessage> {
+
+#[inline_tweak::tweak_fn]
+pub fn seed_word_field<'a, Message: Clone>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
     widget::text_input(placeholder, input)
         .size(16)
         .width(100)
         .line_height(LineHeight::Relative(2.))
 }
 
-pub fn text_input_field<'a>(placeholder: &str, input: &str) -> widget::TextInput<'a, AppMessage> {
+#[inline_tweak::tweak_fn]
+pub fn text_input_field<'a, Message: Clone + 'a>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
     widget::text_input(placeholder, input)
         .size(16)
         .width(250)
         .line_height(LineHeight::Relative(1.5))
 }
 
+#[inline_tweak::tweak_fn]
 pub fn notification_field(text: &str) -> widget::Text {
     widget::text(text).size(16).width(250)
 }

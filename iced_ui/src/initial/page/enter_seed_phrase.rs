@@ -11,7 +11,8 @@ pub enum Message {
     Next,
     SetNotification(Notification),
     ClearNotification,
-    InputSeedWords(usize, String),
+    InputSeedWord(usize, String),
+    PasteSeedWords(usize, String),
     ToggleSeedPassword,
     InputSeedPassword(String),
 }
@@ -47,12 +48,19 @@ impl EnterSeedPhrase {
         match message {
             Message::SetNotification(notification) => self.notification = notification,
             Message::ClearNotification => self.notification = Notification::None,
-            Message::InputSeedWords(index, input) => self.update_multiple_words_in_seed_phrase_from_index(index, input),
+            Message::InputSeedWord(index, input) => self.input_seed_word(index, input),
+            Message::PasteSeedWords(index, input) => self.update_multiple_words_in_seed_phrase_from_index(index, input),
             Message::ToggleSeedPassword => self.toggle_seed_password(wallet),
             Message::InputSeedPassword(input) => self.input_seed_password(input),
             Message::Back | Message::Next => {/*Handled in parent*/}
         }
         Task::none()
+    }
+
+    fn input_seed_word(&mut self, index: usize, mut input: String) {
+        self.seed_phrase.update_word(index, &input);
+        input.zeroize();
+        self.notification = Notification::None;
     }
 
     fn update_multiple_words_in_seed_phrase_from_index(&mut self, mut word_index: usize, mut input: String) {
@@ -87,30 +95,40 @@ impl EnterSeedPhrase {
 }
 
 impl<'a> EnterSeedPhrase {
+
+    #[inline_tweak::tweak_fn]
     pub fn view(&'a self) -> Element<'a, Message> {
         let header = common_elements::header_one("Enter seed phrase");
 
         let notification = components::notification::notification(&self.notification);
 
-        let input_seed = components::enter_seedphrase::input_seed(&self.seed_phrase, 
-            |index, input| Message::InputSeedWords(index, input));
+        let input_seed = components::enter_seedphrase::input_seed(
+            &self.seed_phrase,
+            Message::InputSeedWord,
+            Message::PasteSeedWords
+        );
 
         let content = widget::column![header, notification, input_seed]
-            .width(Length::Shrink)
-            .height(Length::Shrink)
             .align_x(iced::Alignment::Center)
-            .spacing(50);
+            .spacing(30);
+
+        let content = widget::container(content)
+            .center_x(Length::Fill)
+            .center_y(Length::Shrink);
 
         let nav = nav_row(
             nav_button("Back", Message::Back),
             nav_button("Next", Message::Next),
         );
 
-        let content_and_nav = column![content, nav];
+        let content_and_nav = column![content, nav]
+            .spacing(80);
 
+        
         widget::container(content_and_nav)
-            .center_x(660)
-            .center_y(700)
+            .max_width(550)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
             .into()
     }
 }

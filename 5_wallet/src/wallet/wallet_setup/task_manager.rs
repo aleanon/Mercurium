@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::{collections::{BTreeMap, HashMap}, fmt::Debug, sync::Arc};
 
 use bytes::Bytes;

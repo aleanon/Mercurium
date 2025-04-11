@@ -1,0 +1,2 @@
+commands:
+    watch_reload: cargo watch -w iced_ui/styles/button -w iced_ui/styles/container -w iced_ui/styles/rule -x "build -p dynrule -p dynbutton -p dyncontainer --profile reload --features reload"

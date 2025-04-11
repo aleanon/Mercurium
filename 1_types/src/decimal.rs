@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use async_sqlite::rusqlite;
 use std::{
     fmt::{self, Display},

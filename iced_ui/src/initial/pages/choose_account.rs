@@ -4,6 +4,7 @@ use iced::{
     widget::{self, column, row, Text}, Element, Length, Task
 };
 use types::{address::Address, crypto::Password, Account, AccountSummary, AppError};
+use wallet::Wallet;
 
 use crate::{
     app::AppMessage,
@@ -36,6 +37,8 @@ pub struct ChooseAccounts {
 }
 
 impl ChooseAccounts {
+    
+
     const ACCOUNTS_PER_PAGE: usize = 20;
 
     pub fn from_page_set_password(page: SetPassword) -> Self {

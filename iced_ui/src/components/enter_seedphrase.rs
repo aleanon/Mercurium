@@ -1,9 +1,11 @@
-use iced::{widget::{self, text::LineHeight, text_input::Id, Column}, Length};
+use iced::{advanced::renderer::Style, widget::{self, text::LineHeight, text_input::Id, Column}, Length};
 use types::crypto::SeedPhrase;
 
+#[inline_tweak::tweak_fn]
 pub fn input_seed<'a, Message>(
     seed_phrase: &SeedPhrase, 
-    on_input: fn(usize, String) -> Message, 
+    on_input: fn(usize, String) -> Message,
+    on_paste: fn(usize, String) -> Message,
     ) -> Column<'a, Message> 
     where
         Message: Clone + 'a,
@@ -29,35 +31,17 @@ pub fn input_seed<'a, Message>(
 
         let text_field = widget::text_input(&format!("Word {}", index + 1), word)
             .size(16)
-            .width(100)
+            .width(Length::Fill) 
             .line_height(LineHeight::Relative(2.))
             .id(Id::new(format!("{index}")))
+            .style(styles::text_input::seed_word_input)
             .on_input(move |input| on_input(index, input))
-            .on_paste(move |input| on_input(index, input));
+            .on_paste(move |input| on_paste(index, input));
             
+        let text_wrapper = widget::container(text_field)
+            .style(styles::container::seed_word_wrapper);
 
-        row = row.push(text_field);
+        row = row.push(text_wrapper);
     }
     seed.push(row)
 }
-
-// fn seed_word_text_field_with_id<'a, Message>(
-//     index: usize, 
-//     word: &str, 
-//     on_input: fn(usize, String) -> Message, 
-//     ) -> TextInput<'a, Message> 
-//     where 
-//     Message: Clone + 'a,
-//     {
-//     seed_word_field(&format!("Word {}", index + 1), word)
-//         .id(Id::new(format!("{index}")))
-//         .on_input(move |input| on_input(index, input))
-//         .on_paste(move |input| on_input(index, input))
-// }
-
-// fn seed_word_field<'a, Message: Clone>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
-//     widget::text_input(placeholder, input)
-//         .size(16)
-//         .width(100)
-//         .line_height(LineHeight::Relative(2.))
-// }

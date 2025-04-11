@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::str::FromStr;
 
 use async_sqlite::rusqlite;

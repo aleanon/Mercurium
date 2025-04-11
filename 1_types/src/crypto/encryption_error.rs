@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use thiserror::Error;
 
 

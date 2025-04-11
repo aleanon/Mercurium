@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use crate::credentials::{ENCRYPTED_MNEMONIC_TARGET_NAME, SALT_TARGET_NAME};
 use types::AppError;
 use zeroize::Zeroize;
@@ -28,7 +30,7 @@ mod mswindows {
 
         let result: Result<(), AppError>;
         unsafe {
-            match CredDeleteW(PCWSTR(target_name.as_mut_ptr()), CRED_TYPE_GENERIC, Some(0)) {
+            match CredDeleteW(PCWSTR(target_name.as_mut_ptr()), CRED_TYPE_GENERIC, 0) {
                 Ok(_) => result = Ok(()),
                 Err(err) => result = Err(AppError::Fatal(err.to_string())),
             }

@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::{collections::HashMap, sync::Arc};
 
 use bytes::Bytes;

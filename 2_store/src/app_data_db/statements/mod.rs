@@ -1,3 +1,5 @@
+use deps_two::const_format;
+
 pub mod accounts;
 pub mod balance_changes;
 pub mod fungible_assets;

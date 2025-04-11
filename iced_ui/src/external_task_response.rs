@@ -1,8 +1,8 @@
 use std::collections::{BTreeSet, HashMap};
 
+use bytes::Bytes;
 use debug_print::debug_println;
 
-use iced::widget::image::Handle;
 use iced::Task;
 
 use store::{AppDataDb, DbError};
@@ -22,9 +22,9 @@ use crate::{
 pub enum Message {
     AccountsUpdated(AccountsUpdate),
     AccountsAndResources(AppdataFromDisk),
-    Icons((Network, HashMap<ResourceAddress, Handle>)),
-    WalletCreated,
+    Icons((Network, HashMap<ResourceAddress, Bytes>)),
     Error(AppError),
+    WalletCreated,
 }
 
 impl Into<AppMessage> for Message {
@@ -40,7 +40,9 @@ impl App {
                 return self.process_updated_accounts_and_resources(accounts_update)
             }
             Message::Icons((network, icons)) => {
-                if network == self.app_data.settings.network {
+                let current_network = self.current_network();
+
+                if network == current_network {
                     self.store_icons_in_app_data(icons);
                 }
             }
@@ -57,11 +59,13 @@ impl App {
         &mut self,
         accounts_update: AccountsUpdate,
     ) -> Task<AppMessage> {
-        if accounts_update.network == self.app_data.settings.network {
+        let current_network = self.current_network();
+        let Some(wallet_data) = self.wallet_data_mut() else {
+            return Task::none();  
+        };
+        if accounts_update.network == current_network {
             for account_update in &accounts_update.account_updates {
-                match self
-                    .app_data
-                    .fungibles
+                match wallet_data.resource_data.fungibles
                     .get_mut(&account_update.account.address)
                 {
                     Some(fungibles) => {
@@ -75,14 +79,13 @@ impl App {
                             .iter()
                             .map(|(_, asset)| asset.clone())
                             .collect::<BTreeSet<FungibleAsset>>();
-                        self.app_data
+                        wallet_data.resource_data
                             .fungibles
                             .insert(account_update.account.address.clone(), updated_fungibles);
                     }
                 }
 
-                match self
-                    .app_data
+                match wallet_data.resource_data
                     .non_fungibles
                     .get_mut(&account_update.account.address)
                 {
@@ -97,15 +100,14 @@ impl App {
                             .iter()
                             .map(|(_, asset)| asset.clone())
                             .collect::<BTreeSet<_>>();
-                        self.app_data.non_fungibles.insert(
+                        wallet_data.resource_data.non_fungibles.insert(
                             account_update.account.address.clone(),
                             updated_non_fungibles,
                         );
                     }
                 }
 
-                match self
-                    .app_data
+                match wallet_data.resource_data
                     .accounts
                     .get_mut(&account_update.account.address)
                 {
@@ -114,21 +116,21 @@ impl App {
                             account_update.account.balances_last_updated;
                     }
                     None => {
-                        self.app_data.accounts.insert(
+                        wallet_data.resource_data.accounts.insert(
                             account_update.account.address.clone(),
                             account_update.account.clone(),
                         );
                     }
                 }
             }
-            self.app_data
+            wallet_data.resource_data
                 .resources
                 .extend(accounts_update.new_resources.clone());
         }
 
         let download_icons = {
             let icon_urls = accounts_update.icon_urls;
-            let network = self.app_data.settings.network;
+            let network = wallet_data.settings.network;
             Task::perform(
                 async move {
                     let icons = handles::image::download::download_resize_and_store_resource_icons(
@@ -148,7 +150,7 @@ impl App {
                 .into_iter()
                 .map(|(_, resource)| resource)
                 .collect::<Vec<_>>();
-            let network = self.app_data.settings.network;
+            let network = wallet_data.settings.network;
             Task::perform(
                 async move {
                     let Some(db) = AppDataDb::get(network) else {
@@ -204,26 +206,36 @@ impl App {
         Task::batch([download_icons, save_accounts_and_resources_to_disk])
     }
 
-    fn store_icons_in_app_data(&mut self, icons: HashMap<ResourceAddress, Handle>) {
-        for (resource_address, icon) in icons {
-            self.app_data.resource_icons.insert(resource_address, icon);
+    fn store_icons_in_app_data(&mut self, icons: HashMap<ResourceAddress, Bytes>) {
+        match &mut self.app_state {
+            AppState::Unlocked(wallet) => {
+                for (resource_address, icon) in icons {
+                    wallet.wallet_data_mut().resource_data.resource_icons.insert(resource_address, icon);
+                }
+
+            }
+            _ => {}
         }
     }
 
+    //Remove
     fn wallet_created(&mut self) -> Task<AppMessage> {
-        self.app_state = AppState::Unlocked;
+        self.app_state = AppState::Error("This path should be removed".to_string());
 
-        external_tasks::update_all_accounts(self.app_data.settings.network)
+        external_tasks::update_all_accounts(Network::Mainnet)
     }
 
     fn place_accounts_and_resources_in_memory(
         &mut self,
         accounts_and_resources: AppdataFromDisk,
     ) -> Task<AppMessage> {
-        self.app_data.accounts = accounts_and_resources.accounts;
-        self.app_data.resources = accounts_and_resources.resources;
-        self.app_data.fungibles = accounts_and_resources.fungible_assets;
-        self.app_data.non_fungibles = accounts_and_resources.non_fungible_assets;
+        if let Some(wallet_data) = self.wallet_data_mut() {
+            wallet_data.resource_data.accounts = accounts_and_resources.accounts;
+            wallet_data.resource_data.resources = accounts_and_resources.resources;
+            wallet_data.resource_data.fungibles = accounts_and_resources.fungible_assets;
+            wallet_data.resource_data.non_fungibles = accounts_and_resources.non_fungible_assets;
+
+        }
 
         Task::none()
     }

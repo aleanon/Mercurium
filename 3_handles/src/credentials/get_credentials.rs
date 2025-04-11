@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use crate::credentials::{ENCRYPTED_MNEMONIC_TARGET_NAME, SALT_TARGET_NAME};
 use types::{crypto::Salt, AppError};
 
@@ -45,7 +47,7 @@ mod mswindows {
             CredReadW(
                 PCWSTR(target_name.as_ptr()),
                 CRED_TYPE_GENERIC,
-                Some(0),
+                0,
                 &mut cred_ptr,
             )
             .and_then(|_| {

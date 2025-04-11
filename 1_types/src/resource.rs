@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use async_sqlite::rusqlite;
 use scrypto::prelude::HashMap;
 use serde::{Deserialize, Serialize};

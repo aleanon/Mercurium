@@ -1,3 +1,4 @@
+use deps_two::*;
 
 use std::mem;
 

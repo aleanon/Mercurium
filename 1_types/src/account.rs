@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use async_sqlite::rusqlite;
 use scrypto::crypto::Ed25519PublicKey;
 use serde::{Deserialize, Serialize};
@@ -283,6 +285,7 @@ impl std::fmt::Display for AcceptDeposits {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use scrypto::crypto::Ed25519PublicKey;
 
     use super::AccountAddress;

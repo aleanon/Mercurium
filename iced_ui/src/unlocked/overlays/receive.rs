@@ -3,7 +3,6 @@ use iced::{
     widget::{self, button, column, container, qr_code, row, text},
     Element, Length, Task,
 };
-use ravault_iced_theme::styles;
 use types::{
     address::{AccountAddress, Address},
     debug_info, UnwrapUnreachable,

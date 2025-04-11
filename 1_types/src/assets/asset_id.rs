@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use crate::{
     address::{AccountAddress, Address, ResourceAddress},
     debug_info,

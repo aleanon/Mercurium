@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::ops::{Deref, DerefMut};
 
 use async_sqlite::rusqlite;
