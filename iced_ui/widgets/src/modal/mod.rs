@@ -139,6 +139,11 @@ where
     Renderer: renderer::Renderer,
     Theme: StyleSheet,
 {
+    fn size_hint(&self) -> Size<Length> {
+        self.underlay.as_widget().size_hint()
+    }
+
+        
     fn children(&self) -> Vec<Tree> {
         self.overlay.as_ref().map_or_else(
             || vec![Tree::new(&self.underlay)],
@@ -164,32 +169,32 @@ where
             .layout(&mut tree.children[0], renderer, limits)
     }
 
-    fn on_event(
-        &mut self,
-        state: &mut Tree,
-        event: Event,
-        layout: Layout<'_>,
-        cursor: Cursor,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-        viewport: &Rectangle,
-    ) -> event::Status {
-        if self.overlay.is_none() {
-            return self.underlay.as_widget_mut().on_event(
-                &mut state.children[0],
-                event,
-                layout,
-                cursor,
-                renderer,
-                clipboard,
-                shell,
-                viewport,
-            );
-        }
+    // fn on_event(
+    //     &mut self,
+    //     state: &mut Tree,
+    //     event: Event,
+    //     layout: Layout<'_>,
+    //     cursor: Cursor,
+    //     renderer: &Renderer,
+    //     clipboard: &mut dyn Clipboard,
+    //     shell: &mut Shell<'_, Message>,
+    //     viewport: &Rectangle,
+    // ) -> event::Status {
+    //     if self.overlay.is_none() {
+    //         return self.underlay.as_widget_mut().on_event(
+    //             &mut state.children[0],
+    //             event,
+    //             layout,
+    //             cursor,
+    //             renderer,
+    //             clipboard,
+    //             shell,
+    //             viewport,
+    //         );
+    //     }
 
-        event::Status::Ignored
-    }
+    //     event::Status::Ignored
+    // }
 
     fn mouse_interaction(
         &self,

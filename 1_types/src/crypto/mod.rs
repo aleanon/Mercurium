@@ -1,3 +1,4 @@
+
 pub(crate) mod ed25519;
 pub(crate) mod encrypted_mnemonic;
 pub(crate) mod encryption_error;
@@ -24,4 +25,4 @@ pub use seedphrase::{Phrase, SeedPhrase};
 pub use key_salt_pair::KeySaltPair;
 
 // Re export
-pub use bip39;
+pub use deps_two::bip39;

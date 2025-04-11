@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use crate::{app::AppData, app::AppMessage, unlocked::app_view};
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
-    widget::{self, button, container, row, text, Container},
+    widget::{self, button, container, image::Handle, row, text, Container},
     Alignment, Element, Length, Padding, Task,
 };
-use ravault_iced_theme::styles;
 use types::{
     address::{AccountAddress, Address, ResourceAddress},
     Account, Decimal,
 };
+use wallet::{Unlocked, Wallet};
 
 use super::{
     add_assets::{self, AddAssets},
@@ -107,7 +107,7 @@ impl TransactionView {
 }
 
 impl<'a> TransactionView {
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
         match message {
             Message::OverView => self.view = View::Transaction,
             Message::SelectAccount(account) => self.from_account = Some(account),
@@ -130,7 +130,7 @@ impl<'a> TransactionView {
             } => self.create_new_add_assets_view(recipient_index, from_account),
             Message::AddAssetsMessage(add_assets_message) => {
                 if let View::AddAssets(add_assets) = &mut self.view {
-                    return add_assets.update(add_assets_message, &mut self.recipients, appdata);
+                    return add_assets.update(add_assets_message, &mut self.recipients, wallet);
                 }
             }
             Message::ChooseRecipientMessage(choose_recipient_message) => {
@@ -138,7 +138,7 @@ impl<'a> TransactionView {
                     return choose_recipient.update(
                         choose_recipient_message,
                         &mut self.recipients,
-                        appdata,
+                        wallet,
                     );
                 }
             }
@@ -181,17 +181,17 @@ impl<'a> TransactionView {
         }
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         match &self.view {
-            View::Transaction => self.overview(appdata),
-            View::ChooseRecipient(choose_recipient) => choose_recipient.view(appdata),
-            View::AddAssets(choose_assets) => choose_assets.view(appdata),
+            View::Transaction => self.overview(wallet),
+            View::ChooseRecipient(choose_recipient) => choose_recipient.view(wallet),
+            View::AddAssets(choose_assets) => choose_assets.view(wallet),
         }
     }
 
-    fn overview(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let mut accounts = appdata
-            .accounts
+    fn overview(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
+        let mut accounts = wallet
+            .accounts()
             .values()
             .map(|account| account)
             .collect::<Vec<&Account>>();
@@ -205,7 +205,7 @@ impl<'a> TransactionView {
         let from_account_field = self.from_account_field(accounts);
         let space2 = widget::Space::new(Length::Fill, 30);
 
-        let recipient_field = self.recipients(appdata);
+        let recipient_field = self.recipients(wallet);
 
         let space3 = widget::Space::new(Length::Fill, 20);
 
@@ -303,7 +303,7 @@ impl<'a> TransactionView {
             .height(Length::Shrink)
     }
 
-    fn recipients(&'a self, appdata: &'a AppData) -> Container<'a, AppMessage> {
+    fn recipients(&'a self, wallet: &'a Wallet<Unlocked>) -> Container<'a, AppMessage> {
         let label = Self::field_label("TO");
 
         //create empty recipient
@@ -350,11 +350,11 @@ impl<'a> TransactionView {
                     Vec::with_capacity(recipient.resources.len());
 
                 for (resource_address, (symbol, amount)) in recipient.resources.iter() {
-                    let icon: Element<'a, AppMessage> = appdata
-                        .resource_icons
+                    let icon: Element<'a, AppMessage> = wallet
+                        .resource_icons()
                         .get(&resource_address)
-                        .and_then(|handle| {
-                            Some(widget::image(handle.clone()).width(25).height(25).into())
+                        .and_then(|bytes| {
+                            Some(widget::image(Handle::from_bytes(bytes.clone())).width(25).height(25).into())
                         })
                         .unwrap_or(
                             container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(18))

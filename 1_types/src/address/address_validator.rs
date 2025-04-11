@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use once_cell::sync::Lazy;
 use scrypto::{address::AddressBech32Decoder, network::NetworkDefinition, types::EntityType};
 

@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use store::DbError;
 use thiserror::Error;
 use tokio::task::JoinError;

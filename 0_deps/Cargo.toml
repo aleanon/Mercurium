@@ -1,33 +1,19 @@
 cargo-features = ["profile-rustflags"]
 
+[features]
+reload = ["dep:hot-lib-reloader"]
 
-[workspace]
-members = [
-  # "0_extern_deps/async_sqlite",
-  # "0_extern_deps/bytes",
-  # "0_extern_deps/flate2",
-  # ".dyn_deps/iced",
-  # "0_extern_deps/openssl-sys",
-  "0_deps",
-  "1_types",
-  "2_store",
-  "3_handles",
-  "4_font_and_icons",
-  "5_wallet",
-  "iced_ui",
-  "iced_ui/styles",
-  "mercurium",
-]
-workspace.resolver = "3"
-package.edition = "2024"
+[package]
+name = "deps_two"
+version = "0.1.0"
+edition.workspace = true
 
+[lib]
+crate-type = ["rlib", "cdylib"]
 
-[profile.release]
-panic = "unwind"
-strip = "symbols"
+[profile.dev]
 opt-level = 3
-lto = "fat"
-codegen-units = 1
+rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -48,30 +34,21 @@ features = ["reload"]
 opt-level = 3
 codegen-units = 1
 
-
-[workspace.dependencies]
+[dependencies]
 iced = { git = "https://github.com/iced-rs/iced.git", rev = "5f00aef426a19913cb611aef496905cc15bde6ee", default-features = false, features = [
-  "wgpu",
-  "tokio",
-  "image",
-  "qr_code",
-  "advanced",
-  "debug",
+    "wgpu",
+    "tokio",
+    "image",
+    "qr_code",
+    "advanced",
+    "debug",
 ] }
-# iced = { version = "0.13.1", features = [
-#   "tokio",
-#   "image",
-#   "qr_code",
-#   "advanced",
-#   "web-colors",
-# ] }
-# iced = { path = ".dyn_deps/iced" }
 scrypto = { version = "1.3.0" }
 tokio = { version = "*", features = ["full"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = { version = "*" }
 async-sqlite = { version = "0.5.0", features = [
-  "bundled-sqlcipher-vendored-openssl",
+    "bundled-sqlcipher-vendored-openssl",
 ] }
 reqwest = { version = "*", features = ["blocking", "json"] }
 openssl-sys = { version = "*", features = ["vendored"] }
@@ -83,8 +60,8 @@ fast_image_resize = "3.0.4"
 tiny-bip39 = "*"
 slip10_ed25519 = "*"
 ed25519-dalek-fiat = "*"
-rand = "*"
 ring = "*"
+rand = "*"
 zeroize = { version = "*", features = ["zeroize_derive"] }
 debug_print = "*"
 regex = { version = "*" }
@@ -96,14 +73,19 @@ asynciter = "*"
 futures = "*"
 bincode = "*"
 inline_tweak = { version = "1.2.1", features = ["derive"] }
-hot-lib-reloader = { version = "0.7.0" }
+no-mangle-if-debug = "0.1.0"
 
-# Windows specific imports
+
+#Optional
+hot-lib-reloader = { version = "0.7.0", optional = true }
+
+
+[target.'cfg(windows)'.dependencies]
 winapi = { version = "*", features = ["winuser"] }
 windows = { version = "*", features = [
-  "Win32_System",
-  "Win32_Foundation",
-  "Win32_Security",
-  "Win32_Security_Cryptography",
-  "Win32_Security_Credentials",
+    "Win32_System",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Cryptography",
+    "Win32_Security_Credentials",
 ] }

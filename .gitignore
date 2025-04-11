@@ -1,4 +1,5 @@
 /target
+/target-bin
 /.vscode
 /slint_ui
 /0_archive

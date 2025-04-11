@@ -1,18 +1,17 @@
-use iced::{widget::{self, column}, Element, Length, Task};
+use iced::{widget::{self, column, container}, Element, Length, Task};
 use types::{crypto::Password, Notification};
 use wallet::{wallet::Wallet, Setup};
 use zeroize::Zeroize;
 
-use crate::{common_elements, components::{self, password_input::password_input}, initial::common::{nav_button, nav_row}};
+use crate::{common_elements, components::{self, password_input::password_input}, initial::common::{self, nav_button, nav_row}};
 
 
-const VERIFY_PASSWORD_ID: u8 = 1;
+const VERIFY_PASSWORD_FIELD_ID: u8 = 1;
 
 #[derive(Clone)]
 pub enum Message {
     Back,
     Next,
-    SaveToWallet,
     SetNotification(Notification), 
     InputPassword(String),
     InputVerifyPassword(String),
@@ -31,8 +30,8 @@ pub struct EnterPassword {
 }
 
 impl<'a> EnterPassword {
-    pub fn new(password: Option<&str>, notification: Notification) -> Self {
-        let password = match password {
+    pub fn new(wallet: &Wallet<wallet::Setup>, notification: Notification) -> Self {
+        let password = match wallet.password() {
             Some(password) => Password::from(password),
             None => Password::new(),
         };
@@ -54,7 +53,6 @@ impl<'a> EnterPassword {
             Message::TogglePasswordVisibility => self.reveal_password =!self.reveal_password,
             Message::ToggleVerifyPasswordsVisibility => self.reveal_verify_password =!self.reveal_verify_password,
             Message::SetFocusVerifyPassword => {}
-            Message::SaveToWallet => self.save_to_wallet(wallet),
             Message::Back | Message::Next => {/*Handle in parent*/}
         };
         Task::none()
@@ -72,21 +70,40 @@ impl<'a> EnterPassword {
         self.notification = Notification::None;
     }
 
-    pub fn save_to_wallet(&mut self, wallet: &'a mut Wallet<Setup>) {
-        if self.password.as_str() == self.verify_password.as_str() {
-            wallet.set_password(self.password.clone());
-        } else {
-            self.notification = Notification::Info("Passwords do not match".to_string());
+    pub fn input_is_valid(&mut self) -> bool {
+        if self.password.len() < Password::MIN_LEN {
+            self.notification = Notification::Info(format!("Password needs to be at least {} characters long", Password::MIN_LEN));
+            return false
         }
+        if self.password.as_str() != self.verify_password.as_str() {
+            self.notification = Notification::Info("Passwords do not match".to_string());
+            return false
+        }
+        true
+    }
+
+    pub fn save_to_wallet(&mut self, wallet: &'a mut Wallet<Setup>) -> Result<(), ()> {
+        if self.password.len() < Password::MIN_LEN {
+            self.notification = Notification::Info(format!("Password needs to be at least {} characters long", Password::MIN_LEN));
+            return Err(())
+        }
+        if self.password.as_str() != self.verify_password.as_str() {
+            self.notification = Notification::Info("Passwords do not match".to_string());
+            return Err(())
+        }
+        wallet.set_password(self.password.clone());
+        Ok(())
     }
 }
 
 
 impl<'a> EnterPassword {
     pub fn view(&'a self) -> Element<'a, Message> {
+        // let password_notification = components::notification::notification(&self.notification);
+
         let header = common_elements::header_one("Create password");
 
-        let password_notification = components::notification::notification(&self.notification);
+        let notification = components::notification::notification(&self.notification);
 
         let pw_input = password_input(
             "Enter Password",
@@ -103,30 +120,34 @@ impl<'a> EnterPassword {
             self.reveal_verify_password, 
             Message::ToggleVerifyPasswordsVisibility,
             Message::InputVerifyPassword, 
-            Message::SaveToWallet,
+            Message::Next,
         );
 
         let content = widget::column![
             header,
-            password_notification,
+            notification,
             pw_input,
             verify_pw_input,
         ]
         .align_x(iced::Alignment::Center)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
         .spacing(50);
+
+        let content_container = container(content)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill);
         
         let nav = nav_row(
             nav_button("Back", Message::Back),
             nav_button("Next", Message::Next),
         );
 
-        let content_and_nav = column![content, nav];
+        let content_and_nav = column![content_container, nav];
 
         widget::container(content_and_nav)
-            .center_x(660)
-            .center_y(700)
+            .max_width(600)
+            .max_height(550)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
             .into()
     }
 }

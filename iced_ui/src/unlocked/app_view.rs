@@ -3,11 +3,11 @@ use iced::{
     widget::{self, button, image::Handle, row, text, Row, Text},
     Element, Length, Task,
 };
-use ravault_iced_theme::styles;
+use wallet::{Unlocked, Wallet};
 use std::{collections::HashMap, str::FromStr};
 use types::{address::ResourceAddress, Account, Decimal, RadixDecimal};
 
-use crate::{app::AppData, app::AppMessage};
+use crate::{app::{AppData, AppMessage, Preferences}, App};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},
@@ -64,18 +64,18 @@ impl<'a> AppView {
         }
     }
 
-    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
         match message {
             Message::SelectTab(tab_id) => self.select_tab(tab_id),
-            Message::NewTransaction(from_account) => self.new_transaction(from_account, appdata),
+            Message::NewTransaction(from_account) => self.new_transaction(from_account, wallet),
             Message::AccountsViewMessage(accounts_message) => {
                 if let ActiveTab::Accounts(view) = &mut self.active_tab {
-                    return view.update(accounts_message, appdata);
+                    return view.update(accounts_message, wallet);
                 }
             }
             Message::TransactionMessage(transfer_message) => {
                 if let ActiveTab::Transfer(view) = &mut self.active_tab {
-                    return view.update(transfer_message, appdata);
+                    return view.update(transfer_message, wallet);
                 }
             }
             Message::SpawnOverlay(overlay_type) => match overlay_type {
@@ -91,7 +91,7 @@ impl<'a> AppView {
             Message::CloseOverlay => self.overlay = None,
             Message::OverlayMessage(overlay_message) => {
                 if let Some(overlay) = &mut self.overlay {
-                    return overlay.update(overlay_message, appdata);
+                    return overlay.update(overlay_message, wallet);
                 }
             }
         }
@@ -108,10 +108,10 @@ impl<'a> AppView {
         }
     }
 
-    fn new_transaction(&mut self, from_account: Option<Account>, appdata: &'a mut AppData) {
+    fn new_transaction(&mut self, from_account: Option<Account>, wallet: &'a mut Wallet<Unlocked>) {
         match from_account {
             Some(ref account) => {
-                let asset_amounts = appdata
+                let asset_amounts = wallet.wallet_data().resource_data
                     .fungibles
                     .get(&account.address)
                     .and_then(|fungibles| {
@@ -137,15 +137,15 @@ impl<'a> AppView {
         }
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
-        let menu = self.menu(appdata);
+    pub fn view(&'a self, wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
+        let menu = self.menu(wallet, app);
 
         let center_panel = match self.active_tab {
             ActiveTab::Accounts(ref accounts_view) => {
-                widget::container(accounts_view.view(appdata))
+                widget::container(accounts_view.view(wallet))
             }
             ActiveTab::Transfer(ref transaction_view) => {
-                widget::container(transaction_view.view(appdata))
+                widget::container(transaction_view.view(wallet))
             }
         }
         .padding(10)
@@ -169,18 +169,19 @@ impl<'a> AppView {
 
         let appview = widget::container(panels).style(styles::container::main_window);
 
-        let overlay = self
-            .overlay
-            .as_ref()
-            .and_then(|overlay| Some(overlay.view(appdata)));
+        // let overlay = self
+        //     .overlay
+        //     .as_ref()
+        //     .and_then(|overlay| Some(overlay.view(wallet)));
 
-        ravault_widgets::Modal::new(appview, overlay)
-            .on_esc(Message::CloseOverlay.into())
-            .backdrop(Message::CloseOverlay.into())
-            .into()
+        // widgets::Modal::new(appview, overlay)
+        //     .on_esc(Message::CloseOverlay.into())
+        //     .backdrop(Message::CloseOverlay.into())
+        //     .into()
+        appview.into()
     }
 
-    fn menu(&self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    fn menu(&self, wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
         let logo = widget::image(Handle::from_bytes(MENU_LOGO))
             .width(100)
             .height(50);
@@ -190,7 +191,7 @@ impl<'a> AppView {
         let theme_icon = text(Bootstrap::Palette).font(BOOTSTRAP_FONT);
         let toggle_theme_button = Self::menu_button(
             theme_icon,
-            appdata.settings.theme.as_str(),
+            app.preferences.theme.as_str(),
             AppMessage::ToggleTheme,
         );
 

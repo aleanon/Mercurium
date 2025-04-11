@@ -25,3 +25,4 @@ edition.workspace = true
 iced_ui = { path = "../iced_ui" }
 styles = { path = "../iced_ui/styles" }
 tokio = { workspace = true }
+# libloading = { workspace = true }

@@ -1,9 +1,13 @@
-use iced::{widget::{self, column, row}, Element, Length, Task};
+use iced::{widget::{self, column, container, row}, Element, Length, Task};
 use types::{address::Address, Account, AccountSummary};
 use wallet::{Setup, Wallet};
 
+use crate::initial::common::{nav_button, nav_row};
+
 #[derive(Clone)]
 pub enum Message {
+    Back,
+    Next, 
     Accounts(Vec<(Account, AccountSummary)>),
     ToggleAccountSelection(usize),
 }
@@ -48,6 +52,7 @@ impl<'a> ChooseAccounts {
                     account.1 = !account.1
                 }
             }
+            Message::Back | Message::Next => {/*Handled in parent*/}
         }
         Task::none()
     }
@@ -90,6 +95,22 @@ impl<'a> ChooseAccounts {
             )
         }
         
-        widget::scrollable(accounts.width(400)).into()
+        let content = widget::scrollable(accounts.width(400));
+
+        let content_container = container(content)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill);
+        
+        let nav = nav_row(
+            nav_button("Back", Message::Back),
+            nav_button("Next", Message::Next),
+        );
+
+        let content_and_nav = column![content_container, nav];
+
+        widget::container(content_and_nav)
+            .center_x(650)
+            .center_y(550)
+            .into()
     }
 }

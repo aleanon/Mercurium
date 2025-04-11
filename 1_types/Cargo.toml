@@ -1,35 +1,50 @@
+cargo-features = ["profile-rustflags"]
+
 [package]
 name = "types"
 version = "0.1.0"
 
 edition.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["rlib", "cdylib"]
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+rustflags = ["-C", "prefer-dynamic"]
 
 [dependencies]
-async-sqlite = { workspace = true }
-reqwest = { workspace = true }
-scrypto.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-bincode.workspace = true
-ring.workspace = true
-thiserror.workspace = true
-bytes.workspace = true
-image.workspace = true
-iced.workspace = true
-tiny-bip39 = { workspace = true }
-ed25519-dalek-fiat = { workspace = true }
-slip10_ed25519 = { workspace = true }
-zeroize = { workspace = true, features = ["zeroize_derive"] }
-debug_print = { workspace = true }
-# rusqlite.workspace = true
-regex = { workspace = true }
-once_cell = { workspace = true }
-const_format = { workspace = true }
-radix-gateway-sdk = { workspace = true }
-asynciter = { workspace = true }
+deps_two = { path = "../0_deps" }
+# async-sqlite = { workspace = true, features = [deps_two = { path = "../0_deps" }
+serde = { version = "*", features = ["derive"] }
+zeroize = { version = "*", features = ["zeroize_derive"] }
+#     "bundled-sqlcipher-vendored-openssl",
+# ] }
+# reqwest = { workspace = true }
+# scrypto.workspace = true
+# serde.workspace = true
+# serde_json.workspace = true
+# bincode.workspace = true
+# ring.workspace = true
+# thiserror.workspace = true
+# bytes.workspace = true
+# image.workspace = true
+# iced.workspace = true
+# tiny-bip39 = { workspace = true }
+# ed25519-dalek-fiat = { workspace = true }
+# slip10_ed25519 = { workspace = true }
+# zeroize = { workspace = true, features = ["zeroize_derive"] }
+# debug_print = { workspace = true }
+# # rusqlite.workspace = true
+# regex = { workspace = true }
+# once_cell = { workspace = true }
+# const_format = { workspace = true }
+# radix-gateway-sdk = { workspace = true }
+# asynciter = { workspace = true }
 
-[dev-dependencies]
-rand = "0.8.5"
+# [dev-dependencies]
+# rand = "0.8.5"
+
+
+# [lib]
+# crate-type = ["rlib"]

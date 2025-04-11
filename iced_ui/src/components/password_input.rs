@@ -1,14 +1,8 @@
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{alignment::Vertical, border::Radius, widget::{self, button, column, container::{self, Style}, row, text, text_input}, Border, Color, Length, Shadow, Theme};
-use ravault_iced_theme::styles;
 
 
-const ELEMENT_SPACING: u16 = 5;
-const ROW_PADDING: u16 = 2;
-const RULE_HEIGHT: u16 = 1;
-const TEXT_SIZE: u16 = 15;
-
-
+#[inline_tweak::tweak_fn]
 pub fn password_input<'a, Message>(
     placeholder: &'static str,
     password: &str,
@@ -25,7 +19,7 @@ where
         .on_paste(on_input)
         .on_submit(on_submit)
         .width(Length::FillPortion(9))
-        .size(TEXT_SIZE)
+        .size(15)
         .secure(!view_password)
         .style(styles::text_input::borderless);
 
@@ -43,28 +37,14 @@ where
 
     let input_and_button = row![input, toggle_view_password]
         .align_y(Vertical::Center)
-        .padding(ROW_PADDING)
-        .spacing(ELEMENT_SPACING);
+        .padding(2.)
+        .spacing(5);
 
-    let rule = widget::Rule::horizontal(RULE_HEIGHT)
+    let rule = widget::Rule::horizontal(1)
         .style(styles::rule::text_input_rule);
 
     let content = column![input_and_button, rule];
 
     widget::container(content)
-        .style(password_input_style)
-}
-
-
-pub fn password_input_style(theme: &Theme) -> Style {
-    Style {
-        background: None,
-        border: Border {
-            radius: Radius::from(10),
-            color: Color::TRANSPARENT,
-            width: 0.,
-        },
-        shadow: Shadow::default(),
-        text_color: None,
-    }
+        .style(styles::container::password_input)
 }

@@ -2,7 +2,7 @@ use iced::{
     widget::{self, button, column, row, text, text_input, Space},
     Element, Length, Task,
 };
-use ravault_iced_theme::styles;
+use wallet::{Unlocked, Wallet};
 use std::sync::Arc;
 use types::crypto::Password;
 use zeroize::Zeroize;
@@ -63,13 +63,13 @@ impl<'a> AddAccountView {
         (add_account_view, task)
     }
 
-    pub fn update(&mut self, message: Message, appdata: &mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
         match message {
             Message::InputAccountName(input) => self.update_account_name(input),
             Message::InputPassword(input) => self.update_password(input),
             Message::Back => return self.back(),
             Message::Continue => return self.next(),
-            Message::Submit => return self.submit(appdata),
+            Message::Submit => return self.submit(wallet),
         }
         Task::none()
     }
@@ -111,7 +111,7 @@ impl<'a> AddAccountView {
         Task::none()
     }
 
-    fn submit(&mut self, app_data: &mut AppData) -> Task<AppMessage> {
+    fn submit(&mut self, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
         let mut task = Task::none();
         let account =
             handles::credentials::get_encrypted_mnemonic().and_then(|encrypted_mnemonic| {
@@ -121,7 +121,7 @@ impl<'a> AddAccountView {
                         let mut id = 0;
                         let mut new_account_index = 0;
 
-                        for (_, account) in app_data.accounts.iter() {
+                        for (_, account) in wallet.accounts().iter() {
                             if account.id >= id {
                                 id = account.id + 1
                             };
@@ -136,7 +136,7 @@ impl<'a> AddAccountView {
                             id,
                             new_account_index,
                             self.account_name.clone(),
-                            app_data.settings.network,
+                            wallet.settings().network,
                         );
                         Ok(account)
                     })
@@ -146,12 +146,12 @@ impl<'a> AddAccountView {
             });
         match account {
             Ok(account) => {
-                app_data
-                    .accounts
+                wallet
+                    .accounts_mut()
                     .insert(account.address.clone(), account.clone());
 
-                let network = app_data.settings.network;
-                let resources = app_data.resources.clone();
+                let network = wallet.settings().network;
+                let resources = wallet.resources().clone();
                 task = Task::perform(
                     async move {
                         let accounts_update = handles::radix_dlt::updates::update_accounts(

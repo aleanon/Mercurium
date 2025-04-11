@@ -3,7 +3,7 @@ use iced::{
     widget::{self, container, image::Handle, row, text, Container},
     Element, Length, Padding,
 };
-use ravault_iced_theme::styles;
+use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppData, app::AppMessage};
 use types::{address::Address, assets::FungibleAsset};
@@ -28,8 +28,8 @@ impl<'a> FungibleView {
         Self { fungible, image }
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> iced::Element<'a, AppMessage> {
-        let resource = appdata.resources.get(&self.fungible.resource_address);
+    pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
+        let resource = wallet.wallet_data().resource_data.resources.get(&self.fungible.resource_address);
 
         let name = text(
             resource

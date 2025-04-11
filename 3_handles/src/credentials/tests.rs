@@ -1,5 +1,7 @@
 #![cfg(test)]
 
+use deps_two::*;
+
 use bip39::Mnemonic;
 use store::DataBase;
 use types::crypto::{EncryptedMnemonic, KeySaltPair, Password};

@@ -92,7 +92,8 @@ impl<'a> ViewSeedPhrase {
 
         let notification = components::notification::notification(&self.notification);
 
-        let input_seed = components::enter_seedphrase::input_seed(&self.seed_phrase, 
+        let input_seed = components::enter_seedphrase::input_seed(&self.seed_phrase,
+            |_,_| Message::None,
             |_,_| Message::None);
 
         let content = widget::column![header, notification, input_seed]

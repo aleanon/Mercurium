@@ -9,11 +9,11 @@ use iced::{
     widget::{self, button, column, container, row, scrollable, text},
     Element, Length, Padding, Task,
 };
-use ravault_iced_theme::styles;
 use types::{
     address::{AccountAddress, Address},
     Account,
 };
+use wallet::{Unlocked, Wallet};
 
 use super::account_view::{self, AccountView};
 
@@ -45,24 +45,24 @@ impl<'a> AccountsView {
         Self::OverView(HashMap::new())
     }
 
-    pub fn update(&mut self, message: Message, appdata: &'a mut AppData) -> Task<AppMessage> {
+    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
         let mut command = Task::none();
         match message {
             Message::NewAccount => {}
             Message::Overview => {}
-            Message::SelectAccount(account) => self.select_account(account, appdata),
+            Message::SelectAccount(account) => self.select_account(account, wallet),
             Message::ToggleExpand(address) => self.toggle_expand(address),
             Message::AccountViewMessage(account_view_message) => {
                 if let Self::Account(account_view) = self {
-                    command = account_view.update(account_view_message, appdata)
+                    command = account_view.update(account_view_message, wallet)
                 }
             }
         }
         command
     }
 
-    fn select_account(&mut self, account_address: AccountAddress, appdata: &'a mut AppData) {
-        if let Some(account) = appdata.accounts.get(&account_address) {
+    fn select_account(&mut self, account_address: AccountAddress, wallet: &'a mut Wallet<Unlocked>) {
+        if let Some(account) = wallet.accounts().get(&account_address) {
             *self = AccountsView::Account(AccountView::from_account(account));
         }
     }
@@ -75,16 +75,17 @@ impl<'a> AccountsView {
         }
     }
 
-    pub fn view(&'a self, appdata: &'a AppData) -> Element<'a, AppMessage> {
+    pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         match self {
-            Self::OverView(is_expanded) => Self::overview(is_expanded, appdata),
-            Self::Account(account) => account.view(appdata),
+            Self::OverView(is_expanded) => Self::overview(is_expanded, wallet),
+            Self::Account(account) => account.view(wallet),
         }
     }
 
+    #[inline_tweak::tweak_fn]
     fn overview(
         is_expanded: &HashMap<AccountAddress, bool>,
-        appdata: &'a AppData,
+        wallet: &'a Wallet<Unlocked>,
     ) -> Element<'a, AppMessage> {
         let title = text("Accounts").size(25);
 
@@ -102,8 +103,8 @@ impl<'a> AccountsView {
             .align_y(iced::Alignment::End)
             .padding(20);
 
-        let accounts = appdata
-            .accounts
+        let accounts = wallet
+            .accounts()
             .iter()
             .map(|(_, account)| account )
             .collect::<BTreeSet<&Account>>();
@@ -123,13 +124,13 @@ impl<'a> AccountsView {
 
 
         let col = iced::widget::Column::with_children(children)
-            .spacing(30)
+            .spacing(15)
             // .width(Length::FillPortion(9))
             .padding(Padding {
                 bottom: 0.,
                 top: 15.,
                 right: 15.,
-                left: 0.,
+                left: 10.,
             });
 
         let scrollable = scrollable::Scrollable::new(col)
@@ -159,6 +160,7 @@ impl<'a> AccountsView {
     //         .into()
     // }
 
+    #[inline_tweak::tweak_fn]
     fn view_account_summary(
         _expanded: bool,
         account: &'a Account,
@@ -173,7 +175,7 @@ impl<'a> AccountsView {
 
         let space = widget::Space::new(Length::Fill, Length::Shrink);
 
-        let account_address_widget = widget::text(account.address.truncate())
+        let account_address_widget = widget::text(account.address.truncate_long())
             .size(18)
             .align_x(iced::alignment::Horizontal::Right)
             .align_y(iced::alignment::Vertical::Bottom);
@@ -187,9 +189,12 @@ impl<'a> AccountsView {
             .height(100)
             .width(Length::Fill)
             .style(styles::button::account_button)
-            .padding(5)
+            .padding(15)
             .on_press(Message::SelectAccount(account.address.clone()).into());
 
-        container(button).width(Length::Fill).height(Length::Shrink)
+        container(button)
+            .width(Length::Fill)
+            .height(Length::Shrink)
+            .padding(5)
     }
 }

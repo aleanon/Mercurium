@@ -10,7 +10,8 @@ use crate::{common_elements, components, initial::common::{nav_button, nav_row}}
 pub enum Message {
     Back,
     Next,
-    InputSeedPhrase(usize, String),
+    InputSeedWord(usize, String),
+    PasteSeedWords(usize, String),
 }
 
 
@@ -38,10 +39,16 @@ impl VerifySeedPhrase {
 
     pub fn update(&mut self, message: Message, wallet: &mut Wallet<Setup>) -> Task<Message> {
         match message {
-            Message::InputSeedPhrase(index, input) => self.update_multiple_words_in_seed_phrase_from_index(index, input),
+            Message::InputSeedWord(index, input) => self.input_seed_word(index, input),
+            Message::PasteSeedWords(index, input) => self.update_multiple_words_in_seed_phrase_from_index(index, input),
             Message::Back | Message::Next => {/*Handled in parent*/}
         }
         Task::none()
+    }
+
+    fn input_seed_word(&mut self, index: usize, mut input: String) {
+        self.seed_phrase.update_word(index, &input);
+        input.zeroize();
     }
 
     fn update_multiple_words_in_seed_phrase_from_index(&mut self, mut word_index: usize, mut input: String) {
@@ -58,6 +65,10 @@ impl VerifySeedPhrase {
         self.seed_phrase == self.verify_seed_phrase
     }
 
+    pub fn notify_input_state(&mut self) {
+        self.notification = Notification::Info("Seed phrase does not match".to_string())
+    }
+
 }
 
 impl<'a> VerifySeedPhrase {
@@ -66,7 +77,10 @@ impl<'a> VerifySeedPhrase {
 
         let notification = components::notification::notification(&self.notification);
 
-        let input_seed = components::enter_seedphrase::input_seed(&self.verify_seed_phrase, Message::InputSeedPhrase);
+        let input_seed = components::enter_seedphrase::input_seed(
+            &self.verify_seed_phrase, 
+            Message::PasteSeedWords,
+            Message::PasteSeedWords);
 
         let content = widget::column![header, notification, input_seed]
             .width(Length::Shrink)

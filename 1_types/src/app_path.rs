@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;

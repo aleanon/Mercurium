@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use crate::{DbError, IconsDb};
 
 use async_sqlite::rusqlite::{self, Row};

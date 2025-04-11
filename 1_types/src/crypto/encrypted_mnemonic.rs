@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use core::str;
 use std::num::NonZeroU32;
 

@@ -1,3 +1,5 @@
+use deps_two::*;
+
 use std::{io::BufWriter, num::NonZeroU32};
 
 use debug_print::debug_println;
