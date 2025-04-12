@@ -22,7 +22,7 @@ opt-level = 3
 codegen-units = 1
 
 [dependencies]
-deps = { path = "../deps" }
+deps = { path = "../../../0_deps" }
 
 [lib]
 crate-type = ["rlib", "cdylib"]
