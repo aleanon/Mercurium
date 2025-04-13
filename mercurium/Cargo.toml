@@ -22,7 +22,8 @@ edition.workspace = true
 # codegen-units = 1
 
 [dependencies]
+deps = { path = "../0_deps"}
 iced_ui = { path = "../iced_ui" }
-styles = { path = "../iced_ui/styles" }
-tokio = { workspace = true }
+# styles = { path = "../iced_ui/styles" }
+# tokio = { workspace = true }
 # libloading = { workspace = true }

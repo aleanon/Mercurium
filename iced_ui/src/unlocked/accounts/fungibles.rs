@@ -1,3 +1,5 @@
+use deps::*;
+
 use debug_print::debug_println;
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{

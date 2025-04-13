@@ -1,4 +1,4 @@
-use deps_two::const_format;
+use deps::const_format;
 
 pub mod accounts;
 pub mod balance_changes;
@@ -30,6 +30,7 @@ pub const CREATE_ALL_MAIN_DB_TABLES_BATCH: &'static str = const_format::formatcp
 
 #[cfg(test)]
 mod test {
+    use deps::*;
 
     use crate::database::test::{execute_batch_stmt, execute_stmt};
 

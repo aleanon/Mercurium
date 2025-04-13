@@ -1,5 +1,5 @@
 
-use deps::hot_lib_reloader;
+use deps::*;
 
 #[cfg(not(feature = "reload"))]
 pub use dyncontainer::*;

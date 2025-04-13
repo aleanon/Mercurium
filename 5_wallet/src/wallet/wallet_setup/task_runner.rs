@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use thiserror::Error;
 use tokio::{sync::Mutex, task::JoinHandle};

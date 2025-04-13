@@ -30,6 +30,7 @@ opt-level = 3
 codegen-units = 1
 
 [dependencies]
+deps ={ path = "../0_deps"}
 types = { path = "../1_types" }
 store = { path = "../2_store" }
 handles = { path = "../3_handles" }
@@ -37,17 +38,16 @@ font_and_icons = { path = "../4_font_and_icons" }
 wallet = { path = "../5_wallet" }
 styles = { path = "styles" }
 widgets = { path = "widgets" }
-iced = { workspace = true }
-# iced_aw = { workspace = true, features = ["icons"] }
 zeroize = { workspace = true }
-thiserror = { workspace = true }
-tiny-bip39 = { workspace = true }
-reqwest = { workspace = true }
-serde_json = { workspace = true }
-scrypto = { workspace = true }
-lazy_static = { workspace = true }
-bytes = { workspace = true }
 inline_tweak = { workspace = true, features = ["derive"] }
+# iced = { workspace = true }
+# iced_aw = { workspace = true, features = ["icons"] }
+# thiserror = { workspace = true }
+# tiny-bip39 = { workspace = true }
+# reqwest = { workspace = true }
+# serde_json = { workspace = true }
+# scrypto = { workspace = true }
+# lazy_static = { workspace = true }
+# bytes = { workspace = true }
 
-debug_print.workspace = true
-hot-lib-reloader = { workspace = true }
+# debug_print.workspace = true

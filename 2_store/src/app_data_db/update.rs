@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use super::statements::*;
 use crate::DbError;

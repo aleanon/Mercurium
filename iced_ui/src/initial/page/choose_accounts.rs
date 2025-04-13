@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{widget::{self, column, container, row}, Element, Length, Task};
 use types::{address::Address, Account, AccountSummary};
 use wallet::{Setup, Wallet};

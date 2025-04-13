@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{advanced::renderer::Style, widget::{self, text::LineHeight, text_input::Id, Column}, Length};
 use types::crypto::SeedPhrase;
 

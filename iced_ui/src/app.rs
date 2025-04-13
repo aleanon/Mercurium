@@ -1,3 +1,5 @@
+use deps::*;
+
 use std::borrow::Cow;
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;

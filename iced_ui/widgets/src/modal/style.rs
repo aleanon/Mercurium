@@ -1,6 +1,8 @@
 //! Use a badge for color highlighting important information.
 //!
 //! *This API requires the following crate features to be activated: badge*
+use deps::*;
+
 use std::rc::Rc;
 
 use iced::{Background, Color, Theme};

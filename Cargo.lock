@@ -868,14 +868,6 @@ checksum = "8f215f9b7224f49fb73256115331f677d868b34d18b65dbe4db392e6021eea90"
 name = "deps"
 version = "0.1.0"
 dependencies = [
- "iced",
- "no-mangle-if-debug",
-]
-
-[[package]]
-name = "deps_two"
-version = "0.1.0"
-dependencies = [
  "async-sqlite",
  "asynciter",
  "bincode",
@@ -1328,7 +1320,7 @@ dependencies = [
 name = "font_and_icons"
 version = "0.1.0"
 dependencies = [
- "deps_two",
+ "deps",
 ]
 
 [[package]]
@@ -1701,7 +1693,7 @@ dependencies = [
 name = "handles"
 version = "0.1.0"
 dependencies = [
- "deps_two",
+ "deps",
  "store",
  "types",
 ]
@@ -2142,21 +2134,12 @@ dependencies = [
 name = "iced_ui"
 version = "0.1.0"
 dependencies = [
- "bytes",
- "debug_print",
+ "deps",
  "font_and_icons",
  "handles",
- "hot-lib-reloader",
- "iced",
  "inline_tweak",
- "lazy_static",
- "reqwest",
- "scrypto",
- "serde_json",
  "store",
  "styles",
- "thiserror 2.0.12",
- "tiny-bip39",
  "types",
  "wallet",
  "widgets",
@@ -2827,9 +2810,8 @@ dependencies = [
 name = "mercurium"
 version = "0.1.0"
 dependencies = [
+ "deps",
  "iced_ui",
- "styles",
- "tokio",
 ]
 
 [[package]]
@@ -4711,7 +4693,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 name = "store"
 version = "0.1.0"
 dependencies = [
- "deps_two",
+ "deps",
  "types",
  "zeroize",
 ]
@@ -4770,6 +4752,7 @@ dependencies = [
 name = "styles"
 version = "0.1.0"
 dependencies = [
+ "deps",
  "dynbutton",
  "dyncontainer",
  "dynpick_list",
@@ -4777,7 +4760,6 @@ dependencies = [
  "dynscrollable",
  "dyntext",
  "dyntext_input",
- "hot-lib-reloader",
 ]
 
 [[package]]
@@ -5286,7 +5268,7 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 name = "types"
 version = "0.1.0"
 dependencies = [
- "deps_two",
+ "deps",
  "serde",
  "zeroize",
 ]
@@ -5450,7 +5432,7 @@ dependencies = [
 name = "wallet"
 version = "0.1.0"
 dependencies = [
- "deps_two",
+ "deps",
  "handles",
  "store",
  "types",
@@ -5813,7 +5795,7 @@ dependencies = [
 name = "widgets"
 version = "0.1.0"
 dependencies = [
- "iced",
+ "deps",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use super::{salt::Salt, KeySaltPair};
 use ring::{aead::NonceSequence, pbkdf2::{self, PBKDF2_HMAC_SHA256}};

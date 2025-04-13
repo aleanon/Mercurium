@@ -14,8 +14,6 @@ rustflags = ["-C", "prefer-dynamic"]
 
 
 [dependencies]
-deps_two = { path = "../0_deps" }
+deps = { path = "../0_deps" }
 
 
-# [lib]
-# crate-type = ["rlib"]

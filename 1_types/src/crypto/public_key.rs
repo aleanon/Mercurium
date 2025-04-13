@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use scrypto::crypto::{Ed25519PublicKey, Secp256k1PublicKey};
 

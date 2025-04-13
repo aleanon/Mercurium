@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{widget::text, Element, Task};
 use types::{AppError, Notification};
 use wallet::{SetupError, Unlocked, Wallet};

@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use super::AddressValidator;
 use crate::unwrap_unreachable::UnwrapUnreachable;

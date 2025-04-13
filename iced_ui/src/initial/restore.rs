@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{widget::{self, column, container}, Element, Length, Task};
 use types::{AppError, Notification};
 use wallet::{wallet::Wallet, Setup, SetupError, Unlocked};

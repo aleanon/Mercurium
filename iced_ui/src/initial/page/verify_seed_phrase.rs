@@ -1,6 +1,7 @@
+use deps::*;
 
 use iced::{widget::{self, column}, Element, Length, Task};
-use types::{crypto::{SeedPhrase}, debug_info, Notification};
+use types::{crypto::SeedPhrase, Notification};
 use wallet::{wallet::Wallet, Setup};
 use zeroize::Zeroize;
 

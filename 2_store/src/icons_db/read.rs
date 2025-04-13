@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use crate::{DbError, IconsDb};
 

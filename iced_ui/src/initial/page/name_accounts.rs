@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{widget::{self, column, row, scrollable::{Direction, Scrollbar}, Scrollable, Text, TextInput}, Element, Length, Task};
 use types::{address::Address, Account};
 use wallet::{wallet::Wallet, Setup};
