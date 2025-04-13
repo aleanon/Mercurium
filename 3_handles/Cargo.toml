@@ -11,12 +11,14 @@ crate-type = ["rlib", "cdylib"]
 [profile.dev]
 rustflags = ["-C", "prefer-dynamic"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-deps_two = { path = "../0_deps" }
+deps = { path = "../0_deps" }
 types = { path = "../1_types" }
 store = { path = "../2_store" }
+
+
+
 # ed25519-dalek-fiat.workspace = true
 # tiny-bip39.workspace = true
 # scrypto.workspace = true
@@ -53,6 +55,3 @@ store = { path = "../2_store" }
 # [dev-dependencies]
 # rand = { workspace = true }
 
-
-# [lib]
-# crate-type = ["rlib"]

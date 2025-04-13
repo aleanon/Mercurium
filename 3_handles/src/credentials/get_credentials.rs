@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use crate::credentials::{ENCRYPTED_MNEMONIC_TARGET_NAME, SALT_TARGET_NAME};
 use types::{crypto::Salt, AppError};

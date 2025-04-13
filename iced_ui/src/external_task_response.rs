@@ -1,3 +1,5 @@
+use deps::*;
+
 use std::collections::{BTreeSet, HashMap};
 
 use bytes::Bytes;

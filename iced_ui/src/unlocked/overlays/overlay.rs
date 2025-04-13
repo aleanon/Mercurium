@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{Element, Task};
 use types::address::AccountAddress;
 use wallet::{Unlocked, Wallet};

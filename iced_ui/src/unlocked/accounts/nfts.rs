@@ -1,3 +1,5 @@
+use deps::*;
+
 use types::address::AccountAddress;
 
 use super::non_fungible_view::NonFungibleView;

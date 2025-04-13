@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 pub(crate) mod account_address;
 pub(crate) mod address_validator;

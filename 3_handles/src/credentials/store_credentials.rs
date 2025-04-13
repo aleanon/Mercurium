@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use super::ENCRYPTED_MNEMONIC_TARGET_NAME;
 use super::SALT_TARGET_NAME;

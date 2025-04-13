@@ -1,4 +1,5 @@
-use deps_two::*;
+use deps::*;
+use deps::zeroize;
 
 use types::{crypto::Key, debug_info, UnwrapUnreachable};
 use zeroize::ZeroizeOnDrop;

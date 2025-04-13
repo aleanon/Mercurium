@@ -11,12 +11,13 @@ crate-type = ["rlib", "cdylib"]
 [profile.dev]
 rustflags = ["-C", "prefer-dynamic"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+deps = { path = "../0_deps" }
 types = { path = "../1_types" }
-deps_two = { path = "../0_deps" }
 zeroize = { workspace = true }
+
+
 # async-sqlite = { workspace = true, features = [
 #     "bundled-sqlcipher-vendored-openssl",
 # ] }
@@ -31,6 +32,3 @@ zeroize = { workspace = true }
 # tiny-bip39 = { workspace = true }
 # tokio = { workspace = true }
 
-
-# [lib]
-# crate-type = ["rlib"]

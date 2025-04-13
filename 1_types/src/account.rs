@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use async_sqlite::rusqlite;
 use scrypto::crypto::Ed25519PublicKey;

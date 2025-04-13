@@ -1,3 +1,5 @@
+use deps::*;
+
 use font_and_icons::{images::MENU_LOGO, Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, image::Handle, row, text, Row, Text},

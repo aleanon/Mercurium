@@ -1,9 +1,11 @@
+use deps::*;
+
 use iced::{widget::{self, column, container}, Element, Length, Task};
 use types::{crypto::Password, Notification};
 use wallet::{wallet::Wallet, Setup};
 use zeroize::Zeroize;
 
-use crate::{common_elements, components::{self, password_input::password_input}, initial::common::{self, nav_button, nav_row}};
+use crate::{common_elements, components::{self, password_input::password_input}, initial::common::{nav_button, nav_row}};
 
 
 const VERIFY_PASSWORD_FIELD_ID: u8 = 1;

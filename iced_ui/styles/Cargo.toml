@@ -10,7 +10,7 @@ edition = "2021"
 crate-type = ["rlib"]
 
 [features]
-reload = []
+reload = ["deps/reload"]
 
 
 [profile.dev.package."*"]

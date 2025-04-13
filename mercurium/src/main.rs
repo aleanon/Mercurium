@@ -1,8 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// use deps::tokio;
 
-#[tokio::main]
-async fn main() -> Result<(), iced_ui::Error> {
+// #[tokio::main]
+fn main() -> Result<(), iced_ui::Error> {
     #[cfg(all(debug_assertions, target_os = "windows"))]
     unsafe{std::env::set_var("RUST_BACKTRACE", "1")};
 

@@ -4,6 +4,8 @@
 mod modal_overlay;
 mod style;
 
+use deps::*;
+
 use modal_overlay::ModalOverlay;
 
 use iced::{

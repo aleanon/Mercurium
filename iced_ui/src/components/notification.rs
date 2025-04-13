@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{widget::{self, container::Style, Container}, Background, Length, Theme};
 use types::Notification;
 

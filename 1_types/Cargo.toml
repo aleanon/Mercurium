@@ -14,10 +14,13 @@ crate-type = ["rlib", "cdylib"]
 rustflags = ["-C", "prefer-dynamic"]
 
 [dependencies]
-deps_two = { path = "../0_deps" }
-# async-sqlite = { workspace = true, features = [deps_two = { path = "../0_deps" }
+deps = { path = "../0_deps" }
 serde = { version = "*", features = ["derive"] }
 zeroize = { version = "*", features = ["zeroize_derive"] }
+
+
+
+# async-sqlite = { workspace = true, features = [deps_two = { path = "../0_deps" }
 #     "bundled-sqlcipher-vendored-openssl",
 # ] }
 # reqwest = { workspace = true }
@@ -45,6 +48,3 @@ zeroize = { version = "*", features = ["zeroize_derive"] }
 # [dev-dependencies]
 # rand = "0.8.5"
 
-
-# [lib]
-# crate-type = ["rlib"]

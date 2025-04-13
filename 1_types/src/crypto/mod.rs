@@ -25,4 +25,4 @@ pub use seedphrase::{Phrase, SeedPhrase};
 pub use key_salt_pair::KeySaltPair;
 
 // Re export
-pub use deps_two::bip39;
+pub use deps::bip39;

@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use deps_two::*;
+use deps::*;
 
 use bip39::Mnemonic;
 use store::DataBase;

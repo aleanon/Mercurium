@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use super::*;
 use debug_print::debug_println;

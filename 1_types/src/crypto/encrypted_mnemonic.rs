@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use core::str;
 use std::num::NonZeroU32;

@@ -3,5 +3,5 @@ linker = "rust-lld.exe"
 rustflags = ["-Zshare-generics=y"]
 
 
-[build]
+[build.dev]
 rustflags = ["-Z", "threads=8"]

@@ -1,3 +1,5 @@
+use deps::*;
+
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, column, container, qr_code, row, text},

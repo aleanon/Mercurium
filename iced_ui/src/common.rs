@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{clipboard, Task};
 
 use crate::App;

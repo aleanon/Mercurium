@@ -1,3 +1,5 @@
+use deps::*;
+
 use iced::{widget::{self, column}, Element, Length, Task};
 use types::{crypto::{Password, SeedPhrase}, AppError, Notification};
 use wallet::{wallet::Wallet, Setup};

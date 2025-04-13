@@ -1,4 +1,4 @@
-use deps_two::*;
+use deps::*;
 
 use std::collections::HashMap;
 use std::str::FromStr;
