@@ -4752,7 +4752,6 @@ dependencies = [
 name = "styles"
 version = "0.1.0"
 dependencies = [
- "deps",
  "dynbutton",
  "dyncontainer",
  "dynpick_list",
@@ -4760,6 +4759,7 @@ dependencies = [
  "dynscrollable",
  "dyntext",
  "dyntext_input",
+ "hot-lib-reloader",
 ]
 
 [[package]]

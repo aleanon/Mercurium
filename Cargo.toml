@@ -48,6 +48,7 @@ codegen-units = 1
 serde = { version = "*", features = ["derive"] }
 zeroize = { version = "*", features = ["zeroize_derive"] }
 inline_tweak = { version = "1.2.1", features = ["derive"] }
+hot-lib-reloader = { version = "0.7.0" }
 # iced = { git = "https://github.com/iced-rs/iced.git", rev = "5f00aef426a19913cb611aef496905cc15bde6ee", default-features = false, features = [
 #   "wgpu",
 #   "tokio",
@@ -84,7 +85,6 @@ inline_tweak = { version = "1.2.1", features = ["derive"] }
 # asynciter = "*"
 # futures = "*"
 # bincode = "*"
-# hot-lib-reloader = { version = "0.7.0" }
 
 # # Windows specific imports
 # winapi = { version = "*", features = ["winuser"] }

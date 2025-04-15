@@ -1,5 +1,4 @@
 
-use deps::*;
 
 #[cfg(not(feature = "reload"))]
 pub use dyncontainer::*;
