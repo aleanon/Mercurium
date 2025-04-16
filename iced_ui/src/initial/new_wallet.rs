@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{iced::{widget, Length}, *};
 
 use iced::{widget::text, Element, Task};
 use types::{AppError, Notification};
@@ -174,7 +174,7 @@ impl<'a> NewWallet {
     }
 
     pub fn view(&'a self, wallet: &Wallet<wallet::Setup>) -> Element<'a, Message> {
-        match self {
+        let page = match self {
             Self::EnterPassword(page) => page.view().map(|message| match message {
                 enter_password::Message::Back => Message::SetupSelection,
                 enter_password::Message::Next => Message::ViewSeedPhrase,
@@ -188,6 +188,11 @@ impl<'a> NewWallet {
             Self::VerifySeedPhrase(page) => page.view().map(Message::VerifySeedPhraseMessage),
             Self::NameAccount(page) => page.view().map(Message::NameAccountMessage),
             Self::Finalizing => text("Setting up wallet...").into()
-        }
+        };
+
+        widget::container(page)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into() 
     }
 }
