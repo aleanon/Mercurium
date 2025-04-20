@@ -1,5 +1,7 @@
 use deps::*;
 
+use super::restore_from_seed::RestoreFromSeed;
+
 use {
     iced::{
         widget::{self, text::LineHeight, Button},
@@ -12,9 +14,8 @@ use {
         app::App,
     },
     super::{
-        new_wallet::{self, NewWallet}, restore, restore_from_backup::{self, RestoreFromBackup}
+        new_wallet::{self, NewWallet}, restore_from_seed, restore_from_backup::{self, RestoreFromBackup}
     },
-    inline_tweak::*,
 };
 
 
@@ -27,9 +28,8 @@ pub enum Message {
     FromSeed,
     NewWallet,
     NewWalletMessage(new_wallet::Message),
-    // RestoreFromSeedMessage(restore::Message),
     RestoreFromBackupMessage(restore_from_backup::Message),
-    RestoreFromSeedMessage(restore::Message),
+    RestoreFromSeedMessage(restore_from_seed::Message),
     WalletCreated(Wallet<Unlocked>),
     Error(AppError),
 }
@@ -44,9 +44,8 @@ impl Into<AppMessage> for Message {
 pub enum Setup {
     SelectSetup,
     RestoreFromBackup(RestoreFromBackup),
-    // RestoreFromSeed(RestoreFromSeed),
     NewWallet(NewWallet),
-    RestoreFromSeed(restore::RestoreFromSeed)
+    RestoreFromSeed(RestoreFromSeed)
 }
 
 impl<'a> Setup {
@@ -62,7 +61,7 @@ impl<'a> Setup {
         match message {
             Message::SelectSetup => *self = Self::SelectSetup,
             Message::NewWallet => *self = Self::NewWallet(NewWallet::new(wallet)),
-            Message::FromSeed => *self = Self::RestoreFromSeed(restore::RestoreFromSeed::new(wallet)),
+            Message::FromSeed => *self = Self::RestoreFromSeed(restore_from_seed::RestoreFromSeed::new(wallet)),
             
             Message::NewWalletMessage(new_wallet_message) => {
                 if let Setup::NewWallet(new_wallet) = self {
@@ -95,7 +94,7 @@ impl<'a> Setup {
             Setup::NewWallet(new_wallet) => new_wallet.view(wallet).map(Message::NewWalletMessage),
             Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view().map(|message| {
                 match message {
-                    restore::Message::SelectSetup => Message::SelectSetup,
+                    restore_from_seed::Message::SelectSetup => Message::SelectSetup,
                     _ => Message::RestoreFromSeedMessage(message)
                 }
             }),
