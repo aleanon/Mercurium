@@ -23,7 +23,7 @@ use wallet::wallet::Wallet;
 use wallet::{Locked, Unlocked, WalletData};
 
 use crate::common::Message;
-use crate::initial::restore;
+use crate::initial::restore_from_seed;
 use crate::{external_task_response, external_tasks};
 use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
@@ -123,7 +123,7 @@ impl App {
         let mut task = Task::none();
         match message {
             AppMessage::Setup(message) => match message {
-                setup::Message::RestoreFromSeedMessage(restore::Message::WalletCreated(wallet)) => self.app_state = AppState::Unlocked(wallet),
+                setup::Message::RestoreFromSeedMessage(restore_from_seed::Message::WalletCreated(wallet)) => self.app_state = AppState::Unlocked(wallet),
                 setup::Message::Error(err) => self.handle_error(err),
                 message => {
                     if let AppState::Initial(setup, wallet) = &mut self.app_state {
