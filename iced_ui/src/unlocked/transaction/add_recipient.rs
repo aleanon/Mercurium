@@ -9,7 +9,7 @@ use iced::{
 use types::address::{AccountAddress, Address};
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, unlocked::app_view};
 
 use super::transaction_view::{self, Recipient};
 

@@ -8,12 +8,11 @@ use std::sync::Arc;
 
 use setup::Setup;
 use setup_error::SetupError;
-use store::IconsDb;
 use task_manager::TaskManager;
-use types::{crypto::{bip39::{Language, Mnemonic}, Password, Phrase}, Account, AppPath};
+use types::{crypto::{bip39::{Language, Mnemonic}, Password, Phrase}, Account};
 
 
-use super::{unlocked::Unlocked, Wallet};
+use super::Wallet;
 
 
 impl Wallet<Setup> {
@@ -68,64 +67,5 @@ impl Wallet<Setup> {
         self.state.clone()
     }
 
-    // pub fn finalize_setup(&mut self) -> impl Future<Output = Result<Wallet<Unlocked>, SetupError>> {
-    //     let setup = self.state.clone();
-    //     let network = self.wallet_data.settings.network;
-    //     let mut wallet_data = self.wallet_data.clone();
-
-    //     async move {
-    //         let wallet_keys = setup.get_keys_with_salt().await?;
-
-    //         let password_hash =  setup.get_password().ok_or(SetupError::NoPasswordProvided)?
-    //             .derive_db_encryption_key_hash_from_salt(wallet_keys.db_key_salt.salt());
-
-    //         AppPath::get().create_directories_if_not_exists()?;
-
-    //         let db_key = wallet_keys.db_key_salt.key().clone();
-
-    //         handles::wallet::create_new_wallet_with_accounts(
-    //             setup.get_mnemonic().ok_or(SetupError::NoMnemonicProvided)?,
-    //             setup.get_seed_password(),
-    //             wallet_keys.db_key_salt,
-    //             wallet_keys.mnemonic_key_salt,
-    //             password_hash,
-    //             &setup.accounts,
-    //             network,
-    //         )
-    //         .await
-    //         .map_err(|_| SetupError::Unspecified)?;
-
-    //         IconsDb::load(network, db_key).await?;
-
-    //         let accounts_update = setup.get_updated_accounts().await?;
- 
-    //         for account in &setup.accounts {
-    //             for account_update in accounts_update.account_updates.clone() {
-    //                 if account_update.account.address != account.address {continue};
-                    
-    //                 let fungibles = account_update.fungibles.into_values().collect();
-
-    //                 wallet_data.resource_data
-    //                     .fungibles
-    //                     .insert(account_update.account.address.clone(), fungibles);
-
-    //                 let non_fungibles = account_update.non_fungibles.into_values().collect();
-
-    //                 wallet_data.resource_data
-    //                     .non_fungibles
-    //                     .insert(account_update.account.address.clone(), non_fungibles);
-
-    //                 wallet_data.resource_data.accounts.insert(
-    //                     account_update.account.address.clone(),
-    //                     account_update.account,
-    //                 );
-    //             }
-    //         }
-
-    //         wallet_data.resource_data.resources = accounts_update.new_resources;
-    //         wallet_data.resource_data.resource_icons = setup.get_icons().await;
-            
-    //         Ok(Wallet { state: Unlocked, wallet_data })
-    //     }
-    // }
+    
 }

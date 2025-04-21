@@ -4,7 +4,7 @@ use iced::{widget::{self, column, container}, Element, Length, Task};
 use types::{AppError, Notification};
 use wallet::{wallet::Wallet, Setup, SetupError, Unlocked};
 
-use super::{common::{nav_button, nav_row}, page::{choose_accounts::{self, ChooseAccounts}, enter_password::{self, EnterPassword}, enter_seed_phrase::{self, EnterSeedPhrase}, name_accounts::{self, NameAccounts}}};
+use super::{common::{nav_button, nav_row}, pages::{choose_accounts::{self, ChooseAccounts}, enter_password::{self, EnterPassword}, enter_seed_phrase::{self, EnterSeedPhrase}, name_accounts::{self, NameAccounts}}};
 
 #[derive(Clone)]
 pub enum Message {

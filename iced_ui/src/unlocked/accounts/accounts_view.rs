@@ -3,7 +3,7 @@ use deps::*;
 use std::collections::{BTreeSet, HashMap};
 
 use crate::{
-    app::{AppData, AppMessage},
+    app::AppMessage,
     unlocked::{app_view, overlays::overlay::SpawnOverlay},
 };
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
@@ -152,15 +152,6 @@ impl<'a> AccountsView {
             .into()
     }
 
-    // fn view_account(account: AccountView, app: &'a App) -> Element<'a, Message> {
-
-    //     container(account.view(app))
-    //         .width(Length::Fill)
-    //         .height(Length::Fill)
-    //         .style(Container::Transparent)
-    //         .padding([30, 15, 0, 30])
-    //         .into()
-    // }
 
     #[inline_tweak::tweak_fn]
     fn view_account_summary(

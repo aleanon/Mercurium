@@ -9,7 +9,7 @@ use iced::{
 use store::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, unlocked::app_view};
 use types::{address::AccountAddress, assets::FungibleAsset};
 
 use super::{

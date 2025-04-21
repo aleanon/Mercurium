@@ -2,7 +2,6 @@ use deps::*;
 
 use std::collections::BTreeSet;
 
-use crate::app::AppData;
 use crate::app::AppMessage;
 use crate::common;
 use crate::unlocked::app_view;
@@ -123,18 +122,6 @@ impl<'a> AccountView {
             } // Self::Transaction(account) => Self::transaction_from_account(account, app),
         }
         command
-    }
-
-    fn set_view_poolunits(&mut self, _appdata: &'a mut AppData) {
-        // if let AccountsView::Account(mut account_view) = app.appview.center_panel.accounts {
-        //     if let View::Fungibles = account_view.view {
-        //         account_view.view =
-        //     } else {
-        //         unreachable!("{}:{} invalid gui state", module_path!(), line!())
-        //     }
-        // } else {
-        //     unreachable!("{}:{} invalid gui state", module_path!(), line!())
-        // }
     }
 
     fn select_fungible(&mut self, _wallet: &'a mut Wallet<Unlocked>) {}

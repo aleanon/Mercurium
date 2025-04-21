@@ -10,7 +10,7 @@ use types::crypto::Password;
 use zeroize::Zeroize;
 
 use crate::{
-    app::{AppData, AppMessage},
+    app::AppMessage,
     external_task_response,
     unlocked::app_view,
 };

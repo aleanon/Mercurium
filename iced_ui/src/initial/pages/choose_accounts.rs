@@ -62,7 +62,7 @@ impl<'a> ChooseAccounts {
     pub fn save_to_wallet(&mut self, wallet: &'a mut Wallet<Setup>) {
         let accounts = self.accounts
             .iter()
-            .map(|(account, _, _)| account.clone())
+            .filter_map(|(account, is_selected, _)| is_selected.then_some(account.clone()))
             .collect();
         
         wallet.set_accounts(accounts);

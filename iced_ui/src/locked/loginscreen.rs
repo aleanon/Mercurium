@@ -108,6 +108,7 @@ impl<'a> LoginScreen {
         )
     }
 
+    #[inline_tweak::tweak_fn]
     pub fn view(&self) -> Element<'a, Message> {
         // if self.status == Status::LoggingIn {
         //     return
