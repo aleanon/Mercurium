@@ -4,7 +4,7 @@ use iced::{widget::text, Element, Task};
 use types::{AppError, Notification};
 use wallet::{SetupError, Unlocked, Wallet};
 
-use super::page::{enter_password::{self, EnterPassword}, name_accounts::{self, NameAccounts}, verify_seed_phrase::{self, VerifySeedPhrase}, view_seed_phrase::{self, ViewSeedPhrase}};
+use super::pages::{enter_password::{self, EnterPassword}, name_accounts::{self, NameAccounts}, verify_seed_phrase::{self, VerifySeedPhrase}, view_seed_phrase::{self, ViewSeedPhrase}};
 
 
 #[derive(Clone)]

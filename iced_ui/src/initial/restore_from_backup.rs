@@ -4,7 +4,7 @@ use iced::{widget::column, Element};
 
 use crate::{app::App, app::AppMessage};
 
-use super::setup::{self, Setup};
+use super::setup;
 
 #[derive(Debug, Clone)]
 pub enum Message {

@@ -1,80 +1,51 @@
-use bip39::Mnemonic;
+use deps::*;
+
 use iced::{widget::{self, column, row, scrollable::{Direction, Scrollbar}, Scrollable, Text, TextInput}, Element, Length, Task};
-use types::{address::Address, crypto::Password, Account, AccountSummary, AppError};
+use types::{address::Address, Account};
+use wallet::{wallet::Wallet, Setup};
 
-use crate::{app::AppMessage, initial::{restore_from_seed, setup}};
+use crate::initial::common::{nav_button, nav_row};
 
-use super::choose_account::ChooseAccounts;
-
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Message {
-    NameInput(usize, String)
-}
-
-impl Into<AppMessage> for Message {
-    fn into(self) -> AppMessage {
-        AppMessage::Setup(
-            setup::Message::RestoreFromSeedMessage(
-                restore_from_seed::Message::NameAccountsMessage(self)
-            )
-        )
-    }
+    Back,
+    Next,
+    InputAccountName(usize, String),
 }
 
 #[derive(Debug)]
 pub struct NameAccounts {
-    pub notification: &'static str,
-    pub mnemonic: Mnemonic,
-    pub seed_password: Option<Password>,
-    pub password: Password,
-    pub accounts: Vec<Account>,
+    pub accounts: Vec<Account>
 }
 
-impl NameAccounts {
-
-    pub fn from_page_choose_accounts(page: ChooseAccounts, accounts: Option<&Vec<(Account, bool, AccountSummary)>>) -> Self {
-        let accounts = match accounts {
-            Some(accounts) => accounts,
-            None => &Vec::new(),
-        };
-
-        let accounts = accounts
-            .iter()
-            .filter_map(|(account, is_selected, _)| {
-                if *is_selected {Some(account.clone())} else {None}
-            })
-            .collect();
-
+impl<'a> NameAccounts {
+    pub fn new(wallet: &'a Wallet<Setup>) -> Self {
         Self {
-            notification: "",
-            mnemonic: page.mnemonic,
-            seed_password: page.seed_password,
-            password: page.password,
-            accounts,
+            accounts: wallet.selected_accounts(),
         }
     }
-    
-}
 
-impl<'a> NameAccounts {
-    pub fn update(&mut self, message: Message) -> Result<Task<AppMessage>, AppError> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::NameInput(index, input) => self.input_account_name(index, input)
+            Message::InputAccountName(index, input) => {
+                if let Some(account) = self.accounts.get_mut(index) {
+                    account.name = input;
+                }
+            }
+            Message::Back | Message::Next => {/*Handled in parent*/}
         }
-        Ok(Task::none())
+        
+        Task::none()
     }
 
-    fn input_account_name(&mut self, index: usize, input: String) {
-        if let Some(account) = self.accounts.get_mut(index) {
-            account.name = input
-        }
+    pub fn save_to_wallet(&mut self, wallet: &'a mut Wallet<Setup>) {
+        wallet.set_accounts(self.accounts.clone());
     }
 }
 
 
 impl<'a> NameAccounts {
-    pub fn view(&self) -> Element<'a, AppMessage> {
+    pub fn view(&self) -> Element<'a, Message> {
         let mut accounts = column![];
 
         for (index, account) in self.accounts.iter().enumerate() {
@@ -82,8 +53,8 @@ impl<'a> NameAccounts {
                 .width(Length::Shrink);
 
             let input_field = TextInput::new("Account name", &account.name)
-                .on_input(move |input|Message::NameInput(index, input).into())
-                .on_paste(move |input|Message::NameInput(index, input).into())
+                .on_input(move |input|Message::InputAccountName(index, input))
+                .on_paste(move |input|Message::InputAccountName(index, input))
                 .width(Length::Fill);
 
             let account_row = row![account_truncated, input_field]
@@ -95,11 +66,22 @@ impl<'a> NameAccounts {
             accounts = accounts.push(account_and_rule);
         }
 
-        Scrollable::new(accounts)
+        let content = Scrollable::new(accounts)
             .width(Length::Shrink)
             .height(500)
             .spacing(5)
-            .direction(Direction::Vertical(Scrollbar::new()))
+            .direction(Direction::Vertical(Scrollbar::new()));
+
+        let nav = nav_row(
+            nav_button("Back", Message::Back),
+            nav_button("Next", Message::Next),
+        );
+
+        let content_and_nav = column![content, nav];
+
+        widget::container(content_and_nav)
+            .center_x(660)
+            .center_y(700)
             .into()
     }
 }

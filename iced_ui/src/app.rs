@@ -9,7 +9,7 @@ use font_and_icons::images::WINDOW_LOGO;
 use font_and_icons::BOOTSTRAP_FONT_BYTES;
 use iced::widget::image::Handle;
 use iced::widget::{container, text};
-use iced::{executor, Subscription, Task};
+use iced::{Subscription, Task};
 use iced::time;
 use iced::{application, window, Length, Settings, Size};
 use store::AppDataDb;
@@ -48,28 +48,6 @@ impl Debug for AppMessage {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct AppData {
-    pub accounts: HashMap<AccountAddress, Account>,
-    pub fungibles: HashMap<AccountAddress, BTreeSet<FungibleAsset>>,
-    pub non_fungibles: HashMap<AccountAddress, BTreeSet<NonFungibleAsset>>,
-    pub resources: HashMap<ResourceAddress, Resource>,
-    pub resource_icons: HashMap<ResourceAddress, Handle>,
-    pub settings: AppSettings,
-}
-
-impl<'a> AppData {
-    pub fn new(settings: AppSettings) -> Self {
-        Self {
-            accounts: HashMap::new(),
-            fungibles: HashMap::new(),
-            non_fungibles: HashMap::new(),
-            resources: HashMap::new(),
-            resource_icons: HashMap::new(),
-            settings,
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct Preferences {

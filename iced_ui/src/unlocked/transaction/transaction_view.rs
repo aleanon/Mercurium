@@ -2,7 +2,7 @@ use deps::*;
 
 use std::collections::HashMap;
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, unlocked::app_view};
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, container, image::Handle, row, text, Container},

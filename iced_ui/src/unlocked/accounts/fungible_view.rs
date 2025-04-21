@@ -7,7 +7,7 @@ use iced::{
 };
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppData, app::AppMessage};
+use crate::app::AppMessage;
 use types::{address::Address, assets::FungibleAsset};
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
@@ -49,28 +49,6 @@ impl<'a> FungibleView {
                 .center_y(150)
                 .into(),
         };
-        //     let directory = AppPath::get().icons_directory();
-        //     let mut icon_path = directory.clone();
-        //     icon_path.push(&self.fungible.address.to_string());
-        //     icon_path.set_extension("png");
-        //     if icon_path.exists() {
-        //         widget::image(Handle::from_path(icon_path))
-        //             .width(150)
-        //             .height(150)
-        //             .into()
-        //     } else {
-        //         container(
-        //             text(iced_aw::Bootstrap::Image)
-        //                 .font(iced_aw::BOOTSTRAP_FONT)
-        //                 .size(100),
-        //         )
-        //         .width(150)
-        //         .height(150)
-        //         .center_x()
-        //         .center_y()
-        //         .into()
-        //     }
-        // };
 
         let amount = row![
             text(&self.fungible.amount)

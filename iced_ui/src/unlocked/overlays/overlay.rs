@@ -4,7 +4,7 @@ use iced::{Element, Task};
 use types::address::AccountAddress;
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppData, app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, unlocked::app_view};
 
 use super::{add_account::AddAccountView, receive::Receive};
 

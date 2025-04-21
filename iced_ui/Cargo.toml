@@ -30,7 +30,7 @@ opt-level = 3
 codegen-units = 1
 
 [dependencies]
-deps ={ path = "../0_deps"}
+deps = { path = "../0_deps" }
 types = { path = "../1_types" }
 store = { path = "../2_store" }
 handles = { path = "../3_handles" }
