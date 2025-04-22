@@ -16,6 +16,7 @@ rustflags = ["-C", "prefer-dynamic"]
 deps = { path = "../0_deps" }
 types = { path = "../1_types" }
 zeroize = { workspace = true }
+# thiserror = { workspace = true }
 
 
 # async-sqlite = { workspace = true, features = [
@@ -23,7 +24,6 @@ zeroize = { workspace = true }
 # ] }
 # openssl-sys = { workspace = true, features = ["vendored"] }
 # debug_print = { workspace = true }
-# thiserror = { workspace = true }
 # once_cell = { workspace = true }
 # asynciter = { workspace = true }
 # const_format = { workspace = true }
@@ -31,4 +31,3 @@ zeroize = { workspace = true }
 # [dev-dependencies]
 # tiny-bip39 = { workspace = true }
 # tokio = { workspace = true }
-

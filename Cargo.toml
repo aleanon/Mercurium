@@ -49,49 +49,52 @@ serde = { version = "*", features = ["derive"] }
 zeroize = { version = "*", features = ["zeroize_derive"] }
 inline_tweak = { version = "1.2.1", features = ["derive"] }
 hot-lib-reloader = { version = "0.7.0" }
-# iced = { git = "https://github.com/iced-rs/iced.git", rev = "5f00aef426a19913cb611aef496905cc15bde6ee", default-features = false, features = [
-#   "wgpu",
-#   "tokio",
-#   "image",
-#   "qr_code",
-#   "advanced",
-#   "debug",
-# ] }
+thiserror = "*"
 
-# scrypto = { version = "1.3.0" }
-# tokio = { version = "*", features = ["full"] }
-# serde_json = { version = "*" }
-# async-sqlite = { version = "0.5.0", features = [
-#   "bundled-sqlcipher-vendored-openssl",
-# ] }
-# reqwest = { version = "*", features = ["blocking", "json"] }
-# openssl-sys = { version = "*", features = ["vendored"] }
-# flate2 = "*"
-# thiserror = "*"
-# bytes = "*"
-# image = "*"
-# fast_image_resize = "3.0.4"
-# tiny-bip39 = "*"
-# slip10_ed25519 = "*"
-# ed25519-dalek-fiat = "*"
-# rand = "*"
-# ring = "*"
-# debug_print = "*"
-# regex = { version = "*" }
-# once_cell = "*"
-# lazy_static = { version = "*" }
-# const_format = "*"
-# radix-gateway-sdk = { git = "https://github.com/aleanon/radix-gateway-sdk-fork.git" }
-# asynciter = "*"
-# futures = "*"
-# bincode = "*"
+#used from the deps crate
+iced = { git = "https://github.com/iced-rs/iced.git", rev = "5f00aef426a19913cb611aef496905cc15bde6ee", default-features = false, features = [
+  "wgpu",
+  "tokio",
+  "image",
+  "qr_code",
+  "advanced",
+  "debug",
+] }
 
-# # Windows specific imports
-# winapi = { version = "*", features = ["winuser"] }
-# windows = { version = "*", features = [
-#   "Win32_System",
-#   "Win32_Foundation",
-#   "Win32_Security",
-#   "Win32_Security_Cryptography",
-#   "Win32_Security_Credentials",
-# ] }
+scrypto = { version = "1.3.0" }
+tokio = { version = "*", features = ["full"] }
+serde_json = { version = "*" }
+async-sqlite = { version = "0.5.0", features = [
+  "bundled-sqlcipher-vendored-openssl",
+] }
+reqwest = { version = "*", features = ["blocking", "json"] }
+openssl-sys = { version = "*", features = ["vendored"] }
+flate2 = "*"
+bytes = "*"
+image = "*"
+fast_image_resize = "3.0.4"
+tiny-bip39 = "*"
+slip10_ed25519 = "*"
+ed25519-dalek-fiat = "*"
+rand = "*"
+ring = "*"
+debug_print = "*"
+regex = { version = "*" }
+once_cell = "*"
+lazy_static = { version = "*" }
+const_format = "*"
+radix-gateway-sdk = { git = "https://github.com/aleanon/radix-gateway-sdk-fork.git" }
+asynciter = "*"
+futures = "*"
+bincode = "*"
+no-mangle-if-debug = "0.1.0"
+
+# Windows specific imports
+winapi = { version = "*", features = ["winuser"] }
+windows = { version = "*", features = [
+  "Win32_System",
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Cryptography",
+  "Win32_Security_Credentials",
+] }
