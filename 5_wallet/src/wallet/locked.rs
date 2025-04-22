@@ -40,6 +40,7 @@ impl Wallet<Locked> {
             return LoginResponse::Failed(self, LoginError::MaxAttemptsReached)
         }
 
+        
         match handles::wallet::perform_login_check(self.wallet_data.network(), &password).await {
             Ok(_) => LoginResponse::Success(Wallet { state: Unlocked, wallet_data: self.wallet_data}, self.state.is_initial_login),
             Err(_) => {

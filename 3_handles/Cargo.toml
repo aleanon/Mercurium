@@ -16,7 +16,7 @@ rustflags = ["-C", "prefer-dynamic"]
 deps = { path = "../0_deps" }
 types = { path = "../1_types" }
 store = { path = "../2_store" }
-
+# thiserror.workspace = true
 
 
 # ed25519-dalek-fiat.workspace = true
@@ -27,7 +27,6 @@ store = { path = "../2_store" }
 # debug_print.workspace = true
 # fast_image_resize.workspace = true
 # image.workspace = true
-# thiserror.workspace = true
 # serde.workspace = true
 # ring.workspace = true
 # serde_json.workspace = true
@@ -54,4 +53,3 @@ store = { path = "../2_store" }
 
 # [dev-dependencies]
 # rand = { workspace = true }
-

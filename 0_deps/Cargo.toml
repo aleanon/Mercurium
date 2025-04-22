@@ -35,7 +35,7 @@ opt-level = 3
 codegen-units = 1
 
 [dependencies]
-iced = { git = "https://github.com/iced-rs/iced.git", rev = "5f00aef426a19913cb611aef496905cc15bde6ee", default-features = false, features = [
+iced = { workspace = true, default-features = false, features = [
     "wgpu",
     "tokio",
     "image",
@@ -43,46 +43,46 @@ iced = { git = "https://github.com/iced-rs/iced.git", rev = "5f00aef426a19913cb6
     "advanced",
     "debug",
 ] }
-scrypto = { version = "1.3.0" }
-tokio = { version = "*", features = ["full"] }
-serde = { version = "*", features = ["derive"] }
-serde_json = { version = "*" }
-async-sqlite = { version = "0.5.0", features = [
+
+scrypto = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+async-sqlite = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
-reqwest = { version = "*", features = ["blocking", "json"] }
-openssl-sys = { version = "*", features = ["vendored"] }
-flate2 = "*"
-thiserror = "*"
-bytes = "*"
-image = "*"
-fast_image_resize = "3.0.4"
-tiny-bip39 = "*"
-slip10_ed25519 = "*"
-ed25519-dalek-fiat = "*"
-ring = "*"
-rand = "*"
-zeroize = { version = "*", features = ["zeroize_derive"] }
-debug_print = "*"
-regex = { version = "*" }
-once_cell = "*"
-lazy_static = { version = "*" }
-const_format = "*"
-radix-gateway-sdk = { git = "https://github.com/aleanon/radix-gateway-sdk-fork.git" }
-asynciter = "*"
-futures = "*"
-bincode = "*"
-inline_tweak = { version = "1.2.1", features = ["derive"] }
-no-mangle-if-debug = "0.1.0"
+reqwest = { workspace = true, features = ["blocking", "json"] }
+openssl-sys = { workspace = true, features = ["vendored"] }
+flate2 = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+image = { workspace = true }
+fast_image_resize = { workspace = true }
+tiny-bip39 = { workspace = true }
+slip10_ed25519 = { workspace = true }
+ed25519-dalek-fiat = { workspace = true }
+ring = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true, features = ["zeroize_derive"] }
+debug_print = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
+lazy_static = { workspace = true }
+const_format = { workspace = true }
+radix-gateway-sdk = { workspace = true }
+asynciter = { workspace = true }
+futures = { workspace = true }
+bincode = { workspace = true }
+inline_tweak = { workspace = true, features = ["derive"] }
+no-mangle-if-debug = { workspace = true }
+# secrecy = { workspace = true }
 
-
-#Optional
-hot-lib-reloader = { version = "0.7.0", optional = true }
-
+# Optional
+hot-lib-reloader = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "*", features = ["winuser"] }
-windows = { version = "*", features = [
+winapi = { workspace = true, features = ["winuser"] }
+windows = { workspace = true, features = [
     "Win32_System",
     "Win32_Foundation",
     "Win32_Security",

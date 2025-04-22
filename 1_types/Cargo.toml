@@ -15,9 +15,9 @@ rustflags = ["-C", "prefer-dynamic"]
 
 [dependencies]
 deps = { path = "../0_deps" }
-serde = { version = "*", features = ["derive"] }
-zeroize = { version = "*", features = ["zeroize_derive"] }
-
+serde = { workspace = true, features = ["derive"] }
+zeroize = { workspace = true, features = ["zeroize_derive"] }
+# thiserror = { workspace = true }
 
 
 # async-sqlite = { workspace = true, features = [deps_two = { path = "../0_deps" }
@@ -47,4 +47,3 @@ zeroize = { version = "*", features = ["zeroize_derive"] }
 
 # [dev-dependencies]
 # rand = "0.8.5"
-
