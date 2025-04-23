@@ -17,7 +17,7 @@ rustflags = ["-C", "prefer-dynamic"]
 deps = { path = "../0_deps" }
 serde = { workspace = true, features = ["derive"] }
 zeroize = { workspace = true, features = ["zeroize_derive"] }
-# thiserror = { workspace = true }
+thiserror = { workspace = true }
 
 
 # async-sqlite = { workspace = true, features = [deps_two = { path = "../0_deps" }

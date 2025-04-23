@@ -24,7 +24,6 @@ use wallet::{Locked, Unlocked, WalletData};
 
 use crate::common::Message;
 use crate::initial::restore_from_seed;
-use crate::{external_task_response, external_tasks};
 use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
@@ -36,7 +35,6 @@ pub enum AppMessage {
     Login(loginscreen::Message),
     AppView(unlocked::app_view::Message),
     Error(AppError),
-    TaskResponse(external_task_response::Message),
     Common(Message),
     ToggleTheme,
     None,
@@ -116,7 +114,7 @@ impl App {
                 if let AppState::Locked(loginscreen, wallet) = &mut self.app_state {
                     if let loginscreen::Message::LoginSuccess(wallet, is_initial_login) = message {
                         if is_initial_login {
-                            task = external_tasks::initial_login_tasks(wallet.settings().network);
+                            // task = external_tasks::initial_login_tasks(wallet.settings().network);
                         }
                         self.app_state = AppState::Unlocked(wallet);
                     } else {
@@ -130,9 +128,6 @@ impl App {
                 }
             }
             AppMessage::Common(common_message) => return common_message.process(self),
-            AppMessage::TaskResponse(response_message) => {
-                return self.process_task_response(response_message)
-            }
             AppMessage::ToggleTheme => self.toggle_theme(),
             AppMessage::Error(err) => self.handle_error(err),
             AppMessage::None => {}

@@ -1,8 +1,7 @@
-use deps::*;
+use deps::{debug_print::debug_println, *};
 
 use std::{collections::{BTreeMap, HashMap}, fmt::Debug, sync::Arc};
 
-use bytes::Bytes;
 use debug_print::debug_eprintln;
 use types::{address::ResourceAddress, collections::AccountsUpdate, crypto::{bip39::Mnemonic, Password}, Account, AccountSummary, Network};
 
@@ -14,7 +13,7 @@ pub struct TaskManager {
     pub wallet_keys_and_salt: TaskRunner<WalletEncryptionKeys, SetupError>,
     pub accounts: TaskRunner<Vec<(Account, AccountSummary)>, SetupError>,
     pub accounts_update: TaskRunner<AccountsUpdate, SetupError>,
-    pub icons_data: TaskRunner<HashMap<ResourceAddress, Bytes>, SetupError>,
+    pub icons_data: TaskRunner<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError>,
 }
 
 impl Debug for TaskManager {
@@ -45,7 +44,7 @@ impl TaskManager {
         Ok(self.accounts.get_result().await?)
     }
 
-    pub async fn get_icons_data(&self) -> Result<HashMap<ResourceAddress, Bytes>, SetupError> {
+    pub async fn get_icons_data(&self) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
         Ok(self.icons_data.get_result().await?)
     }
 
@@ -61,7 +60,7 @@ impl TaskManager {
         let icon_urls = accounts_update.icon_urls.clone();
 
         self.accounts.run_task(task_id,move || Self::accounts_with_summaries(accounts_update)).await;
-        self.icons_data.run_task(task_id, move || Self::get_resource_icons(icon_urls, network)).await;
+        self.icons_data.run_task(task_id, move || Self::download_resource_icons(icon_urls)).await;
     }
 
     async fn create_encryption_keys(password: Password) -> Result<WalletEncryptionKeys, SetupError> {
@@ -128,7 +127,10 @@ impl TaskManager {
         Ok(accounts)
     }
 
-    async fn get_resource_icons(icon_urls: BTreeMap<ResourceAddress, String>, network: Network) -> Result<HashMap<ResourceAddress, Bytes>, SetupError> {
-        Ok(handles::image::download::download_resize_and_store_resource_icons(icon_urls, network).await)
+    async fn download_resource_icons(icon_urls: BTreeMap<ResourceAddress, String>) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
+        debug_println!("Downloading icons");
+        let result = handles::image::download::download_and_resize_icons(icon_urls).await;
+        debug_println!("Icons downloaded");
+        Ok(result)
     }
 }

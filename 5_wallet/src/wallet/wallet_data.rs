@@ -1,11 +1,10 @@
-use types::{AppSettings, Network};
+use std::collections::HashMap;
 
+use deps::futures::TryFutureExt;
+use store::{AppDataDb, DataBase, DbError, IconsDb};
+use types::{address::ResourceAddress, crypto::{EncryptedMnemonicError, Key, Password}, AppError, AppSettings, Network};
 
 use super::resource_data::ResourceData;
-
-
-
-
 
 
 #[derive(Debug, Clone)]
@@ -20,17 +19,52 @@ impl WalletData {
         Self { resource_data: ResourceData::new(), settings }
     }
 
-    pub fn get_settings(&self) -> &AppSettings {
-        &self.settings
-    }
-
-    pub fn network(&self) -> Network {
-        self.settings.network
-    }
-
     pub fn set_network(&mut self, network: Network) {
         self.settings.network = network;
     }
 
+    pub async fn save_resource_icons_to_disk(&self, icons: HashMap<ResourceAddress, Vec<u8>> , db_key: Key<DataBase>) -> Result<(), DbError> {
+        let db = IconsDb::get_or_init(self.settings.network, db_key).await?;
+        db.upsert_resource_icons(icons).await?;
+        Ok(())
+    }
 
+    pub async fn save_resource_data_to_disk(&self, key: Key<DataBase>) -> Result<(), DbError> {
+        let db = AppDataDb::get_or_init(self.settings.network, key).await?;
+
+        self.resource_data.save_resource_data_to_disk(db).await
+    }
+
+    pub async fn create_new_account(&mut self, account_name: String, password: Password, key: Key<DataBase>) -> Result<(), AppError> {
+        let encrypted_mnemonic = handles::credentials::get_encrypted_mnemonic()?;
+        let (mnemonic, seed_password) = encrypted_mnemonic.decrypt_mnemonic(&password)
+            .map_err(|err| match err {
+                EncryptedMnemonicError::FailedToDecryptData => AppError::NonFatal(types::Notification::Info("Wrong password".to_string())),
+                _ => AppError::Fatal(err.to_string())
+            })?;
+
+        let (id, derivation_index) = self.resource_data.accounts.values()
+            .fold((0, 0), |(mut id, mut index), account| {
+                if account.id >= id {id = account.id + 1}
+                let der_index = account.derivation_index();
+                if der_index >= index {index = der_index + 1};
+                (id, index)
+            });
+            
+
+        let account = handles::wallet::create_account_from_mnemonic(
+            &mnemonic,
+            Some(seed_password.as_str()),
+            id,
+            derivation_index,
+            account_name,
+            self.settings.network,
+        );
+
+        let db = AppDataDb::get_or_init(self.settings.network, key)
+            .map_err(|err|AppError::Fatal(err.to_string())).await?;
+
+        self.resource_data.save_account(account, db).await
+            .map_err(|err|AppError::NonFatal(types::Notification::Info(err.to_string())))
+    }
 }

@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{debug_print::debug_println, *};
 
 use iced::{widget::{self, column, container}, Element, Length, Task};
 use types::{AppError, Notification};
@@ -135,8 +135,9 @@ impl<'a> RestoreFromSeed {
                 *self = Self::Finalizing;
                 let setup = wallet.get_setup();
                 return Task::perform(async move {
-                    let result = setup.finalize_setup().await;
-                    println!("Setup finished");
+                    let result = setup.finalize_setup().await
+                        .inspect_err(|err| println!("{}", err.to_string()));
+                    debug_println!("Setup finished");
                     result
                 }, |result| {
                     match result {

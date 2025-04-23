@@ -89,6 +89,12 @@ impl AccountAddress {
     }
 }
 
+impl Default for AccountAddress {
+    fn default() -> Self {
+        Self::Mainnet([0;Self::MAINNET_LENGTH])
+    }
+}
+
 impl FromStr for AccountAddress {
     type Err = AddressError;
 

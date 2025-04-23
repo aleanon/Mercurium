@@ -36,7 +36,7 @@ pub async fn create_new_wallet_with_accounts(
 
     db.upsert_password_hash(password_hash).await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
-    db.upsert_accounts(accounts).await.ok();
+    db.upsert_accounts(accounts.to_vec()).await.ok();
 
     Ok(())
 }

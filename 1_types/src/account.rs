@@ -75,7 +75,6 @@ impl Account {
         }
     }
 
-    //Todo: implement test for this
     pub fn derivation_path(&self) -> [u32; 6] {
         let mut path = [0u32; 6];
 
@@ -94,6 +93,22 @@ impl Account {
             .try_into()
             .unwrap_unreachable(debug_info!("Failed to construct array from slice"));
         u32::from_be_bytes(bytes)
+    }
+}
+
+impl Default for Account {
+    fn default() -> Self {
+        Self { 
+            address: AccountAddress::default(), 
+            id: 0, 
+            name: String::new(), 
+            network: Network::Mainnet, 
+            derivation_path: [0;24], 
+            public_key: Ed25519PublicKey([0;Ed25519PublicKey::LENGTH]), 
+            hidden: true, 
+            settings: Settings::default(), 
+            balances_last_updated: None, 
+            transactions_last_updated: None }
     }
 }
 
