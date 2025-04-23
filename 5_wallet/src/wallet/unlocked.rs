@@ -1,22 +1,31 @@
 use deps::*;
+use store::DataBase;
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 
 use bytes::Bytes;
-use types::{address::{AccountAddress, ResourceAddress}, assets::{FungibleAsset, NonFungibleAsset}, Account, Resource};
+use types::{address::{AccountAddress, ResourceAddress}, assets::{FungibleAsset, NonFungibleAsset}, crypto::{Key, Password}, Account, Resource};
 
 use crate::wallet::WalletState;
 
 use super::{locked::Locked, wallet_data::WalletData, Wallet};
 
 #[derive(Clone)]
-pub struct Unlocked;
+pub struct Unlocked {
+    pub(crate)key: Key<DataBase>
+}
 
+impl Unlocked {
+    pub fn new(key: Key<DataBase>) -> Self {
+        Self {key}
+    }
+}
 
 
 impl WalletState for Unlocked{}
 
 impl Wallet<Unlocked> {
+
     pub fn logout(self) -> Wallet<Locked> {
         Wallet {state: Locked::new(false), wallet_data: self.wallet_data}
     }
@@ -51,5 +60,9 @@ impl Wallet<Unlocked> {
 
     pub fn accounts_mut(&mut self) -> &mut HashMap<AccountAddress, Account> {
         &mut self.wallet_data.resource_data.accounts
+    }
+
+    pub fn create_new_account(&mut self, account_name: String, password: Password) {
+        
     }
 }

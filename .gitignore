@@ -2,6 +2,6 @@
 /target-bin
 /.vscode
 /slint_ui
-/0_archive
+/00_archive
 entity_details.json
 transactions.json

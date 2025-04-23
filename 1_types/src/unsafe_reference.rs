@@ -11,6 +11,7 @@ impl<T: ?Sized> UnsafeRef<T> {
     pub unsafe fn new(value: &T) -> Self {
         Self(value as *const T)
     }
+
 }
 
 

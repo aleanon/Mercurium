@@ -14,7 +14,6 @@ pub const CREATE_ALL_ICONCACHE_TABLES_BATCH: &'static str = const_format::format
 
 #[cfg(test)]
 mod test {
-    use deps::*;
 
     use crate::database::test::{execute_batch_stmt, execute_stmt};
 

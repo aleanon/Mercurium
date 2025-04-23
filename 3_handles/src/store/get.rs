@@ -8,6 +8,8 @@ use store::{AppDataDb, DbError, IconsDb};
 use types::address::ResourceAddress;
 use types::{collections::AppdataFromDisk, AppError, Network};
 
+use crate::image::resize::resize_standard_dimensions_from_bytes;
+
 pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk, DbError> {
     let Some(db) = AppDataDb::get(network) else {
         return Err(DbError::DatabaseNotLoaded);
@@ -44,13 +46,9 @@ pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk,
 }
 
 pub async fn resource_icons(
-    network: Network,
-) -> Result<(Network, HashMap<ResourceAddress, Bytes>), AppError> {
-    let Some(icon_cache) = IconsDb::get(network) else {
-        return Err(AppError::Fatal("Icon cache not initialized".to_owned()));
-    };
-
-    let icons_data = icon_cache
+    db: &IconsDb
+) -> HashMap<ResourceAddress, Bytes> {
+    let icons_data = db
         .get_all_resource_icons()
         .await
         .unwrap_or_else(|err| {
@@ -60,12 +58,11 @@ pub async fn resource_icons(
 
     let icons = icons_data
         .into_iter()
-        .map(|(resource_address, data)| {
-            let bytes = Bytes::from_owner(data);
-
-            (resource_address, bytes)
+        .filter_map(|(resource_address, data)| {
+            let image = resize_standard_dimensions_from_bytes(&data)?;
+            Some((resource_address, Bytes::from_owner(image)))
         })
         .collect::<HashMap<ResourceAddress, Bytes>>();
 
-    Ok((network, icons))
+    icons
 }

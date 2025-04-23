@@ -72,7 +72,7 @@ openssl-sys = { version = "*", features = ["vendored"] }
 flate2 = "*"
 bytes = "*"
 image = "*"
-fast_image_resize = "3.0.4"
+fast_image_resize = { version = "5.1.3", features = ["image"] }
 tiny-bip39 = "*"
 slip10_ed25519 = "*"
 ed25519-dalek-fiat = "*"

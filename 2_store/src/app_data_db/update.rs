@@ -4,10 +4,7 @@ use super::statements::*;
 use crate::DbError;
 use async_sqlite::rusqlite::params;
 use types::{
-    address::AccountAddress,
-    assets::{FungibleAsset, NonFungibleAsset},
-    crypto::HashedPassword,
-    Account, Resource, Transaction, UnsafeSlice,
+    address::AccountAddress, assets::{FungibleAsset, NonFungibleAsset}, crypto::HashedPassword, Account, Resource, Transaction
 };
 
 use super::AppDataDb;
@@ -40,10 +37,9 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_accounts(&self, accounts: &[Account]) -> Result<(), DbError> {
-        let accounts = unsafe { UnsafeSlice::new(accounts) };
+    pub async fn upsert_accounts<Accounts: IntoIterator<Item = Account> + Send + 'static>(&self, accounts: Accounts) -> Result<(), DbError> {
         self.transaction(accounts::UPSERT_ACCOUNT, move |cached_stmt| {
-            for account in accounts.iter() {
+            for account in accounts {
                 cached_stmt.execute(params![
                     account.address,
                     account.id as i64,
@@ -62,9 +58,9 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_resources(&self, resources: Vec<Resource>) -> Result<(), DbError> {
+    pub async fn upsert_resources<Resources: IntoIterator<Item = Resource> + Send + 'static>(&self, resources: Resources) -> Result<(), DbError> {
         self.transaction(resources::UPSERT_RESOURCE, move |cached_stmt| {
-            for resource in resources.iter() {
+            for resource in resources {
                 cached_stmt.execute(params![
                     resource.address,
                     resource.name,
@@ -80,11 +76,12 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_fungible_assets_for_account(
+    pub async fn upsert_fungible_assets_for_account<Fungibles: IntoIterator<Item = FungibleAsset> + Send + 'static>(
         &self,
         account_address: AccountAddress,
-        fungibles: Vec<FungibleAsset>,
+        fungibles: Fungibles,
     ) -> Result<(), DbError> {
+
         self.transaction(fungible_assets::UPSERT_FUNGIBLE_ASSET, move |cached_stmt| {
             for fungible_asset in fungibles {
                 cached_stmt.execute(params![
@@ -99,17 +96,15 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_non_fungible_assets_for_account(
+    pub async fn upsert_non_fungible_assets_for_account<NonFungibles: IntoIterator<Item = NonFungibleAsset> + Send + 'static>(
         &self,
         account_address: AccountAddress,
-        non_fungibles: &[NonFungibleAsset],
+        non_fungibles: NonFungibles,
     ) -> Result<(), DbError> {
-        let non_fungibles = unsafe { UnsafeSlice::new(non_fungibles) };
-
         self.transaction(
             non_fungible_assets::UPSERT_NON_FUNGIBLE_ASSET,
             move |cached_stmt| {
-                for non_fungible_asset in non_fungibles.iter() {
+                for non_fungible_asset in non_fungibles {
                     cached_stmt.execute(params![
                         non_fungible_asset.id,
                         non_fungible_asset.resource_address,

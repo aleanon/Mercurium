@@ -5,13 +5,11 @@ use iced::{
     Element, Length, Task,
 };
 use wallet::{Unlocked, Wallet};
-use std::sync::Arc;
 use types::crypto::Password;
 use zeroize::Zeroize;
 
 use crate::{
     app::AppMessage,
-    external_task_response,
     unlocked::app_view,
 };
 
@@ -154,24 +152,25 @@ impl<'a> AddAccountView {
 
                 let network = wallet.settings().network;
                 let resources = wallet.resources().clone();
-                task = Task::perform(
-                    async move {
-                        let accounts_update = handles::radix_dlt::updates::update_accounts(
-                            network,
-                            Arc::new(resources),
-                            vec![account],
-                        )
-                        .await;
-                        Ok(accounts_update)
-                    },
-                    |result| match result {
-                        Ok(accounts_update) => {
-                            external_task_response::Message::AccountsUpdated(accounts_update).into()
-                        }
-                        Err(err) => external_task_response::Message::Error(err).into(),
-                    },
-                )
             }
+            // Task::perform(
+            //         async move {
+            //             let accounts_update = handles::radix_dlt::updates::update_accounts(
+            //                 network,
+            //                 Arc::new(resources),
+            //                 vec![account],
+            //             )
+            //             .await;
+            //             Ok(accounts_update)
+            //         },
+            //         |result| match result {
+            //             Ok(accounts_update) => {
+            //                 external_task_response::Message::AccountsUpdated(accounts_update).into()
+            //             }
+            //             Err(err) => external_task_response::Message::Error(err).into(),
+            //         },
+            //     )
+            // }
             Err(err) => self.notification = format!("Unable to create account: {err}"),
         };
 

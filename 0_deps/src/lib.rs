@@ -24,7 +24,7 @@ pub use {
    serde,
    serde_json,
    slip10_ed25519,
-   thiserror,
+//    thiserror,
    zeroize,
    tokio,
    no_mangle_if_debug,

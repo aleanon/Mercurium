@@ -91,20 +91,14 @@ pub async fn download_resize_and_store_resource_icons(
     let tasks = icon_urls.into_iter().map(|(resource_address, url)| {
         tokio::spawn(async move {
             download_image(&url).await.and_then(|image| {
-                let mut encoded_standard = BufWriter::new(Cursor::new(Vec::new()));
-                resize_standard_dimensions(&image)
-                    .write_to(&mut encoded_standard, image::ImageFormat::Png)
-                    .ok()?;
+                let encoded_standard = resize_standard_dimensions(&image)?;
 
-                let mut encoded_small = BufWriter::new(Cursor::new(Vec::new()));
-                resize_small_dimensions(&image)
-                    .write_to(&mut encoded_small, image::ImageFormat::Png)
-                    .ok()?;
+                let encoded_small = resize_small_dimensions(&image)?;
 
                 Some((
                     resource_address,
-                    encoded_standard.into_inner().ok()?.into_inner(),
-                    encoded_small.into_inner().ok()?.into_inner(),
+                    encoded_standard,
+                    encoded_small,
                 ))
             })
         })
@@ -140,4 +134,27 @@ pub async fn download_resize_and_store_resource_icons(
     }
 
     icons
+}
+
+pub async fn download_and_resize_icons(
+    icon_urls: BTreeMap<ResourceAddress, String>,
+) -> HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)> {
+    let tasks = icon_urls.into_iter().map(|(resource_address, url)| {
+        tokio::spawn(async move {
+            download_image(&url).await.and_then(|image| {
+                let standard = resize_standard_dimensions(&image)?;
+                let small = resize_small_dimensions(&image)?;
+                Some((
+                    resource_address,
+                    (small, standard)
+                ))
+            })
+        })
+    });
+
+    join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|join_result| join_result.ok()?)
+        .collect()
 }

@@ -1,7 +1,8 @@
 use deps::*;
 
+use store::{AppDataDb, DataBase, IconsDb};
 use thiserror::Error;
-use types::{crypto::Password, AppSettings};
+use types::{crypto::{Password, Key}, AppSettings};
 
 use crate::{wallet::WalletState, WalletData};
 
@@ -13,6 +14,8 @@ pub enum LoginError {
     IncorrectPassword,
     #[error("Max login attempts reached")]
     MaxAttemptsReached,
+    #[error("Unrecoverable error")]
+    Unrecoverable
 }
 
 pub enum LoginResponse {
@@ -39,18 +42,39 @@ impl Wallet<Locked> {
         if self.state.attempts >= self.max_login_attempts() {
             return LoginResponse::Failed(self, LoginError::MaxAttemptsReached)
         }
-
         
-        match handles::wallet::perform_login_check(self.wallet_data.network(), &password).await {
-            Ok(_) => LoginResponse::Success(Wallet { state: Unlocked, wallet_data: self.wallet_data}, self.state.is_initial_login),
+        let Ok(salt) = handles::credentials::get_db_encryption_salt() else {
+            return LoginResponse::Failed(self, LoginError::Unrecoverable)
+        };
+
+        let key = Key::<DataBase>::new(password.as_str(), &salt);
+
+        let mut wallet = match handles::wallet::perform_login_check(self.wallet_data.settings.network, &password).await {
+            Ok(_) => Wallet { state: Unlocked::new(key), wallet_data: self.wallet_data},
             Err(_) => {
-                LoginResponse::Failed(self, LoginError::IncorrectPassword)
+                return LoginResponse::Failed(self, LoginError::IncorrectPassword)
             }
+        };
+        
+        if self.state.is_initial_login {
+            let Ok(app_data_db) = AppDataDb::get_or_init(wallet.wallet_data.settings.network, wallet.state.key.clone()).await else {
+                return LoginResponse::Failed(Wallet {state: Locked::new(true), wallet_data: wallet.wallet_data}, LoginError::Unrecoverable)
+            };
+
+            let Ok(icons_db) = IconsDb::get_or_init(wallet.wallet_data.settings.network, wallet.state.key.clone()).await else {
+                return LoginResponse::Failed(Wallet {state: Locked::new(true), wallet_data: wallet.wallet_data}, LoginError::Unrecoverable)
+            };
+
+            wallet.wallet_data.resource_data.load_resource_data_from_disk(app_data_db, icons_db).await
+                .inspect_err(|err| eprintln!("Failed to load resource data: {err}"))
+                .ok();
         }
+
+        LoginResponse::Success(wallet, self.state.is_initial_login)
     }
 
     pub fn max_login_attempts(&self) -> usize {
-        self.wallet_data.get_settings().max_login_attempts
+        self.wallet_data.settings.max_login_attempts
     }
 
     pub fn wallet_data_mut(&mut self) -> &mut WalletData {

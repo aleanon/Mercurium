@@ -1,9 +1,7 @@
-use deps::*;
+use deps::{debug_print::debug_println, *};
 
 use std::{collections::HashMap, sync::Arc};
 
-use bytes::Bytes;
-use store::IconsDb;
 use types::{address::ResourceAddress, collections::AccountsUpdate, crypto::{bip39::{Language, Mnemonic, MnemonicType}, Password}, Account, AppPath, AppSettings, Network, UnwrapUnreachable};
 
 use crate::{wallet::WalletState, wallet_encryption_keys::WalletEncryptionKeys, Unlocked, Wallet, WalletData};
@@ -137,17 +135,19 @@ impl Setup {
         })
     }
 
-    pub async fn get_icons(&self) -> HashMap<ResourceAddress, Bytes> {
+    pub async fn get_icons(&self) -> HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)> {
         self.setup_tasks.get_icons_data().await.unwrap_or_default()
     }
 
 
-    pub async fn finalize_setup(self) -> Result<Wallet<Unlocked>, SetupError> {
+    pub async fn finalize_setup(mut self) -> Result<Wallet<Unlocked>, SetupError> {
         let network = Network::default();
         let wallet_keys = self.get_keys_with_salt().await?;
+        debug_println!("Wallet keys successfully fetched");
 
         let password_hash =  self.get_password().ok_or(SetupError::NoPasswordProvided)?
             .derive_db_encryption_key_hash_from_salt(wallet_keys.db_key_salt.salt());
+        debug_println!("Password hashed");
 
         AppPath::get().create_directories_if_not_exists()?;
 
@@ -164,39 +164,70 @@ impl Setup {
         )
         .await
         .map_err(|_| SetupError::Unspecified)?;
+        
+        debug_println!("Wallet Created");
 
-        IconsDb::load(network, db_key).await?;
+        let mut accounts_update = self.get_updated_accounts().await?;
 
-        let accounts_update = self.get_updated_accounts().await?;
+        debug_println!("Fetched account updates");
+
         let mut wallet_data = WalletData::new(AppSettings::new());
 
-        for account in &self.accounts {
-            for account_update in accounts_update.account_updates.clone() {
-                if account_update.account.address != account.address {continue};
-                
-                let fungibles = account_update.fungibles.into_values().collect();
 
-                wallet_data.resource_data
-                    .fungibles
-                    .insert(account_update.account.address.clone(), fungibles);
+        for mut account in std::mem::take(&mut self.accounts) {
+            let Some(account_update) = accounts_update.account_updates.iter_mut()
+                .find(|account_update|&account_update.account.address == &account.address) else {continue};
 
-                let non_fungibles = account_update.non_fungibles.into_values().collect();
+            let fungibles = std::mem::take(&mut account_update.fungibles);
+            let fungibles = fungibles.into_values().collect();
 
-                wallet_data.resource_data
-                    .non_fungibles
-                    .insert(account_update.account.address.clone(), non_fungibles);
+            wallet_data.resource_data
+                .fungibles
+                .insert(account_update.account.address.clone(), fungibles);
 
-                wallet_data.resource_data.accounts.insert(
-                    account_update.account.address.clone(),
-                    account_update.account,
-                );
-            }
+            let non_fungibles = std::mem::take(&mut account_update.non_fungibles);
+            let non_fungibles = non_fungibles.into_values().collect();
+
+            wallet_data.resource_data
+                .non_fungibles
+                .insert(account_update.account.address.clone(), non_fungibles);
+
+            let updated_account = std::mem::take(&mut account_update.account);
+            account.transactions_last_updated = updated_account.transactions_last_updated;
+
+            wallet_data.resource_data.accounts.insert(
+                updated_account.address,
+                account,
+            );
+
         }
 
+        debug_println!("Wallet data created");
+
         wallet_data.resource_data.resources = accounts_update.new_resources;
-        wallet_data.resource_data.resource_icons = self.get_icons().await;
+        wallet_data.save_resource_data_to_disk(db_key.clone()).await?;
+
+        let icons = self.get_icons().await;
+
+        debug_println!("Fetched icons");
+
+        let (icons_small, icons_standard) = icons.into_iter()
+            .map(|(address, (small, standard))| {
+                ((address.clone(), small), (address, standard))
+            })
+            .unzip();
         
-        Ok(Wallet { state: Unlocked, wallet_data })
+        debug_println!("Splitted icons");
+
+        wallet_data.resource_data.set_resource_icons(icons_small).await;
+        debug_println!("Saved icons to wallet data");
+
+        wallet_data.save_resource_icons_to_disk(icons_standard, db_key.clone()).await?;
+
+
+        debug_println!("Saved {} icons to disk", wallet_data.resource_data.resource_icons.len());
+        
+        Ok(Wallet { state: Unlocked::new(db_key), wallet_data })
         
     }
 }

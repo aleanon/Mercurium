@@ -110,6 +110,11 @@ impl<T, E> Task<T, E> where
             TaskState::Completed(value) => return Ok(value.clone()),
             TaskState::Failed => return Err(TaskError::TaskFailed.into()),
         }
+
+    }
+
+    pub fn into_task_state(&mut self) -> TaskState<T,E> {
+        std::mem::replace(&mut self.state, TaskState::NotStarted)
     }
 
  }
