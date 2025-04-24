@@ -1,3 +1,4 @@
+
 use deps::*;
 
 use thiserror::Error;
@@ -12,20 +13,23 @@ pub enum TaskError {
     FailedToJoinTask,
     #[error("Task failed to complete")]
     TaskFailed,
+    #[error("Result already claimed")]
+    ResultTaken
 }
 
-pub struct TaskRunner<T, E>(Mutex<Task<T, E>>) where 
+
+ pub struct Task<T, E>(Mutex<TaskInner<T, E>>) where 
     T: Clone + Send + 'static,
     E: std::error::Error + Send + 'static + From<TaskError>,
 ;
 
-impl<T, E> TaskRunner<T, E> 
+impl<T, E> Task<T, E> 
     where 
         T: Clone + Send + 'static,
         E: std::error::Error + Send + 'static + From<TaskError>,
 {
     pub fn new() -> Self {
-        Self(Mutex::new(Task::none()))
+        Self(Mutex::new(TaskInner::none()))
     }
 
     pub async fn run_task<F, Output>(&self, task_id: u16, task: F)  
@@ -43,20 +47,22 @@ impl<T, E> TaskRunner<T, E>
     }
 }
 
+#[derive(Default)]
 pub enum TaskState<T, E>  {
+    #[default]
     NotStarted,
     Running(JoinHandle<Result<T, E>>),
-    Completed(T),
+    Complete(T),
     Failed,
 }
 
 
-struct Task<T, E: std::error::Error> {
+struct TaskInner<T, E: std::error::Error> {
     current_task_id: u16,
     state: TaskState<T, E>,
 }
 
-impl<T, E> Task<T, E> where 
+impl<T, E> TaskInner<T, E> where 
     T: Clone + Send + 'static,
     E: std::error::Error + Send + 'static + From<TaskError>,
 {
@@ -92,7 +98,7 @@ impl<T, E> Task<T, E> where
                     Ok(result) => {
                         match result {
                             Ok(value) => {
-                                self.state = TaskState::Completed(value.clone());
+                                self.state = TaskState::Complete(value.clone());
                                 return Ok(value)
                             }
                             Err(err) => {
@@ -107,10 +113,9 @@ impl<T, E> Task<T, E> where
                     }
                 }
             }
-            TaskState::Completed(value) => return Ok(value.clone()),
+            TaskState::Complete(value) => return Ok(value.clone()),
             TaskState::Failed => return Err(TaskError::TaskFailed.into()),
         }
-
     }
 
     pub fn into_task_state(&mut self) -> TaskState<T,E> {

@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use types::{
     address::{AccountAddress, ResourceAddress},
-    AppError, AppPath, AppPathInner, Network,
+    AppError, AppPathInner, Network,
 };
 
 pub fn initialize_statics(network: Network) -> Result<(), AppError> {

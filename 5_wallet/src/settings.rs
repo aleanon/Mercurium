@@ -1,5 +1,9 @@
-use types::Network;
+use std::{io::BufReader, fs::File};
 
+use deps::{serde::{Deserialize, Serialize}, serde_json};
+use types::{AppPath, Network};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub network: Network,
     pub max_login_attempts: usize,
@@ -13,6 +17,16 @@ impl Settings {
         Self { 
             network: Network::default(),
             max_login_attempts: Self::DEFAULT_MAX_LOGIN_ATTEMPTS,
+        }
+    }
+
+    pub fn load_from_disk_or_default() -> Self {
+        match File::open(AppPath::get().settings_path_ref()) {
+            Ok(file) => {
+                let content = BufReader::new(file);
+                serde_json::from_reader::<_, Self>(content).unwrap_or(Self::new())
+            }
+            Err(_) => Self::new(),
         }
     }
 

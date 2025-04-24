@@ -1,7 +1,7 @@
 mod wallet_encryption_keys;
+mod settings;
 pub mod wallet;
 pub mod error;
-pub mod settings;
 
 
 pub use wallet::Wallet;
@@ -11,3 +11,4 @@ pub use wallet::unlocked::Unlocked;
 pub use wallet::locked::Locked;
 pub use wallet::wallet_data::WalletData;
 pub use wallet::locked::LoginResponse;
+pub use settings::Settings;

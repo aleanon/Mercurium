@@ -5,15 +5,15 @@ use std::{collections::{BTreeMap, HashMap}, fmt::Debug, sync::Arc};
 use debug_print::debug_eprintln;
 use types::{address::ResourceAddress, collections::AccountsUpdate, crypto::{bip39::Mnemonic, Password}, Account, AccountSummary, Network};
 
-use crate::{wallet_encryption_keys::WalletEncryptionKeys, SetupError};
+use crate::{wallet::create_multiple_accounts_from_mnemonic, wallet_encryption_keys::WalletEncryptionKeys, SetupError};
 
-use super::task_runner::TaskRunner;
+use super::task_runner::Task;
 
 pub struct TaskManager {
-    pub wallet_keys_and_salt: TaskRunner<WalletEncryptionKeys, SetupError>,
-    pub accounts: TaskRunner<Vec<(Account, AccountSummary)>, SetupError>,
-    pub accounts_update: TaskRunner<AccountsUpdate, SetupError>,
-    pub icons_data: TaskRunner<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError>,
+    pub wallet_keys_and_salt: Task<WalletEncryptionKeys, SetupError>,
+    pub accounts: Task<Vec<(Account, AccountSummary)>, SetupError>,
+    pub accounts_update: Task<AccountsUpdate, SetupError>,
+    pub icons_data: Task<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError>,
 }
 
 impl Debug for TaskManager {
@@ -25,10 +25,10 @@ impl Debug for TaskManager {
 impl TaskManager {
     pub fn new() -> Self {
         Self {
-            wallet_keys_and_salt: TaskRunner::new(),
-            accounts: TaskRunner::new(),
-            accounts_update: TaskRunner::new(),
-            icons_data: TaskRunner::new(),
+            wallet_keys_and_salt: Task::new(),
+            accounts: Task::new(),
+            accounts_update: Task::new(),
+            icons_data: Task::new(),
         }
     }
 
@@ -89,7 +89,7 @@ impl TaskManager {
                 .as_ref()
                 .and_then(|password| Some(password.as_str()));
 
-        handles::wallet::create_multiple_accounts_from_mnemonic::<Vec<_>>(
+        create_multiple_accounts_from_mnemonic::<Vec<_>>(
             &mnemonic,
             password_as_str,
             0,
@@ -134,3 +134,4 @@ impl TaskManager {
         Ok(result)
     }
 }
+

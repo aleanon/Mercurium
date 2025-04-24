@@ -58,11 +58,13 @@ impl Wallet<Unlocked> {
         &self.wallet_data.resource_data.resource_icons
     }
 
-    pub fn accounts_mut(&mut self) -> &mut HashMap<AccountAddress, Account> {
-        &mut self.wallet_data.resource_data.accounts
-    }
+    // pub fn accounts_mut(&mut self) -> &mut HashMap<AccountAddress, Account> {
+    //     &mut self.wallet_data.resource_data.accounts
+    // }
 
     pub fn create_new_account(&mut self, account_name: String, password: Password) {
         
     }
 }
+
+

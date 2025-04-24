@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use deps::*;
 
 use store::{AppDataDb, DataBase, IconsDb};
 use thiserror::Error;
 use types::{crypto::{Password, Key}, AppSettings};
 
-use crate::{wallet::WalletState, WalletData};
+use crate::{settings::Settings, wallet::WalletState, WalletData};
 
 use super::{unlocked::Unlocked, Wallet};
 
@@ -65,7 +67,9 @@ impl Wallet<Locked> {
                 return LoginResponse::Failed(Wallet {state: Locked::new(true), wallet_data: wallet.wallet_data}, LoginError::Unrecoverable)
             };
 
-            wallet.wallet_data.resource_data.load_resource_data_from_disk(app_data_db, icons_db).await
+            let resources = Arc::make_mut(&mut wallet.wallet_data.resource_data);
+
+            resources.load_resource_data_from_disk(app_data_db, icons_db).await
                 .inspect_err(|err| eprintln!("Failed to load resource data: {err}"))
                 .ok();
         }
@@ -88,6 +92,6 @@ impl Wallet<Locked> {
 
 impl Default for Wallet<Locked> {
     fn default() -> Self {
-        Self::new(Locked::new(true), WalletData::new(AppSettings::new()))
+        Self::new(Locked::new(true), WalletData::new(Settings::load_from_disk_or_default()))
     }
 }
