@@ -1,22 +1,25 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use deps::futures::TryFutureExt;
+use deps::{futures::TryFutureExt, tokio::{self, task::JoinHandle}};
 use store::{AppDataDb, DataBase, DbError, IconsDb};
-use types::{address::ResourceAddress, crypto::{EncryptedMnemonicError, Key, Password}, AppError, AppSettings, Network};
+use types::{address::ResourceAddress, crypto::{EncryptedMnemonicError, Key, Password}, AppError, Network};
 
-use super::resource_data::ResourceData;
+
+use crate::settings::Settings;
+
+use super::{create_account_from_mnemonic, resource_data::ResourceData};
 
 
 #[derive(Debug, Clone)]
 pub struct WalletData {
-    pub resource_data: ResourceData,
-    pub settings: AppSettings,
+    pub resource_data: Arc<ResourceData>,
+    pub settings: Settings,
 }
 
 
 impl WalletData {
-    pub fn new(settings: AppSettings) -> Self {
-        Self { resource_data: ResourceData::new(), settings }
+    pub fn new(settings: Settings) -> Self {
+        Self { resource_data: Arc::new(ResourceData::new()), settings }
     }
 
     pub fn set_network(&mut self, network: Network) {
@@ -35,36 +38,42 @@ impl WalletData {
         self.resource_data.save_resource_data_to_disk(db).await
     }
 
-    pub async fn create_new_account(&mut self, account_name: String, password: Password, key: Key<DataBase>) -> Result<(), AppError> {
-        let encrypted_mnemonic = handles::credentials::get_encrypted_mnemonic()?;
-        let (mnemonic, seed_password) = encrypted_mnemonic.decrypt_mnemonic(&password)
-            .map_err(|err| match err {
-                EncryptedMnemonicError::FailedToDecryptData => AppError::NonFatal(types::Notification::Info("Wrong password".to_string())),
-                _ => AppError::Fatal(err.to_string())
-            })?;
-
+    pub fn create_new_account(&mut self, account_name: String, password: Password, key: Key<DataBase>) -> JoinHandle<Result<(), AppError>> {        
         let (id, derivation_index) = self.resource_data.accounts.values()
-            .fold((0, 0), |(mut id, mut index), account| {
-                if account.id >= id {id = account.id + 1}
-                let der_index = account.derivation_index();
-                if der_index >= index {index = der_index + 1};
-                (id, index)
-            });
-            
-
-        let account = handles::wallet::create_account_from_mnemonic(
-            &mnemonic,
-            Some(seed_password.as_str()),
-            id,
-            derivation_index,
-            account_name,
-            self.settings.network,
-        );
-
-        let db = AppDataDb::get_or_init(self.settings.network, key)
-            .map_err(|err|AppError::Fatal(err.to_string())).await?;
-
-        self.resource_data.save_account(account, db).await
-            .map_err(|err|AppError::NonFatal(types::Notification::Info(err.to_string())))
+        .fold((0, 0), |(mut id, mut index), account| {
+            if account.id >= id {id = account.id + 1}
+            let der_index = account.derivation_index();
+            if der_index >= index {index = der_index + 1};
+            (id, index)
+        });
+        let network = self.settings.network;
+        let mut resource_data = self.resource_data.clone();
+        
+        tokio::spawn(async move {
+            let encrypted_mnemonic = handles::credentials::get_encrypted_mnemonic()?;
+            let (mnemonic, seed_password) = encrypted_mnemonic.decrypt_mnemonic(&password)
+                .map_err(|err| match err {
+                    EncryptedMnemonicError::FailedToDecryptData => AppError::NonFatal(types::Notification::Info("Wrong password".to_string())),
+                    _ => AppError::Fatal(err.to_string())
+                })?;
+    
+            let account = create_account_from_mnemonic(
+                &mnemonic,
+                Some(seed_password.as_str()),
+                id,
+                derivation_index,
+                account_name,
+                network,
+            );
+    
+            let db = AppDataDb::get_or_init(network, key)
+                .map_err(|err|AppError::Fatal(err.to_string())).await?;
+    
+            let resources_data = Arc::make_mut(&mut resource_data);
+            resources_data.save_account(account, db).await
+                .map_err(|err|AppError::NonFatal(types::Notification::Info(err.to_string())))
+        })
     }
 }
+
+

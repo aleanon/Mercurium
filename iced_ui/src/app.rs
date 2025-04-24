@@ -69,7 +69,7 @@ pub struct App {
 
 impl App {
     pub fn new() -> (Self, Task<AppMessage>) {
-        let settings = handles::app_settings::get_app_settings();
+        let settings = wallet::Settings::load_from_disk_or_default();
 
         let app_state = match handles::statics::initialize_statics::initialize_statics(settings.network) {
             Err(err) => AppState::Error(err.to_string()),

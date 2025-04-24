@@ -8,7 +8,7 @@ use super::setup;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FromBackup,
+    FromCloud,
     FromFile,
 }
 
@@ -36,3 +36,4 @@ impl<'a> RestoreFromBackup {
         // column![from_backup, from_seed].into()
     }
 }
+

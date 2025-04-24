@@ -41,7 +41,7 @@ impl ResourceData {
         self.save_accounts_to_disk(db).await
             .inspect_err(|err| eprintln!("Failed to save accounts: {err}"))?;
         self.save_resources_to_disk(db).await
-            .inspect_err(|err| eprintln!("Failed to save non resources: {err}"))?;
+            .inspect_err(|err| eprintln!("Failed to save resources: {err}"))?;
         self.save_fungibles_to_disk(db).await
             .inspect_err(|err| eprintln!("Failed to save fungibles: {err}"))?;
         self.save_non_fungibles_to_disk(db).await

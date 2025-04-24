@@ -113,46 +113,46 @@ impl<'a> AddAccountView {
 
     fn submit(&mut self, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
         let mut task = Task::none();
-        let account =
-            handles::credentials::get_encrypted_mnemonic().and_then(|encrypted_mnemonic| {
-                encrypted_mnemonic
-                    .decrypt_mnemonic(&self.password)
-                    .and_then(|(mnemonic, password)| {
-                        let mut id = 0;
-                        let mut new_account_index = 0;
+        // let account =
+        //     handles::credentials::get_encrypted_mnemonic().and_then(|encrypted_mnemonic| {
+        //         encrypted_mnemonic
+        //             .decrypt_mnemonic(&self.password)
+        //             .and_then(|(mnemonic, password)| {
+        //                 let mut id = 0;
+        //                 let mut new_account_index = 0;
 
-                        for (_, account) in wallet.accounts().iter() {
-                            if account.id >= id {
-                                id = account.id + 1
-                            };
-                            let account_index = account.derivation_index();
-                            if account_index >= new_account_index {
-                                new_account_index = account_index + 1
-                            };
-                        }
-                        let account = handles::wallet::create_account_from_mnemonic(
-                            &mnemonic,
-                            Some(password.as_str()),
-                            id,
-                            new_account_index,
-                            self.account_name.clone(),
-                            wallet.settings().network,
-                        );
-                        Ok(account)
-                    })
-                    .map_err(|err| {
-                        types::AppError::NonFatal(types::Notification::Warn(err.to_string()))
-                    })
-            });
-        match account {
-            Ok(account) => {
-                wallet
-                    .accounts_mut()
-                    .insert(account.address.clone(), account.clone());
+        //                 for (_, account) in wallet.accounts().iter() {
+        //                     if account.id >= id {
+        //                         id = account.id + 1
+        //                     };
+        //                     let account_index = account.derivation_index();
+        //                     if account_index >= new_account_index {
+        //                         new_account_index = account_index + 1
+        //                     };
+        //                 }
+        //                 let account = handles::wallet::create_account_from_mnemonic(
+        //                     &mnemonic,
+        //                     Some(password.as_str()),
+        //                     id,
+        //                     new_account_index,
+        //                     self.account_name.clone(),
+        //                     wallet.settings().network,
+        //                 );
+        //                 Ok(account)
+        //             })
+        //             .map_err(|err| {
+        //                 types::AppError::NonFatal(types::Notification::Warn(err.to_string()))
+        //             })
+        //     });
+        // match account {
+        //     Ok(account) => {
+        //         wallet
+        //             .accounts_mut()
+        //             .insert(account.address.clone(), account.clone());
 
-                let network = wallet.settings().network;
-                let resources = wallet.resources().clone();
-            }
+        //         let network = wallet.settings().network;
+        //         let resources = wallet.resources().clone();
+        //     }
             // Task::perform(
             //         async move {
             //             let accounts_update = handles::radix_dlt::updates::update_accounts(
@@ -171,8 +171,8 @@ impl<'a> AddAccountView {
             //         },
             //     )
             // }
-            Err(err) => self.notification = format!("Unable to create account: {err}"),
-        };
+        //     Err(err) => self.notification = format!("Unable to create account: {err}"),
+        // };
 
         task
     }
