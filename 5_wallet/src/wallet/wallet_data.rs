@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use deps::{futures::TryFutureExt, tokio::{self, task::JoinHandle}};
 use store::{AppDataDb, DataBase, DbError, IconsDb};
-use types::{address::ResourceAddress, crypto::{EncryptedMnemonicError, Key, Password}, AppError, Network};
+use types::{Account, address::ResourceAddress, crypto::{EncryptedMnemonicError, Key, Password}, AppError, Network};
 
 
 use crate::settings::Settings;
@@ -38,7 +38,7 @@ impl WalletData {
         self.resource_data.save_resource_data_to_disk(db).await
     }
 
-    pub fn create_new_account(&mut self, account_name: String, password: Password, key: Key<DataBase>) -> JoinHandle<Result<(), AppError>> {        
+    pub fn create_new_account(&mut self, account_name: String, password: Password, key: Key<DataBase>) -> JoinHandle<Result<Account, AppError>> {        
         let (id, derivation_index) = self.resource_data.accounts.values()
         .fold((0, 0), |(mut id, mut index), account| {
             if account.id >= id {id = account.id + 1}
@@ -47,7 +47,6 @@ impl WalletData {
             (id, index)
         });
         let network = self.settings.network;
-        let mut resource_data = self.resource_data.clone();
         
         tokio::spawn(async move {
             let encrypted_mnemonic = handles::credentials::get_encrypted_mnemonic()?;
@@ -66,12 +65,10 @@ impl WalletData {
                 network,
             );
     
-            let db = AppDataDb::get_or_init(network, key)
-                .map_err(|err|AppError::Fatal(err.to_string())).await?;
-    
-            let resources_data = Arc::make_mut(&mut resource_data);
-            resources_data.save_account(account, db).await
-                .map_err(|err|AppError::NonFatal(types::Notification::Info(err.to_string())))
+            let db = AppDataDb::get(network).ok_or(AppError::Fatal("Database not found".to_string()))?;
+            db.upsert_account(account.clone()).await
+                .map_err(|err|AppError::NonFatal(types::Notification::Info(err.to_string())))?;
+            Ok(account)
         })
     }
 }
