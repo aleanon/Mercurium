@@ -10,6 +10,29 @@ pub use iced::{widget::button::{Status, Style}, Theme};
 
 
 #[no_mangle_if_debug]
+pub fn setup_selection(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    match status {
+        Status::Active | Status::Pressed | Status::Disabled => Style {
+            background: Some(Background::Color(palette.primary.strong.color)),
+            text_color: palette.primary.weak.text,
+            border: Border {
+                radius: Radius::from(3), 
+                ..Default::default()
+            },
+            shadow: Shadow { color: Color::BLACK, offset: Vector::ZERO, blur_radius: 10. }
+        },
+        Status::Hovered => Style {
+            background: Some(Background::Color(palette.primary.weak.color)),
+            text_color: palette.primary.strong.text,
+            ..setup_selection(theme, Status::Active)
+        },
+    }
+}
+
+
+
+#[no_mangle_if_debug]
 pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {

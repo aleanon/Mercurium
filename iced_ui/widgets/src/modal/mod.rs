@@ -240,42 +240,53 @@ where
         );
     }
 
-    fn overlay<'b>(
-        &'b mut self,
-        state: &'b mut Tree,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let mut group = Group::new();
-        let mut children = state.children.iter_mut();
+    // fn overlay<'a>(
+    //         &'a mut self,
+    //         _state: &'a mut Tree,
+    //         _layout: Layout<'_>,
+    //         _renderer: &Renderer,
+    //         _translation: Vector,
+    //     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+        
+    // }
 
-        if let Some(underlay) =
-            self.underlay
-                .as_widget_mut()
-                .overlay(children.next()?, layout, renderer, translation)
-        {
-            group = group.push(underlay);
-        }
+    // fn overlay<'b>(
+    //     &'b mut self,
+    //     state: &'b mut Tree,
+    //     layout: Layout<'_>,
+    //     renderer: &Renderer,
+    //     translation: Vector,
 
-        if let Some(overlay) = &mut self.overlay {
-            if let Some(el) = children.next() {
-                overlay.as_widget().diff(el);
+    // ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    //     let mut group = Group::new();
+    //     let mut children = state.children.iter_mut();
 
-                group = group.push(overlay::Element::new(Box::new(ModalOverlay::new(
-                    el,
-                    overlay,
-                    self.backdrop.clone(),
-                    self.esc.clone(),
-                    self.style.clone(),
-                    self.horizontal_alignment,
-                    self.vertical_alignment,
-                ))));
-            }
-        }
+    //     if let Some(underlay) =
+    //         self.underlay
+    //             .as_widget_mut()
+    //             .overlay(children.next()?, layout, renderer, translation)
+    //     {
+    //         group = group.push(underlay);
+    //     }
 
-        Some(group.overlay())
-    }
+    //     if let Some(overlay) = &mut self.overlay {
+    //         if let Some(el) = children.next() {
+    //             overlay.as_widget().diff(el);
+
+    //             group = group.push(overlay::Element::new(Box::new(ModalOverlay::new(
+    //                 el,
+    //                 overlay,
+    //                 self.backdrop.clone(),
+    //                 self.esc.clone(),
+    //                 self.style.clone(),
+    //                 self.horizontal_alignment,
+    //                 self.vertical_alignment,
+    //             ))));
+    //         }
+    //     }
+
+    //     Some(group.overlay())
+    // }
 
     fn operate<'b>(
         &'b self,

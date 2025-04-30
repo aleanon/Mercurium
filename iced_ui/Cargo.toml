@@ -7,18 +7,18 @@ edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [features]
 default = []
 noupdate = []
-reload = [
-    # "dep:hot-lib-reloader"
-]
+reload = []
 
 [profile.reload]
 inherits = "dev"
 rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
-opt-level = 0
+opt-level = 1
 lto = false
 codegen-units = 1
 debug-assertions = true
@@ -38,7 +38,7 @@ font_and_icons = { path = "../4_font_and_icons" }
 wallet = { path = "../5_wallet" }
 styles = { path = "styles" }
 widgets = { path = "widgets" }
-zeroize = { workspace = true }
+# zeroize = { workspace = true }
 inline_tweak = { workspace = true, features = ["derive"] }
 # iced = { workspace = true }
 # iced_aw = { workspace = true, features = ["icons"] }
