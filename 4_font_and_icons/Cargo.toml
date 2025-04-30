@@ -7,7 +7,7 @@ edition.workspace = true
 
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["lib"]
 
 [profile.dev]
 rustflags = ["-C", "prefer-dynamic"]
@@ -15,5 +15,3 @@ rustflags = ["-C", "prefer-dynamic"]
 
 [dependencies]
 deps = { path = "../0_deps" }
-
-

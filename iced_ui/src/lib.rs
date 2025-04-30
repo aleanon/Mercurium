@@ -1,8 +1,10 @@
 #![feature(let_chains)]
+#![crate_type = "dylib"]
+
 
 use deps::*;
 
-mod app;
+pub mod app;
 mod common;
 mod common_elements;
 mod components;

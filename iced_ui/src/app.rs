@@ -1,4 +1,5 @@
 use deps::*;
+use no_mangle_if_debug::no_mangle_if_debug;
 
 use std::borrow::Cow;
 use std::collections::{BTreeSet, HashMap};
@@ -28,6 +29,9 @@ use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
 use crate::unlocked::app_view::AppView;
+
+//Reexport for hot reloading
+pub use iced::Element;
 
 #[derive(Clone)]
 pub enum AppMessage {
@@ -94,7 +98,7 @@ impl App {
         (app, Task::none())
     }
 
-    fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
+    pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
 
         let mut task = Task::none();
         match message {
@@ -135,7 +139,7 @@ impl App {
         task
     }
 
-    fn view(&self) -> iced::Element<AppMessage> {
+    pub fn view(&self) -> iced::Element<AppMessage> {
         match &self.app_state {
             AppState::Initial(setup, wallet) => setup.view(self, wallet)
                 .map(|message|{
@@ -176,7 +180,8 @@ impl App {
             ..Default::default()
         };
 
-        let app_builder = application(types::consts::APPLICATION_NAME, App::update, App::view)
+        let app_builder = application(App::new, App::update, App::view)
+            .title(types::consts::APPLICATION_NAME)
             .settings(settings)
             .theme(|app|app.preferences.theme.into())
             .window(window_settings);
@@ -184,7 +189,7 @@ impl App {
         #[cfg(debug_assertions)]
         app_builder
             .subscription(App::subscription)
-            .run_with(App::new)?;
+            .run()?;
         
         #[cfg(not(debug_assertions))]
         app_builder.run_with(App::new)?;
@@ -193,7 +198,7 @@ impl App {
     }
 
     #[cfg(debug_assertions)]
-    fn subscription(&self) -> Subscription<AppMessage> {
+    pub fn subscription(&self) -> Subscription<AppMessage> {
         Subscription::batch([
             time::every(time::Duration::from_millis(500))
                 .map(|_| AppMessage::None),
@@ -259,3 +264,63 @@ impl App {
     }
 }
 
+// #[no_mangle_if_debug]
+// pub fn update(state: &mut App, message: AppMessage) -> Task<AppMessage> {
+//     let mut task = Task::none();
+//     match message {
+//         AppMessage::Setup(message) => match message {
+//             setup::Message::RestoreFromSeedMessage(restore_from_seed::Message::WalletCreated(wallet)) => state.app_state = AppState::Unlocked(wallet),
+//             setup::Message::Error(err) => state.handle_error(err),
+//             message => {
+//                 if let AppState::Initial(setup, wallet) = &mut state.app_state {
+//                     match setup.update(message, wallet) {
+//                         Ok(task) => return task.map(AppMessage::Setup),
+//                         Err(err) => state.handle_error(err),
+//                     }
+//                 }
+//             }
+//         }
+//         AppMessage::Login(message) => {
+//             if let AppState::Locked(loginscreen, wallet) = &mut state.app_state {
+//                 if let loginscreen::Message::LoginSuccess(wallet, is_initial_login) = message {
+//                     if is_initial_login {
+//                         // task = external_tasks::initial_login_tasks(wallet.settings().network);
+//                     }
+//                     state.app_state = AppState::Unlocked(wallet);
+//                 } else {
+//                     task = loginscreen.update(message, wallet).map(AppMessage::Login);
+//                 }
+//             };
+//         },
+//         AppMessage::AppView(app_view_message) => {
+//             if let AppState::Unlocked(wallet) = &mut state.app_state {
+//                 return state.appview.update(app_view_message, wallet);
+//             }
+//         }
+//         AppMessage::Common(common_message) => return common_message.process(state),
+//         AppMessage::ToggleTheme => state.toggle_theme(),
+//         AppMessage::Error(err) => state.handle_error(err),
+//         AppMessage::None => {}
+//     }
+//     task
+// }
+
+#[no_mangle_if_debug]
+pub fn view(state: &App) -> Element<'_, AppMessage> {
+    match &state.app_state {
+        AppState::Initial(setup, wallet) => setup.view(state, wallet)
+            .map(|message|{
+                if let setup::Message::Error(err) = message {
+                    AppMessage::Error(err)
+                } else {
+                    AppMessage::Setup(message)
+                }
+            }),
+        AppState::Locked(loginscreen, _) => loginscreen.view().map(AppMessage::Login),
+        AppState::Unlocked(wallet) => state.appview.view(wallet, state),
+        AppState::Error(error) => container(text(error))
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into(),
+    }
+}

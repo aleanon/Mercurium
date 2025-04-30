@@ -219,19 +219,19 @@ where
         );
     }
 
-    fn overlay<'c>(
-        &'c mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'c, Message, Theme, Renderer>> {
-        let content_layout = layout.children().next()?;
-        self.content.as_widget_mut().overlay(
-            self.state,
-            content_layout,
-            renderer,
-            Vector::new(0.0, 0.0),
-        )
-    }
+    // fn overlay<'c>(
+    //     &'c mut self,
+    //     layout: Layout<'_>,
+    //     renderer: &Renderer,
+    // ) -> Option<overlay::Element<'c, Message, Theme, Renderer>> {
+    //     let content_layout = layout.children().next()?;
+    //     self.content.as_widget_mut().overlay(
+    //         self.state,
+    //         content_layout,
+    //         renderer,
+    //         Vector::new(0.0, 0.0),
+    //     )
+    // }
 
     fn operate(
         &mut self,

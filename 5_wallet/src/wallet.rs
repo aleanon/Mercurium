@@ -13,31 +13,6 @@ use wallet_data::WalletData;
 use crate::settings::Settings;
 
 
-
-// pub enum Wallet {
-//     Initial(InnerWallet<Setup>),
-//     Locked(InnerWallet<Locked>),
-//     Unlocked(InnerWallet<Unlocked>),
-//     Error(AppError),
-// }
-
-// impl Wallet {
-//     pub fn new() -> Self {
-//         let settings = handles::app_settings::get_app_settings();
-
-//         match handles::statics::initialize_statics::initialize_statics(settings.network) {
-//             Err(err) => Self::Error(err),
-//             Ok(_) => {
-//                 if AppDataDb::exists(settings.network) {
-//                     Wallet::Locked( InnerWallet::new(Locked::new(), WalletData::new(settings)))
-//                 } else {
-//                     Wallet::Initial(InnerWallet::new(Setup::new(), WalletData::new(settings)))
-//                 }
-//             }
-//         }
-//     }
-// }
-
 pub trait WalletState {}
 
 #[derive(Debug, Clone)]

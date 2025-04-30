@@ -1,2 +1,2 @@
 commands:
-  watch_reload: cargo watch -w iced_ui/styles -x "build -p dynrule -p dynbutton -p dyncontainer -p dynpick_list -p dynscrollable -p dyntext -p dyntext_input --profile reload --features reload"
+    watch_reload: cargo watch -w iced_ui/src -w iced_ui/styles -x "build -p iced_ui -p dynrule -p dynbutton -p dyncontainer -p dynpick_list -p dynscrollable -p dyntext -p dyntext_input --profile reload --features reload"

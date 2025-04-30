@@ -138,6 +138,7 @@ impl<'a> Setup {
                 .height(Length::Shrink),
             widget::Space::new(Length::Fill, Length::Fill)
         ])
+        .style(styles::button::setup_selection)
         .width(400)
         .height(100)
     }
