@@ -3,18 +3,18 @@ use std::borrow::Cow;
 
 use font_and_icons::{images::WINDOW_LOGO, BOOTSTRAP_FONT_BYTES};
 
-// #[cfg(not(feature="reload"))]
+#[cfg(not(feature="reload"))]
 use iced_ui::app;
 
-// #[cfg(feature="reload")]
-// use app::*;
+#[cfg(feature="reload")]
+use app::*;
 
-// #[cfg(feature = "reload")]
-// #[hot_lib_reloader::hot_module(dylib = "iced_ui", lib_dir = "target/reload")]
-// mod app {
-//     use iced_ui::app::*;
-//     hot_functions_from_file!("iced_ui/src/app.rs", ignore_no_mangle = true);
-// }
+#[cfg(feature = "reload")]
+#[hot_lib_reloader::hot_module(dylib = "iced_ui", lib_dir = "target/reload")]
+mod app {
+    use iced_ui::app::*;
+    hot_functions_from_file!("iced_ui/src/app.rs", ignore_no_mangle = true);
+}
 
 
 pub fn run() -> Result<(), deps::iced::Error> {

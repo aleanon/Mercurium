@@ -17,7 +17,7 @@ pub fn setup_selection(theme: &Theme, status: Status) -> Style {
             background: Some(Background::Color(palette.primary.strong.color)),
             text_color: palette.primary.weak.text,
             border: Border {
-                radius: Radius::from(3), 
+                radius: Radius::from(30), 
                 ..Default::default()
             },
             shadow: Shadow { color: Color::BLACK, offset: Vector::ZERO, blur_radius: 10. }
