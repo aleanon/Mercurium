@@ -5,12 +5,10 @@ name = "widgets"
 version = "0.1.0"
 edition.workspace = true
 
-[lib]
-crate-type = ["rlib"]
 
 [profile.reload]
 inherits = "dev"
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
+rustflags = ["-C", "prefer-dynamic", "--crate-type", "cdylib"]
 opt-level = 0
 lto = false
 codegen-units = 1
@@ -18,10 +16,12 @@ debug-assertions = true
 debug = 1
 
 [profile.reload.package."*"]
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
 opt-level = 3
 codegen-units = 1
 
 
 [dependencies]
 deps = { path = "../../0_deps" }
+
+[lib]
+crate-type = ["rlib", "cdylib"]

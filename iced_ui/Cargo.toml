@@ -1,9 +1,8 @@
-cargo-features = ["profile-rustflags"]
 
 [package]
 name = "iced_ui"
 version = "0.1.0"
-edition.workspace = true
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,13 +16,13 @@ reload = []
 
 [profile.reload]
 inherits = "dev"
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
 opt-level = 1
 lto = false
 codegen-units = 1
 debug-assertions = true
 debug = 1
 features = ["reload"]
+
 
 [profile.reload.package."*"]
 opt-level = 3
@@ -39,7 +38,6 @@ wallet = { path = "../5_wallet" }
 styles = { path = "styles" }
 widgets = { path = "widgets" }
 # zeroize = { workspace = true }
-inline_tweak = { workspace = true, features = ["derive"] }
 # iced = { workspace = true }
 # iced_aw = { workspace = true, features = ["icons"] }
 # thiserror = { workspace = true }

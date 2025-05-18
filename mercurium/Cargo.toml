@@ -12,7 +12,6 @@ reload = []
 
 [profile.reload]
 inherits = "dev"
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
 opt-level = 0
 lto = false
 codegen-units = 1
@@ -20,7 +19,6 @@ debug-assertions = true
 debug = 1
 
 [profile.reload.package."*"]
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
 opt-level = 3
 codegen-units = 1
 
@@ -29,7 +27,7 @@ iced_ui = { path = "../iced_ui" }
 deps = { path = "../0_deps" }
 types = { path = "../1_types" }
 font_and_icons = { path = "../4_font_and_icons" }
-hot-lib-reloader = { version = "0.7.0" }
+# hot-lib-reloader = { version = "0.7.0" }
 # styles = { path = "../iced_ui/styles" }
 # tokio = { workspace = true }
 # libloading = { workspace = true }

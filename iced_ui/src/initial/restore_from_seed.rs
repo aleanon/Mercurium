@@ -1,10 +1,16 @@
 use deps::{debug_print::debug_println, *};
 
-use iced::{widget::{self, column, container}, Element, Length, Task};
+use iced::{widget::{self, container}, Element, Length, Task};
 use types::{AppError, Notification};
-use wallet::{wallet::Wallet, Setup, SetupError, Unlocked};
+use wallet::{wallet::Wallet, Setup, Unlocked};
 
-use super::{common::{nav_button, nav_row}, pages::{choose_accounts::{self, ChooseAccounts}, enter_password::{self, EnterPassword}, enter_seed_phrase::{self, EnterSeedPhrase}, name_accounts::{self, NameAccounts}}};
+use super::pages::{choose_accounts::{self, ChooseAccounts}, enter_password::{self, EnterPassword}, enter_seed_phrase::{self, EnterSeedPhrase}, name_accounts::{self, NameAccounts}};
+
+pub enum Action {
+    SetupSelection,
+    Task(Task<Message>),
+    None,
+}
 
 #[derive(Clone)]
 pub enum Message {
@@ -37,7 +43,7 @@ impl<'a> RestoreFromSeed {
         RestoreFromSeed::EnterSeedPhrase(EnterSeedPhrase::new(wallet, Notification::None))
     }
 
-    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Setup>) -> Task<Message> {
+    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Setup>) -> Action {
         match message {
             Message::EnterSeedPhraseMessage(enter_seed_phrase::Message::Back)
             | Message::EnterPasswordMessage(enter_password::Message::Back)
@@ -49,26 +55,26 @@ impl<'a> RestoreFromSeed {
             | Message::NameAccountsMessage(name_accounts::Message::Next) => return self.next(wallet),
             Message::EnterSeedPhraseMessage(message) => {
                 if let Self::EnterSeedPhrase(page) = self {
-                    return page.update(message, wallet)
-                        .map(Message::EnterSeedPhraseMessage)
+                    return Action::Task(page.update(message, wallet)
+                        .map(Message::EnterSeedPhraseMessage))
                 }
             }
             Message::EnterPasswordMessage(message) => {
                 if let Self::EnterPassword(page) = self {
-                    return page.update(message, wallet)
-                        .map(Message::EnterPasswordMessage)
+                    return Action::Task(page.update(message, wallet)
+                        .map(Message::EnterPasswordMessage))
                 }
             }
             Message::ChooseAccountsMessage(message) => {
                 if let Self::ChooseAccounts(page) = self {
-                    return page.update(message, wallet)
-                        .map(Message::ChooseAccountsMessage)
+                    return Action::Task(page.update(message, wallet)
+                        .map(Message::ChooseAccountsMessage))
                 }
             }
             Message::NameAccountsMessage(message) => {
                 if let Self::NameAccounts(page) = self {
-                    return page.update(message)
-                        .map(Message::NameAccountsMessage)
+                    return Action::Task(page.update(message)
+                        .map(Message::NameAccountsMessage))
                 }
             }
             Message::Back => return self.back(wallet),
@@ -85,31 +91,31 @@ impl<'a> RestoreFromSeed {
             Message::ChooseAccounts => {
                 let (page, task) = ChooseAccounts::new(wallet);
                 *self = Self::ChooseAccounts(page);
-                return task.map(Message::ChooseAccountsMessage)
+                return Action::Task(task.map(Message::ChooseAccountsMessage))
             }
             Message::NameAccounts => {
                 *self = Self::NameAccounts(NameAccounts::new(wallet))
             }
         }
-        Task::none()
+        Action::None
     }
 
-    fn back(&mut self, wallet: &Wallet<Setup>) -> Task<Message> {
+    fn back(&mut self, wallet: &Wallet<Setup>) -> Action {
         match self {
-            Self::EnterSeedPhrase(_) => {/*Handled in parent*/},
+            Self::EnterSeedPhrase(_) => return Action::SetupSelection,
             Self::EnterPassword(_) => *self = Self::EnterSeedPhrase(EnterSeedPhrase::new(wallet, Notification::None)),
             Self::ChooseAccounts(_) => *self = Self::EnterPassword(EnterPassword::new(wallet, Notification::None)),
             Self::NameAccounts(_) => {
                 let (page, task) = ChooseAccounts::new(wallet);
                 *self = Self::ChooseAccounts(page);
-                return task.map(Message::ChooseAccountsMessage)
+                return Action::Task(task.map(Message::ChooseAccountsMessage))
             }
             Self::Finalizing => {},
         }
-        Task::none()
+        Action::None
     }
 
-    fn next(&mut self, wallet: &'a mut Wallet<Setup>) -> Task<Message> {
+    fn next(&mut self, wallet: &'a mut Wallet<Setup>) -> Action {
         match self {
             Self::EnterSeedPhrase(page) => {
                 if let Err(_) = page.save_to_wallet(wallet) {
@@ -120,11 +126,11 @@ impl<'a> RestoreFromSeed {
             },
             Self::EnterPassword(page) => {
                 if let Err(_) = page.save_to_wallet(wallet) {
-                    return Task::none()
+                    return Action::None
                 }
                 let (page, task) = ChooseAccounts::new(wallet);
                 *self = Self::ChooseAccounts(page);
-                return task.map(Message::ChooseAccountsMessage)
+                return Action::Task(task.map(Message::ChooseAccountsMessage))
             },
             Self::ChooseAccounts(page) => {
                 page.save_to_wallet(wallet);
@@ -134,7 +140,7 @@ impl<'a> RestoreFromSeed {
                 page.save_to_wallet(wallet);
                 *self = Self::Finalizing;
                 let setup = wallet.get_setup();
-                return Task::perform(async move {
+                return Action::Task(Task::perform(async move {
                     let result = setup.finalize_setup().await
                         .inspect_err(|err| println!("{}", err.to_string()));
                     debug_println!("Setup finished");
@@ -144,11 +150,11 @@ impl<'a> RestoreFromSeed {
                         Ok(wallet) => Message::WalletCreated(wallet),
                         Err(err) => Message::Error(AppError::Fatal(err.to_string()))
                     }
-                });
+                }));
             }
             Self::Finalizing => {},
         }
-        Task::none()
+        Action::None
     }
 }
 

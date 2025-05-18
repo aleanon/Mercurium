@@ -4,4 +4,7 @@ linker = "rust-lld.exe"
 
 
 [build.dev]
-rustflags = ["-Z", "threads=8"]
+# rustflags = ["-Z", "threads=8"]
+
+[build.reload]
+# rustflags = ["-Z", "threads=8", "-C", "prefer-dynamic", "--crate-type cdylib"]

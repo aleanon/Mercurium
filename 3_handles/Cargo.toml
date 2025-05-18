@@ -1,15 +1,11 @@
-cargo-features = ["profile-rustflags"]
+
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [package]
 name = "handles"
 version = "0.1.0"
 edition.workspace = true
-
-[lib]
-crate-type = ["lib"]
-
-[profile.dev]
-rustflags = ["-C", "prefer-dynamic"]
 
 
 [dependencies]

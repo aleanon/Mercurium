@@ -1,6 +1,6 @@
 use deps::*;
 
-use super::restore_from_seed::RestoreFromSeed;
+use super::restore_from_seed::{Action, RestoreFromSeed};
 
 use {
     iced::{
@@ -59,12 +59,17 @@ impl<'a> Setup {
         wallet: &'a mut Wallet<wallet::Setup>,
     ) -> Result<Task<Message>, AppError> {
         match message {
-            Message::SelectSetup => *self = Self::SelectSetup,
+            Message::SelectSetup => {
+                *self = Self::SelectSetup;
+                wallet.reset();
+            }
             Message::NewWallet => *self = Self::NewWallet(NewWallet::new(wallet)),
             Message::FromSeed => *self = Self::RestoreFromSeed(restore_from_seed::RestoreFromSeed::new(wallet)),
             
             Message::NewWalletMessage(new_wallet_message) => {
-                if let Setup::NewWallet(new_wallet) = self {
+                if let new_wallet::Message::SetupSelection = new_wallet_message {
+                    *self = Self::SelectSetup
+                } else if let Setup::NewWallet(new_wallet) = self {
                     return Ok(new_wallet.update(new_wallet_message, wallet).map(Message::NewWalletMessage));
                 }
             }
@@ -75,8 +80,14 @@ impl<'a> Setup {
             // }
             Message::RestoreFromSeedMessage(message) => {
                 if let Setup::RestoreFromSeed(restore_from_seed) = self {
-                    return Ok(restore_from_seed.update(message, wallet).map(Message::RestoreFromSeedMessage))
-
+                    match restore_from_seed.update(message, wallet) {
+                        restore_from_seed::Action::SetupSelection => {
+                            *self = Self::SelectSetup;
+                            wallet.reset();
+                        }
+                        restore_from_seed::Action::Task(task) => return Ok(task.map(Message::RestoreFromSeedMessage)),
+                        Action::None => {}
+                    }
                 }
             }
             Message::Error(_) => {/*Propagate*/}
@@ -86,22 +97,18 @@ impl<'a> Setup {
         Ok(Task::none())
     }
     
-    #[inline_tweak::tweak_fn]
     pub fn view(&'a self, app: &'a App, wallet: &Wallet<wallet::Setup>) -> Element<'a, Message> {
         match self {
             Setup::SelectSetup => self.select_creation_view(),
             Setup::RestoreFromBackup(restore_from_backup) => restore_from_backup.view(app).map(Message::RestoreFromBackupMessage),
-            Setup::NewWallet(new_wallet) => new_wallet.view(wallet).map(Message::NewWalletMessage),
-            Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view().map(|message| {
-                match message {
-                    restore_from_seed::Message::SelectSetup => Message::SelectSetup,
-                    _ => Message::RestoreFromSeedMessage(message)
-                }
+            Setup::NewWallet(new_wallet) => new_wallet.view(wallet).map(|m| match m {
+                new_wallet::Message::SetupSelection => Message::SelectSetup,
+                message => Message::NewWalletMessage(message)
             }),
+            Setup::RestoreFromSeed(restore_from_seed) => restore_from_seed.view().map(Message::RestoreFromSeedMessage),
         }
     }
 
-    #[inline_tweak::tweak_fn]
     fn select_creation_view(&self) -> Element<'_, Message> {
         let new_wallet =
             Self::creation_button("Create new wallet").on_press(Message::NewWallet);
@@ -111,7 +118,7 @@ impl<'a> Setup {
 
         let restore_from_seed =
             Self::creation_button("Restore from seed").on_press(Message::FromSeed);
-
+        
         let content = widget::column![new_wallet, restore_from_backup, restore_from_seed]
             .width(Length::Shrink)
             .height(Length::Shrink)
@@ -124,7 +131,6 @@ impl<'a> Setup {
     }
 
     //todo: replace space with svg
-    #[inline_tweak::tweak_fn] 
     pub fn creation_button<Message: Clone + 'a>(
         text: &'a str, /*handle: iced::widget::image::Handle*/
     ) -> Button<'a, Message> {

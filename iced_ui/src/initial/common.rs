@@ -5,20 +5,18 @@ use iced::{ widget::{self, text::LineHeight, Button, Row}, Length
 
 use crate::app::AppMessage;
 
-#[inline_tweak::tweak_fn]
 pub fn nav_button<'a, Message: Clone>(text: &'a str, on_press: Message) -> Button<'a, Message> {
     Button::new(
         widget::text(text)
             .size(20)
-            .width(100)
             .align_x(iced::alignment::Horizontal::Center)
             .align_y(iced::alignment::Vertical::Center),
     )
+    .width(80)
     .on_press(on_press)
     .style(styles::button::general_button)
 }
 
-#[inline_tweak::tweak_fn]
 pub fn nav_row<'a, Message: Clone + 'a>(
     back: Button<'a, Message>,
     next: Button<'a, Message>,
@@ -29,7 +27,6 @@ pub fn nav_row<'a, Message: Clone + 'a>(
 }
 
 
-#[inline_tweak::tweak_fn]
 pub fn seed_word_field<'a, Message: Clone>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
     widget::text_input(placeholder, input)
         .size(16)
@@ -37,7 +34,6 @@ pub fn seed_word_field<'a, Message: Clone>(placeholder: &str, input: &str) -> wi
         .line_height(LineHeight::Relative(2.))
 }
 
-#[inline_tweak::tweak_fn]
 pub fn text_input_field<'a, Message: Clone + 'a>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
     widget::text_input(placeholder, input)
         .size(16)
@@ -45,7 +41,6 @@ pub fn text_input_field<'a, Message: Clone + 'a>(placeholder: &str, input: &str)
         .line_height(LineHeight::Relative(1.5))
 }
 
-#[inline_tweak::tweak_fn]
 pub fn notification_field(text: &str) -> widget::Text {
     widget::text(text).size(16).width(250)
 }

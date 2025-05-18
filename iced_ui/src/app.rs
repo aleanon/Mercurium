@@ -2,24 +2,18 @@ use deps::*;
 use no_mangle_if_debug::no_mangle_if_debug;
 
 use std::borrow::Cow;
-use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;
 
 use debug_print::debug_println;
 use font_and_icons::images::WINDOW_LOGO;
 use font_and_icons::BOOTSTRAP_FONT_BYTES;
-use iced::widget::image::Handle;
 use iced::widget::{container, text};
 use iced::{Subscription, Task};
 use iced::time;
 use iced::{application, window, Length, Settings, Size};
 use store::AppDataDb;
-use types::assets::{FungibleAsset, NonFungibleAsset};
 use types::{Network, Notification, Theme};
-use types::{
-    address::{AccountAddress, ResourceAddress},
-    Account, AppError, AppSettings, Resource,
-};
+use types::AppError;
 use wallet::wallet::Wallet;
 use wallet::{Locked, Unlocked, WalletData};
 
@@ -98,6 +92,7 @@ impl App {
         (app, Task::none())
     }
 
+    #[no_mangle_if_debug]
     pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
 
         let mut task = Task::none();
@@ -139,6 +134,7 @@ impl App {
         task
     }
 
+    #[no_mangle_if_debug]
     pub fn view(&self) -> iced::Element<AppMessage> {
         match &self.app_state {
             AppState::Initial(setup, wallet) => setup.view(self, wallet)
@@ -305,22 +301,23 @@ impl App {
 //     task
 // }
 
-#[no_mangle_if_debug]
-pub fn view(state: &App) -> Element<'_, AppMessage> {
-    match &state.app_state {
-        AppState::Initial(setup, wallet) => setup.view(state, wallet)
-            .map(|message|{
-                if let setup::Message::Error(err) = message {
-                    AppMessage::Error(err)
-                } else {
-                    AppMessage::Setup(message)
-                }
-            }),
-        AppState::Locked(loginscreen, _) => loginscreen.view().map(AppMessage::Login),
-        AppState::Unlocked(wallet) => state.appview.view(wallet, state),
-        AppState::Error(error) => container(text(error))
-            .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .into(),
-    }
-}
+// #[no_mangle_if_debug]
+// #[no_mangle]
+// pub fn view(state: &App) -> Element<'_, AppMessage> {
+//     match &state.app_state {
+//         AppState::Initial(setup, wallet) => setup.view(state, wallet)
+//             .map(|message|{
+//                 if let setup::Message::Error(err) = message {
+//                     AppMessage::Error(err)
+//                 } else {
+//                     AppMessage::Setup(message)
+//                 }
+//             }),
+//         AppState::Locked(loginscreen, _) => loginscreen.view().map(AppMessage::Login),
+//         AppState::Unlocked(wallet) => state.appview.view(wallet, state),
+//         AppState::Error(error) => container(text(error))
+//             .center_x(Length::Fill)
+//             .center_y(Length::Fill)
+//             .into(),
+//     }
+// }

@@ -31,13 +31,16 @@ codegen-units = 1
 
 [profile.reload]
 inherits = "dev"
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
+rustflags = ["-C", "prefer-dynamic=true", "-Zmacro-backtrace"]
 opt-level = 0
 lto = false
 codegen-units = 1
 debug-assertions = true
 debug = 1
 features = ["reload"]
+
+# [profile.reload.package.iced_ui]
+# rustflags = ["--crate-type cdylib"]
 
 [profile.reload.package."*"]
 opt-level = 3
@@ -49,7 +52,6 @@ deps = { path = "0_deps" }
 
 serde = { version = "*", features = ["derive"] }
 zeroize = { version = "*", features = ["zeroize_derive"] }
-inline_tweak = { version = "1.2.1", features = ["derive"] }
 hot-lib-reloader = { version = "0.7.0" }
 thiserror = "*"
 
@@ -60,9 +62,9 @@ iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", default
   "image",
   "qr_code",
   "advanced",
-  "debug",
+  # "debug",
 ] }
-
+hot_ice = { path = "E:/hot_ice" }
 scrypto = { version = "1.3.0" }
 tokio = { version = "*", features = ["full"] }
 serde_json = { version = "*" }
@@ -90,6 +92,7 @@ asynciter = "*"
 futures = "*"
 bincode = "*"
 no-mangle-if-debug = "0.1.0"
+simple_logger = "*"
 
 # Windows specific imports
 winapi = { version = "*", features = ["winuser"] }
