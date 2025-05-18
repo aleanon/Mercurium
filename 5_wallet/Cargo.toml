@@ -1,4 +1,3 @@
-cargo-features = ["profile-rustflags"]
 
 [package]
 name = "wallet"
@@ -6,10 +5,7 @@ version = "0.1.0"
 edition.workspace = true
 
 [lib]
-crate-type = ["lib"]
-
-[profile.dev]
-rustflags = ["-C", "prefer-dynamic"]
+crate-type = ["rlib", "cdylib"]
 
 
 [dependencies]

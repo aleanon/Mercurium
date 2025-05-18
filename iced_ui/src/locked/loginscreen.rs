@@ -8,7 +8,7 @@ use iced::{
     widget::{self, image::Handle},
     Element, Length, Task,
 };
-use types::{crypto::Password, debug_info};
+use types::crypto::Password;
 use wallet::{Locked, LoginResponse, Wallet};
 use zeroize::Zeroize;
 
@@ -108,7 +108,6 @@ impl<'a> LoginScreen {
         )
     }
 
-    #[inline_tweak::tweak_fn]
     pub fn view(&self) -> Element<'a, Message> {
         // if self.status == Status::LoggingIn {
         //     return

@@ -98,7 +98,6 @@ impl EnterSeedPhrase {
 
 impl<'a> EnterSeedPhrase {
 
-    #[inline_tweak::tweak_fn]
     pub fn view(&'a self) -> Element<'a, Message> {
         let header = common_elements::header_one("Enter seed phrase");
 

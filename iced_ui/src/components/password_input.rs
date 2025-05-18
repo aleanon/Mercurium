@@ -4,7 +4,6 @@ use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{alignment::Vertical, border::Radius, widget::{self, button, column, container::{self, Style}, row, text, text_input}, Border, Color, Length, Shadow, Theme};
 
 
-#[inline_tweak::tweak_fn]
 pub fn password_input<'a, Message>(
     placeholder: &'static str,
     password: &str,

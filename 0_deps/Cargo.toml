@@ -1,16 +1,16 @@
 cargo-features = ["profile-rustflags"]
 
 [features]
-reload = ["dep:hot-lib-reloader"]
+reload = ["dep:hot-lib-reloader", "dep:hot_ice"]
 
 [package]
 name = "deps"
 version = "0.1.0"
 edition.workspace = true
 
-[lib]
-crate-type = ["rlib", "cdylib"]
 
+[lib]
+crate-type = ["rlib"]
 
 [profile.dev]
 opt-level = 3
@@ -22,7 +22,6 @@ codegen-units = 1
 
 [profile.reload]
 inherits = "dev"
-rustflags = ["-C", "prefer-dynamic", "-Zmacro-backtrace"]
 opt-level = 1
 lto = false
 codegen-units = 1
@@ -36,7 +35,7 @@ opt-level = 3
 codegen-units = 1
 
 [dependencies]
-iced = { workspace = true, default-features = false, features = [
+iced = { workspace = true, features = [
     "wgpu",
     "tokio",
     "image",
@@ -74,12 +73,13 @@ radix-gateway-sdk = { workspace = true }
 asynciter = { workspace = true }
 futures = { workspace = true }
 bincode = { workspace = true }
-inline_tweak = { workspace = true, features = ["derive"] }
 no-mangle-if-debug = { workspace = true }
+simple_logger = { workspace = true }
 # secrecy = { workspace = true }
 
 # Optional
 hot-lib-reloader = { workspace = true, optional = true }
+hot_ice = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { workspace = true, features = ["winuser"] }

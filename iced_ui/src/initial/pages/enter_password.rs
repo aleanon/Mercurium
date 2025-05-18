@@ -146,8 +146,8 @@ impl<'a> EnterPassword {
         let content_and_nav = column![content_container, nav];
 
         widget::container(content_and_nav)
-            .max_width(600)
-            .max_height(550)
+            .max_width(350)
+            .max_height(500)
             .center_x(Length::Fill)
             .center_y(Length::Fill)
             .into()

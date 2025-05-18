@@ -3,18 +3,18 @@ use std::borrow::Cow;
 
 use font_and_icons::{images::WINDOW_LOGO, BOOTSTRAP_FONT_BYTES};
 
-#[cfg(not(feature="reload"))]
+// #[cfg(not(feature="reload"))]
 use iced_ui::app;
 
-#[cfg(feature="reload")]
-use app::*;
+// #[cfg(feature="reload")]
+// use app::*;
 
-#[cfg(feature = "reload")]
-#[hot_lib_reloader::hot_module(dylib = "iced_ui", lib_dir = "target/reload")]
-mod app {
-    use iced_ui::app::*;
-    hot_functions_from_file!("iced_ui/src/app.rs", ignore_no_mangle = true);
-}
+// #[cfg(feature = "reload")]
+// #[hot_lib_reloader::hot_module(dylib = "iced_ui", lib_dir = "target/reload")]
+// mod app {
+//     use iced_ui::app::*;
+//     hot_functions_from_file!("iced_ui/src/app.rs", ignore_no_mangle = true);
+// }
 
 
 pub fn run() -> Result<(), deps::iced::Error> {
@@ -42,19 +42,24 @@ pub fn run() -> Result<(), deps::iced::Error> {
         ..Default::default()
     };
 
-    let app_builder = application(App::new, App::update, app::view)
-        .title(types::consts::APPLICATION_NAME)
+    #[cfg(not(feature="reload"))]
+    let app_builder = application(App::new, App::update, App::view);
+
+    #[cfg(feature="reload")]
+    let app_builder = deps::hot_ice::hot_application("target/reload", App::new, App::update, App::view);
+
+    let app_builder = app_builder.title(types::consts::APPLICATION_NAME)
         .settings(settings)
         .theme(|app|app.preferences.theme.into())
         .window(window_settings);
 
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "reload")]
     app_builder
-        .subscription(App::subscription)
-        .run()?;
+        // .subscription(App::subscription)
+        .run().unwrap();
 
-    #[cfg(not(debug_assertions))]
-    app_builder.run()?;
+    #[cfg(not(feature="reload"))]
+    app_builder.run().unwrap();
 
     Ok(())
 }

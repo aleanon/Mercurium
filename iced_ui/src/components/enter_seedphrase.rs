@@ -1,9 +1,8 @@
 use deps::*;
 
-use iced::{advanced::renderer::Style, widget::{self, text::LineHeight, text_input::Id, Column}, Length};
+use iced::{widget::{self, text::LineHeight, text_input::Id, Column}, Length};
 use types::crypto::SeedPhrase;
 
-#[inline_tweak::tweak_fn]
 pub fn input_seed<'a, Message>(
     seed_phrase: &SeedPhrase, 
     on_input: fn(usize, String) -> Message,

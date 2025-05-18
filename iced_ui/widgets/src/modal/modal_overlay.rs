@@ -155,24 +155,24 @@ where
     //     }
     // }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: Cursor,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            self.state,
-            layout
-                .children()
-                .next()
-                .expect("Native: Layout should have a content layout."),
-            cursor,
-            viewport,
-            renderer,
-        )
-    }
+    // fn mouse_interaction(
+    //     &self,
+    //     layout: Layout<'_>,
+    //     cursor: Cursor,
+    //     viewport: &Rectangle,
+    //     renderer: &Renderer,
+    // ) -> mouse::Interaction {
+    //     self.content.as_widget().mouse_interaction(
+    //         self.state,
+    //         layout
+    //             .children()
+    //             .next()
+    //             .expect("Native: Layout should have a content layout."),
+    //         cursor,
+    //         viewport,
+    //         renderer,
+    //     )
+    // }
 
     fn draw(
         &self,

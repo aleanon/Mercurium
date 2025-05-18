@@ -1,17 +1,29 @@
-cargo-features = ["profile-rustflags"]
 
 [package]
 name = "types"
 version = "0.1.0"
-
 edition.workspace = true
 
+
 [lib]
-crate-type = ["lib"]
+crate-type = ["rlib", "cdylib"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[profile.dev]
-rustflags = ["-C", "prefer-dynamic"]
+
+[profile.reload]
+inherits = "dev"
+opt-level = 1
+lto = false
+codegen-units = 1
+debug-assertions = true
+debug = 0
+features = ["reload"]
+strip = "symbols"
+
+[profile.reload.package."*"]
+opt-level = 3
+codegen-units = 1
 
 [dependencies]
 deps = { path = "../0_deps" }

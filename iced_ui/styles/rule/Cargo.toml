@@ -1,5 +1,9 @@
 cargo-features = ["profile-rustflags"]
 
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [features]
 reload = []
 
@@ -15,7 +19,6 @@ lto = false
 codegen-units = 1
 debug-assertions = true
 debug = 1
-rustflags = ["-C", "prefer-dynamic"]
 
 [profile.reload.package."*"]
 opt-level = 3
@@ -24,6 +27,3 @@ codegen-units = 1
 [dependencies]
 deps = { path = "../../../0_deps" }
 # iced = { workspace = true }
-
-[lib]
-crate-type = ["rlib", "cdylib"]

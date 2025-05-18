@@ -84,7 +84,6 @@ impl<'a> AccountsView {
         }
     }
 
-    #[inline_tweak::tweak_fn]
     fn overview(
         is_expanded: &HashMap<AccountAddress, bool>,
         wallet: &'a Wallet<Unlocked>,
@@ -153,7 +152,6 @@ impl<'a> AccountsView {
     }
 
 
-    #[inline_tweak::tweak_fn]
     fn view_account_summary(
         _expanded: bool,
         account: &'a Account,
