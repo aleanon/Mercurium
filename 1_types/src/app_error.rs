@@ -18,7 +18,6 @@ pub enum AppError {
 #[error("{0}")]
 pub struct ErrorString(pub String);
 
-
 impl From<()> for AppError {
     fn from(_value: ()) -> Self {
         Self::Ignore

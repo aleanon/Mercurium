@@ -1,7 +1,6 @@
-
 use std::borrow::Cow;
 
-use font_and_icons::{images::WINDOW_LOGO, BOOTSTRAP_FONT_BYTES};
+use font_and_icons::{BOOTSTRAP_FONT_BYTES, images::WINDOW_LOGO};
 
 // #[cfg(not(feature="reload"))]
 use iced_ui::app;
@@ -16,16 +15,11 @@ use iced_ui::app;
 //     hot_functions_from_file!("iced_ui/src/app.rs", ignore_no_mangle = true);
 // }
 
-
 pub fn run() -> Result<(), deps::iced::Error> {
-    use deps::iced::{window, Size, application, Settings};
+    use deps::iced::{Settings, Size, application, window};
     use iced_ui::App;
 
-    let icon = window::icon::from_file_data(
-        WINDOW_LOGO,
-        None,
-    )
-    .unwrap();
+    let icon = window::icon::from_file_data(WINDOW_LOGO, None).unwrap();
 
     let mut settings = Settings {
         antialiasing: true,
@@ -42,25 +36,22 @@ pub fn run() -> Result<(), deps::iced::Error> {
         ..Default::default()
     };
 
-    #[cfg(not(feature="reload"))]
-    let app_builder = application(App::new, App::update, App::view);
-
-    #[cfg(feature="reload")]
-    let app_builder = deps::hot_ice::hot_application("target/reload", App::new, App::update, App::view);
-
-    let app_builder = app_builder.title(types::consts::APPLICATION_NAME)
+    #[cfg(not(feature = "reload"))]
+    application(App::new, App::update, App::view)
+        .title(types::consts::APPLICATION_NAME)
         .settings(settings)
-        .theme(|app|app.preferences.theme.into())
-        .window(window_settings);
+        .theme(|app| app.preferences.theme.into())
+        .window(window_settings)
+        .run()?;
 
     #[cfg(feature = "reload")]
-    app_builder
-        // .subscription(App::subscription)
-        .run().unwrap();
-
-    #[cfg(not(feature="reload"))]
-    app_builder.run().unwrap();
+    deps::hot_ice::hot_application("target/reload", App::new, App::update, App::view)
+        .title(types::consts::APPLICATION_NAME)
+        .settings(settings)
+        .theme(|app| app.preferences.theme.into())
+        .window(window_settings)
+        .run()
+        .unwrap();
 
     Ok(())
 }
-

@@ -2,6 +2,8 @@
 linker = "rust-lld.exe"
 # crate-type = ["rlib", "cdylib"]
 
+[x86_64-unknown-linux-gnu]
+linker = "mold"
 
 [build.dev]
 # rustflags = ["-Z", "threads=8"]
