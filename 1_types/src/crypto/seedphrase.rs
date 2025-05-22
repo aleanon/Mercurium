@@ -14,13 +14,14 @@ impl SeedPhrase {
     const MAX_WORD_LENGTH: usize = 8;
     const WORD_COUNT: usize = 24;
 
-        pub fn new() -> Self {
+    pub fn new() -> Self {
         Self([[b' '; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT])
     }
 
     pub fn from_str(phrase: &str) -> Self {
         let mut seed_phrase = Self::new();
-        phrase.split_whitespace()
+        phrase
+            .split_whitespace()
             .enumerate()
             .take(Self::WORD_COUNT)
             .for_each(|(index, word)| seed_phrase.update_word(index, word));
@@ -51,26 +52,25 @@ impl SeedPhrase {
 
     ///Returns a reference to the word at the given index
     pub fn reference_word(&self, index: usize) -> Option<&str> {
-        if index < Self::WORD_COUNT {
-            let mut trimmed = self.0[index].as_slice();
+        if index >= Self::WORD_COUNT {
+            return None;
+        };
+        let mut trimmed = self.0[index].as_slice();
 
-            while let [rest @ .., last] = trimmed {
-                if last.is_ascii_whitespace() {
-                    trimmed = rest;
-                } else {
-                    break;
-                }
+        while let [rest @ .., last] = trimmed {
+            if last.is_ascii_whitespace() {
+                trimmed = rest;
+            } else {
+                break;
             }
-
-            //The SeedPhrase words can only be created from a &str, it is therefore not possible
-            //to have a non-utf8 byte slice, so unwrap is called
-            let trimmed_str = std::str::from_utf8(trimmed)
-                .unwrap_unreachable(debug_info!("Invalid utf8 in byte slice"));
-
-            Some(trimmed_str)
-        } else {
-            None
         }
+
+        //The SeedPhrase words can only be created from a &str, it is therefore not possible
+        //to have a non-utf8 byte slice, so unwrap is called
+        let trimmed_str = std::str::from_utf8(trimmed)
+            .unwrap_unreachable(debug_info!("Invalid utf8 in byte slice"));
+
+        Some(trimmed_str)
     }
 
     ///The byte slices are turned into a `Phrase` instead of a `String` because it should implement `ZeroizeOnDrop`

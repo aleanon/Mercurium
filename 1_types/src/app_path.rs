@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use once_cell::sync::Lazy;
 use thiserror::Error;
 
-use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 static APP_PATH: Lazy<AppPathInner> = Lazy::new(|| {
     AppPathInner::new().unwrap_unreachable(debug_info!("Unable to establish application directory"))
@@ -22,6 +22,7 @@ pub enum AppPathError {
 #[derive(Debug)]
 pub struct AppPathInner {
     app_directory: Box<Path>,
+    config_directory: Box<Path>,
     app_settings_path: Box<Path>,
     db_directory: Box<Path>,
     mainnet_db_path: Box<Path>,
@@ -33,9 +34,10 @@ pub struct AppPathInner {
 
 impl AppPathInner {
     pub const APP_DIRECTORY: &'static str = crate::consts::APPLICATION_NAME;
+    const CONFIG_DIRECTORY: &'static str = "config";
     const APP_SETTINGS_FILE_NAME: &'static str = "settings";
     const APP_SETTINGS_EXTENSION: &'static str = "json";
-    const STORE_DIRECTORY: &'static str = "database";
+    const DATA_DIRECTORY: &'static str = "database";
     const STORE_MAINNET_FILE_NAME: &'static str = "mainnet";
     const STORE_STOKENET_FILE_NAME: &'static str = "stokenet";
     const DB_EXTENSION: &'static str = "db";
@@ -46,12 +48,15 @@ impl AppPathInner {
     pub fn new() -> Result<Self, AppPathError> {
         let app_directory = Self::get_application_root_directory()?;
 
-        let mut app_settings_path = app_directory.clone();
+        let mut config_directory = app_directory.clone();
+        config_directory.push(Self::CONFIG_DIRECTORY);
+
+        let mut app_settings_path = config_directory.clone();
         app_settings_path.push(Self::APP_SETTINGS_FILE_NAME);
         app_settings_path.set_extension(Self::APP_SETTINGS_EXTENSION);
 
         let mut db_directory = app_directory.clone();
-        db_directory.push(Self::STORE_DIRECTORY);
+        db_directory.push(Self::DATA_DIRECTORY);
 
         let mut mainnet_db_path = db_directory.clone();
         mainnet_db_path.push(Self::STORE_MAINNET_FILE_NAME);
@@ -74,6 +79,7 @@ impl AppPathInner {
 
         Ok(Self {
             app_directory: app_directory.into_boxed_path(),
+            config_directory: config_directory.into_boxed_path(),
             app_settings_path: app_settings_path.into_boxed_path(),
             db_directory: db_directory.into_boxed_path(),
             mainnet_db_path: mainnet_db_path.into_boxed_path(),
@@ -83,7 +89,6 @@ impl AppPathInner {
             stokenet_icon_cache_path: stokenet_icon_cache_path.into_boxed_path(),
         })
     }
-
 
     pub fn create_directories_if_not_exists(&self) -> Result<&Self, AppPathError> {
         if !self.db_directory.exists() {
@@ -98,12 +103,21 @@ impl AppPathInner {
                 .create(&self.icons_directory)
                 .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
         }
+        if !self.config_directory.exists() {
+            std::fs::DirBuilder::new()
+                .create(&self.config_directory)
+                .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
+        }
 
         Ok(self)
     }
 
     pub fn app_directory(&self) -> PathBuf {
         self.app_directory.to_path_buf()
+    }
+
+    pub fn config_directory(&self) -> PathBuf {
+        self.config_directory.to_path_buf()
     }
 
     pub fn settings_path(&self) -> PathBuf {
@@ -136,6 +150,10 @@ impl AppPathInner {
         &self.app_directory
     }
 
+    pub fn config_directory_ref(&self) -> &Box<Path> {
+        &self.config_directory
+    }
+
     pub fn settings_path_ref(&self) -> &Box<Path> {
         &self.app_settings_path
     }
@@ -159,6 +177,29 @@ impl AppPathInner {
         match network {
             Network::Mainnet => &self.mainnet_icon_cache_path,
             Network::Stokenet => &self.stokenet_icon_cache_path,
+        }
+    }
+
+    #[cfg(unix)]
+    pub fn get_application_root_directory() -> Result<PathBuf, AppPathError> {
+        use std::io::ErrorKind;
+
+        match std::env::var_os("XDG_DATA_HOME") {
+            Some(path) => {
+                let mut app_directory = std::path::PathBuf::from(path);
+                app_directory.push(Self::APP_DIRECTORY);
+                Ok(app_directory)
+            }
+            None => {
+                let app_directory =
+                    std::env::var_os("HOME").ok_or(AppPathError::UnableToEstablishDirectory(
+                        std::io::Error::from(ErrorKind::NotFound),
+                    ))?;
+                let mut app_directory = std::path::PathBuf::from(app_directory);
+                app_directory.push(".local");
+                app_directory.push(Self::APP_DIRECTORY);
+                Ok(app_directory)
+            }
         }
     }
 

@@ -1,35 +1,41 @@
-pub(crate) mod resource_data;
-pub(crate) mod wallet_setup;
 pub(crate) mod locked;
+pub(crate) mod resource_data;
 pub(crate) mod unlocked;
 pub(crate) mod wallet_data;
+pub(crate) mod wallet_setup;
 
 use std::str::FromStr;
 
 use deps::bip39::Mnemonic;
-use types::{address::AccountAddress, crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair}, debug_info, Account, Network, UnwrapUnreachable};
+use types::{
+    Account, Network, UnwrapUnreachable,
+    address::AccountAddress,
+    crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair},
+    debug_info,
+};
 use wallet_data::WalletData;
 
 use crate::settings::Settings;
-
 
 pub trait WalletState {}
 
 #[derive(Debug, Clone)]
 pub struct Wallet<State: WalletState> {
     state: State,
-    wallet_data: WalletData
+    wallet_data: WalletData,
 }
 
-impl<State> Wallet<State> where State: WalletState {
+impl<State> Wallet<State>
+where
+    State: WalletState,
+{
     pub fn new(state: State, wallet_data: WalletData) -> Self {
-        Self {state, wallet_data}
+        Self { state, wallet_data }
     }
 
-    pub fn settings(&self) -> &Settings{
+    pub fn settings(&self) -> &Settings {
         &self.wallet_data.settings
     }
-
 }
 
 pub(crate) fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(
@@ -42,19 +48,20 @@ pub(crate) fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(
 ) -> T {
     let end_index = account_index + number_of_accounts;
 
-    (account_index..end_index).map(|i| {
-        let account = create_account_from_mnemonic(
-            mnemonic,
-            password,
-            start_id,
-            i,
-            String::new(),
-            network,
-        );
-        start_id += 1;
-        account
-    })
-    .collect()
+    (account_index..end_index)
+        .map(|i| {
+            let account = create_account_from_mnemonic(
+                mnemonic,
+                password,
+                start_id,
+                i,
+                String::new(),
+                network,
+            );
+            start_id += 1;
+            account
+        })
+        .collect()
 }
 
 pub(crate) fn create_account_from_mnemonic(

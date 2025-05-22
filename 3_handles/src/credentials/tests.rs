@@ -6,8 +6,10 @@ use bip39::Mnemonic;
 use store::DataBase;
 use types::crypto::{EncryptedMnemonic, KeySaltPair, Password};
 
-
-use crate::credentials::{delete_encrypted_mnemonic, delete_salt, get_db_encryption_salt, get_encrypted_mnemonic, store_db_encryption_salt, store_encrypted_mnemonic};
+use crate::credentials::{
+    delete_encrypted_mnemonic, delete_salt, get_db_encryption_salt, get_encrypted_mnemonic,
+    store_db_encryption_salt, store_encrypted_mnemonic,
+};
 
 use super::{delete::tests::*, get_credentials::tests::*, store_credentials::tests::*};
 
@@ -16,7 +18,10 @@ fn test_store_get_delete_blob() {
     for i in 0..TEST_TARGETS.len() {
         let target = TEST_TARGETS[i];
         let mut blob = TEST_PASSWORDS[i].as_bytes().to_vec();
+        #[cfg(windows)]
         store_blob_test(blob.as_mut_ptr(), blob.len(), target);
+        #[cfg(unix)]
+        store_blob_test(blob.as_slice(), target);
         let retrieved_blob = get_blob_test(target);
         assert!(blob == retrieved_blob, "Blob mismatch");
         delete_credentials_test(target)
