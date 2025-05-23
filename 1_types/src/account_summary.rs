@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-
 #[derive(Debug, Clone)]
 pub enum AccountSummary {
     NoUpdateReceived,
@@ -11,13 +10,11 @@ pub enum AccountSummary {
     },
 }
 
-
 impl AccountSummary {
     pub fn has_summary(&self) -> bool {
         matches!(self, Self::Summary { .. })
     }
 }
-
 
 impl Display for AccountSummary {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -27,11 +24,7 @@ impl Display for AccountSummary {
             Self::Summary {
                 nr_of_fungibles,
                 nr_of_non_fungibles,
-            } => write!(
-                f,
-                "{} Fungibles, {} NFTs",
-                nr_of_fungibles, nr_of_non_fungibles
-            ),
+            } => write!(f, "{} Assets", nr_of_fungibles + nr_of_non_fungibles),
         }
     }
 }

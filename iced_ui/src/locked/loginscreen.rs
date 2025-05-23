@@ -12,9 +12,7 @@ use types::crypto::Password;
 use wallet::{Locked, LoginResponse, Wallet};
 use zeroize::Zeroize;
 
-use crate::{
-    app::AppMessage, components::password_input::password_input
-};
+use crate::{app::AppMessage, components::password_input::password_input};
 
 #[derive(Clone)]
 pub enum Message {
@@ -30,7 +28,6 @@ impl Into<AppMessage> for Message {
         AppMessage::Login(self)
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Status {
@@ -81,7 +78,7 @@ impl<'a> LoginScreen {
             }
             Message::PasswordInput(input) => self.input(input),
             Message::ToggleShowPassword => self.toggle_view(),
-            Message::LoginSuccess(_,_) => {/*Propagated*/}
+            Message::LoginSuccess(_, _) => { /*Propagated*/ }
         }
         Task::none()
     }
@@ -94,7 +91,7 @@ impl<'a> LoginScreen {
         let password = mem::take(&mut self.password);
 
         Task::perform(
-                async move { wallet.login_with_password(password).await },
+            async move { wallet.login_with_password(password).await },
             |response| match response {
                 LoginResponse::Success(wallet, is_initial_login) => {
                     debug_println!("Login successful");
@@ -113,10 +110,11 @@ impl<'a> LoginScreen {
         //     return
         // }
 
-        let logo = widget::image(Handle::from_bytes(MENU_LOGO)).width(100).height(100);
+        let logo = widget::image(Handle::from_bytes(MENU_LOGO))
+            .width(100)
+            .height(100);
 
-        let info_text  = widget::text("Enter password to continue")
-            .size(15);
+        let info_text = widget::text("Enter password to continue").size(15);
 
         let space = widget::vertical_space().height(15);
 
@@ -126,7 +124,7 @@ impl<'a> LoginScreen {
             self.show_password,
             Message::ToggleShowPassword,
             Message::PasswordInput,
-            Message::Login
+            Message::Login,
         );
 
         let login_button = widget::Button::new(
@@ -134,7 +132,7 @@ impl<'a> LoginScreen {
                 .size(15)
                 .center()
                 .width(Length::Fill)
-                .height(Length::Fill)
+                .height(Length::Fill),
         )
         .height(30)
         .width(100)

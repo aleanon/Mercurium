@@ -1,6 +1,9 @@
-use deps::*;
+use deps::{iced::widget::image::Handle, *};
 
-use std::collections::{BTreeSet, HashMap};
+use std::{
+    collections::{BTreeSet, HashMap},
+    io::Read,
+};
 
 use crate::{
     app::AppMessage,
@@ -47,7 +50,11 @@ impl<'a> AccountsView {
         Self::OverView(HashMap::new())
     }
 
-    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
+    pub fn update(
+        &mut self,
+        message: Message,
+        wallet: &'a mut Wallet<Unlocked>,
+    ) -> Task<AppMessage> {
         let mut command = Task::none();
         match message {
             Message::NewAccount => {}
@@ -63,7 +70,11 @@ impl<'a> AccountsView {
         command
     }
 
-    fn select_account(&mut self, account_address: AccountAddress, wallet: &'a mut Wallet<Unlocked>) {
+    fn select_account(
+        &mut self,
+        account_address: AccountAddress,
+        wallet: &'a mut Wallet<Unlocked>,
+    ) {
         if let Some(account) = wallet.accounts().get(&account_address) {
             *self = AccountsView::Account(AccountView::from_account(account));
         }
@@ -107,7 +118,7 @@ impl<'a> AccountsView {
         let accounts = wallet
             .accounts()
             .iter()
-            .map(|(_, account)| account )
+            .map(|(_, account)| account)
             .collect::<BTreeSet<&Account>>();
 
         let mut children: Vec<Element<'a, AppMessage>> = Vec::new();
@@ -118,11 +129,10 @@ impl<'a> AccountsView {
                 .unwrap_or(&false)
                 .to_owned();
 
-            let summary = Self::view_account_summary(expanded, account);
+            let summary = Self::view_account_summary(expanded, account, wallet);
 
             children.push(summary.into())
         }
-
 
         let col = iced::widget::Column::with_children(children)
             .spacing(15)
@@ -151,14 +161,11 @@ impl<'a> AccountsView {
             .into()
     }
 
-
     fn view_account_summary(
         _expanded: bool,
         account: &'a Account,
+        wallet: &'a Wallet<Unlocked>,
     ) -> iced::widget::Container<'a, AppMessage> {
-        // let account_name = account.;
-        // let account_address = account.get_address().truncate();
-
         let account_name_widget = widget::text(&account.name)
             .align_x(iced::alignment::Horizontal::Left)
             .align_y(iced::alignment::Vertical::Center)
@@ -173,9 +180,62 @@ impl<'a> AccountsView {
 
         let name_address_row = row![account_name_widget, space, account_address_widget];
 
+        let mut icons: Vec<Element<AppMessage>> = Vec::new();
+
+        let fungibles = wallet
+            .fungibles()
+            .get(&account.address)
+            .and_then(|fungibles| {
+                for fungible in fungibles.iter() {
+                    if icons.len() >= 6 {
+                        break;
+                    };
+
+                    let icon = wallet
+                        .resource_icons()
+                        .get(&fungible.resource_address)
+                        .and_then(|bytes| Some(Handle::from_bytes(bytes.clone())));
+
+                    if let Some(handle) = icon {
+                        icons.push(widget::image(handle).width(20).height(20).into());
+                    }
+                }
+                Some(fungibles.len())
+            })
+            .unwrap_or(0);
+
+        let non_fungibles = wallet
+            .non_fungibles()
+            .get(&account.address)
+            .and_then(|non_fungibles| {
+                for non_fungible in non_fungibles {
+                    if icons.len() >= 6 {
+                        break;
+                    };
+
+                    let icon = wallet
+                        .resource_icons()
+                        .get(&non_fungible.resource_address)
+                        .and_then(|bytes| Some(Handle::from_bytes(bytes.clone())));
+
+                    if let Some(handle) = icon {
+                        icons.push(widget::image(handle).width(20).height(20).into());
+                    }
+                }
+                Some(non_fungibles.len())
+            })
+            .unwrap_or(0);
+
+        let not_showing = fungibles + non_fungibles - icons.len();
+        let mut icons = row(icons).spacing(5);
+        if not_showing > 0 {
+            icons = icons.push(widget::Space::new(5, 1));
+            icons = icons.push(text!("+ {}", not_showing))
+        }
+
         let space = iced::widget::Space::new(Length::Fill, Length::Fill);
 
-        let columns = column![name_address_row, space];
+        let columns = column![name_address_row, icons].spacing(20);
         let button = widget::button(columns)
             .height(100)
             .width(Length::Fill)

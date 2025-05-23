@@ -97,7 +97,7 @@ impl App {
         (app, Task::none())
     }
 
-    #[no_mangle_if_debug]
+    // #[no_mangle_if_debug]
     pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
         let mut task = Task::none();
         match message {
