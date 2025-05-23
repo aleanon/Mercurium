@@ -1,14 +1,17 @@
-use deps::{iced::{gradient::{ColorStop, Linear}, Gradient, Radians}, *};
+use deps::{
+    iced::{
+        gradient::{ColorStop, Linear},
+        Gradient, Radians,
+    },
+    rand::distr::weighted::Weight,
+    *,
+};
 use no_mangle_if_debug::no_mangle_if_debug;
 
-use iced::{
-    border::Radius,
-    Background, Border, Color, Shadow, Vector,
-};
+use iced::{border::Radius, Background, Border, Color, Shadow, Vector};
 
 //re export for the hot reloading module
 pub use iced::{widget::container::Style, Theme};
-
 
 #[no_mangle_if_debug]
 pub fn main_window(theme: &Theme) -> Style {
@@ -66,7 +69,7 @@ pub fn center_panel(theme: &Theme) -> Style {
 #[no_mangle_if_debug]
 pub fn seed_word_wrapper(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
-    let background_color = palette.secondary.base.color.scale_alpha(0.1);
+    let background_color = Color::from_rgb8(40, 40, 40);
     let mut shadow = Shadow::default();
     shadow.color = Color::BLACK;
     shadow.blur_radius = 2.;
@@ -82,10 +85,12 @@ pub fn seed_word_wrapper(theme: &Theme) -> Style {
 pub fn account_overview(theme: &Theme) -> Style {
     let extended_palette = theme.extended_palette();
     let background_base = extended_palette.background.base;
-    let mut background_color = background_base.color;
-    let shadow_color = extended_palette.background.weak.color;
+    let mut background_color = Color::from_rgb8(40, 40, 40);
+    let shadow_color = Color::BLACK;
     let text_color = background_base.text;
-    background_color.a += 0.01;
+    // background_color.r.checked_add_assign(&20.).ok();
+    // background_color.g.checked_add_assign(&20.).ok();
+    // background_color.b.checked_add_assign(&20.).ok();
 
     // for c in &mut background_color[0..3] {
     //   if let Some(num) = c.checked_add(2) {
@@ -103,7 +108,7 @@ pub fn account_overview(theme: &Theme) -> Style {
         },
         shadow: iced::Shadow {
             color: shadow_color,
-            offset: Vector::new(2., 2.),
+            offset: Vector::new(0., 0.),
             blur_radius: 3.,
         },
         background: Some(iced::Background::Color(background_color)),
@@ -169,7 +174,6 @@ pub fn notification_error(theme: &Theme) -> Style {
         ..Default::default()
     }
 }
-
 
 #[no_mangle_if_debug]
 pub fn password_input(theme: &Theme) -> Style {

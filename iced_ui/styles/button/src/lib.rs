@@ -1,13 +1,12 @@
 use deps::*;
 use no_mangle_if_debug::no_mangle_if_debug;
 
-use iced::{
-    border::Radius,
-    Background, Border, Color, Shadow, Vector,
+use iced::{border::Radius, Background, Border, Color, Shadow, Vector};
+
+pub use iced::{
+    widget::button::{Status, Style},
+    Theme,
 };
-
-pub use iced::{widget::button::{Status, Style}, Theme};
-
 
 #[no_mangle_if_debug]
 pub fn setup_selection(theme: &Theme, status: Status) -> Style {
@@ -17,10 +16,14 @@ pub fn setup_selection(theme: &Theme, status: Status) -> Style {
             background: Some(Background::Color(palette.primary.strong.color)),
             text_color: palette.primary.weak.text,
             border: Border {
-                radius: Radius::from(3), 
+                radius: Radius::from(3),
                 ..Default::default()
             },
-            shadow: Shadow { color: Color::BLACK, offset: Vector::ZERO, blur_radius: 10. }
+            shadow: Shadow {
+                color: Color::BLACK,
+                offset: Vector::ZERO,
+                blur_radius: 10.,
+            },
         },
         Status::Hovered => Style {
             background: Some(Background::Color(palette.primary.weak.color)),
@@ -29,8 +32,6 @@ pub fn setup_selection(theme: &Theme, status: Status) -> Style {
         },
     }
 }
-
-
 
 #[no_mangle_if_debug]
 pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
@@ -82,7 +83,7 @@ pub fn choose_account(theme: &Theme, status: Status) -> Style {
 
     match status {
         _ => Style {
-            background: Some(Background::Color(background)),
+            background: Some(Background::Color(Color::from_rgb8(40, 40, 40))),
             border: Border {
                 radius: Radius {
                     top_left: 10.,

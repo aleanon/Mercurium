@@ -1,6 +1,16 @@
-use deps::*;
+use deps::{
+    iced::widget::{container, Space},
+    *,
+};
 
-use iced::{widget::{self, column, row, scrollable::{Direction, Scrollbar}, Scrollable, Text, TextInput}, Element, Length, Task};
+use iced::{
+    widget::{
+        self, column, row,
+        scrollable::{Direction, Scrollbar},
+        Scrollable, Text, TextInput,
+    },
+    Element, Length, Task,
+};
 use types::{address::Address, Account};
 use wallet::{wallet::Wallet, Setup};
 
@@ -15,7 +25,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub struct NameAccounts {
-    pub accounts: Vec<Account>
+    pub accounts: Vec<Account>,
 }
 
 impl<'a> NameAccounts {
@@ -32,9 +42,9 @@ impl<'a> NameAccounts {
                     account.name = input;
                 }
             }
-            Message::Back | Message::Next => {/*Handled in parent*/}
+            Message::Back | Message::Next => { /*Handled in parent*/ }
         }
-        
+
         Task::none()
     }
 
@@ -43,27 +53,31 @@ impl<'a> NameAccounts {
     }
 }
 
-
 impl<'a> NameAccounts {
     pub fn view(&self) -> Element<'a, Message> {
         let mut accounts = column![];
 
         for (index, account) in self.accounts.iter().enumerate() {
-            let account_truncated = Text::new(account.address.truncate_long())
-                .width(Length::Shrink);
+            let account_truncated =
+                Text::new(account.address.truncate_long()).width(Length::Shrink);
 
-            let input_field = TextInput::new("Account name", &account.name)
-                .on_input(move |input|Message::InputAccountName(index, input))
-                .on_paste(move |input|Message::InputAccountName(index, input))
-                .width(Length::Fill);
+            let input_field = TextInput::new("Enter Account name", &account.name)
+                .on_input(move |input| Message::InputAccountName(index, input))
+                .on_paste(move |input| Message::InputAccountName(index, input))
+                .width(Length::Fill)
+                .style(styles::text_input::transparent_borderless);
 
-            let account_row = row![account_truncated, input_field]
+            let space = Space::new(Length::Fill, 1);
+
+            let account_row = row![account_truncated, space, input_field]
+                .align_y(iced::Alignment::Center)
                 .width(600);
 
-            let account_and_rule = column![account_row, widget::Rule::horizontal(2)]
-                .spacing(3);
+            let account_container = container(account_row)
+                .padding(15)
+                .style(styles::container::account_overview);
 
-            accounts = accounts.push(account_and_rule);
+            accounts = accounts.push(account_container);
         }
 
         let content = Scrollable::new(accounts)

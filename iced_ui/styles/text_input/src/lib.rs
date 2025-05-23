@@ -10,10 +10,10 @@ pub use iced::{
 #[no_mangle_if_debug]
 pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
+    style.background = Background::Color(Color::TRANSPARENT);
     style.border = style.border.color(Color::TRANSPARENT);
     style
 }
-
 
 #[no_mangle_if_debug]
 pub fn general_input(theme: &Theme, status: Status) -> Style {
@@ -40,6 +40,18 @@ pub fn asset_amount(theme: &Theme, status: Status) -> Style {
 #[no_mangle_if_debug]
 pub fn borderless(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
+    style.border = Border {
+        width: 0.,
+        color: Color::TRANSPARENT,
+        ..Default::default()
+    };
+    style
+}
+
+#[no_mangle_if_debug]
+pub fn transparent_borderless(theme: &Theme, status: Status) -> Style {
+    let mut style = default(theme, status);
+    style.background = Background::Color(Color::TRANSPARENT);
     style.border = Border {
         width: 0.,
         color: Color::TRANSPARENT,

@@ -3,10 +3,14 @@ linker = "rust-lld.exe"
 # crate-type = ["rlib", "cdylib"]
 
 [x86_64-unknown-linux-gnu]
-linker = "mold"
+linker = "/usr/bin/clang"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 [build.dev]
-# rustflags = ["-Z", "threads=8"]
+rustflags = ["-Z", "threads=8"]
+codegen-backend = "cranelift"
 
-[build.reload]
+
+[build.reload.build-override]
+crate-type = ["dylib"]
 # rustflags = ["-Z", "threads=8", "-C", "prefer-dynamic", "--crate-type cdylib"]
