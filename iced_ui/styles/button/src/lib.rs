@@ -142,14 +142,11 @@ pub fn selected_menu_button(theme: &Theme, status: Status) -> Style {
 pub fn account_button(theme: &Theme, status: Status) -> Style {
     let ext_palette = theme.extended_palette();
     let mut background_color = ext_palette.background.base.color;
-    let mut shadow_color = background_color.clone();
-    shadow_color.r -= 0.1;
-    shadow_color.g -= 0.1;
-    shadow_color.b -= 0.1;
+    let shadow_color = Color::BLACK;
 
     match status {
         Status::Active | Status::Pressed | Status::Disabled => {
-            background_color.a -= 0.1;
+            // background_color.a += 0.1;
             Style {
                 background: Some(iced::Background::Color(background_color)),
                 text_color: ext_palette.background.base.text,
@@ -160,13 +157,15 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
                 },
                 shadow: Shadow {
                     color: shadow_color,
-                    offset: Vector::new(0.5, 0.5),
+                    offset: Vector::new(0., 0.),
                     blur_radius: 5.,
                 },
             }
         }
         Status::Hovered => {
-            background_color.a = 0.1;
+            background_color.r += 0.02;
+            background_color.g += 0.02;
+            background_color.b += 0.02;
             Style {
                 background: Some(Background::Color(background_color)),
                 ..account_button(theme, Status::Active)
