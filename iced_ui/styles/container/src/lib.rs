@@ -1,7 +1,7 @@
 use deps::{
     iced::{
         gradient::{ColorStop, Linear},
-        Gradient, Radians,
+        widget, Gradient, Radians,
     },
     rand::distr::weighted::Weight,
     *,
@@ -15,42 +15,66 @@ pub use iced::{widget::container::Style, Theme};
 
 #[no_mangle_if_debug]
 pub fn main_window(theme: &Theme) -> Style {
-    Style::default()
+    // Style::default()
+    // style.background = Some(Background::Color(Color::from_rgb8(50, 50, 50)));
+    let mut style = Style::default();
+    let palette = theme.extended_palette();
+    let background_color = palette.background.weakest.color;
+    style.background = Some(Background::Color(background_color));
+    style
+    // style
 }
 
 #[no_mangle_if_debug]
 pub fn menu_container(theme: &Theme) -> Style {
-    const BACKGROUND_ALPHA_STEP: f32 = 0.001;
-    const MENU_ALPHA: f32 = 0.1;
-    const STOPS_LEN: usize = 8;
+    let mut style = Style::default();
+    let palette = theme.extended_palette();
+    let background_color = palette.background.weakest.color;
+    // background_color.r += 0.05;
+    // background_color.g += 0.05;
+    // background_color.b += 0.05;
 
-    let background_color = theme.extended_palette().background.base.color;
-    let mut stops: [Option<ColorStop>; STOPS_LEN] = [None; STOPS_LEN];
-    let mut current_alpha = background_color.a;
-    let mut current_offset = 0.;
+    style.background = Some(Background::Color(background_color));
+    // style
 
-    for i in 0..STOPS_LEN {
-        let mut color = background_color.clone();
-        color.a = current_alpha;
-        stops[i] = Some(ColorStop {
-            color,
-            offset: current_offset,
-        });
-        current_offset += 0.12;
-        current_alpha -= BACKGROUND_ALPHA_STEP
-    }
+    // style.background = Some(Background::Color(Color::from_rgb8(40, 40, 40)));
+    style.shadow = Shadow {
+        color: palette.background.base.color,
+        offset: Vector::new(0.0, 0.0),
+        blur_radius: 5.,
+    };
+    style
+    // const BACKGROUND_ALPHA_STEP: f32 = 0.001;
+    // const MENU_ALPHA: f32 = 0.1;
+    // const STOPS_LEN: usize = 8;
 
-    let background = Some(Background::Gradient(Gradient::Linear(Linear {
-        angle: Radians(1.570796),
-        stops,
-    })));
+    // let background_color = theme.extended_palette().background.base.color;
+    // let mut stops: [Option<ColorStop>; STOPS_LEN] = [None; STOPS_LEN];
+    // let mut current_alpha = background_color.a;
+    // let mut current_offset = 0.;
 
-    Style {
-        text_color: None,
-        background,
-        border: Border::default(),
-        shadow: Shadow::default(),
-    }
+    // for i in 0..STOPS_LEN {
+    //     let mut color = background_color.clone();
+    //     color.a = current_alpha;
+    //     stops[i] = Some(ColorStop {
+    //         color,
+    //         offset: current_offset,
+    //     });
+    //     current_offset += 0.12;
+    //     current_alpha -= BACKGROUND_ALPHA_STEP
+    // }
+
+    // let background = Some(Background::Gradient(Gradient::Linear(Linear {
+    //     angle: Radians(1.570796),
+    //     stops,
+    // })));
+
+    // Style {
+    //     text_color: None,
+    //     background,
+    //     border: Border::default(),
+    //     shadow: Shadow::default(),
+    // }
 }
 
 #[no_mangle_if_debug]
