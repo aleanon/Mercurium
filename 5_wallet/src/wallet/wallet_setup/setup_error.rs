@@ -1,12 +1,11 @@
-use deps::*;
-
 use store::DbError;
 use thiserror::Error;
-use tokio::task::JoinError;
-use types::{crypto::{bip39, CryptoError, EncryptedMnemonicError}, AppPathError};
+use types::{
+    AppPathError,
+    crypto::{CryptoError, EncryptedMnemonicError, bip39},
+};
 
 use super::task_runner::TaskError;
-
 
 #[derive(Debug, Error)]
 pub enum SetupError {
@@ -19,7 +18,7 @@ pub enum SetupError {
     #[error("No mnemonic provided")]
     NoMnemonicProvided,
     #[error("Missing derived keys")]
-    MissingDerivedKeys, 
+    MissingDerivedKeys,
     #[error("Application directory error: {0}")]
     AppPathError(#[from] AppPathError),
     #[error("Unable to update accounts")]
@@ -27,7 +26,7 @@ pub enum SetupError {
     #[error("Database error: {0}")]
     DatabaseError(#[from] DbError),
     #[error("Failed to encrypt mnemonic {0}")]
-    EncryptedMnemonicError(#[from] EncryptedMnemonicError), 
+    EncryptedMnemonicError(#[from] EncryptedMnemonicError),
     #[error("Failed to join task")]
     FailedToJoinTask,
     #[error("Tried to get result from a non started task")]
