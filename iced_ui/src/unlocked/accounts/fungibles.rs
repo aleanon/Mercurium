@@ -51,7 +51,11 @@ impl<'a> Fungibles {
 }
 
 impl<'a> Fungibles {
-    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
+    pub fn update(
+        &mut self,
+        message: Message,
+        wallet: &'a mut Wallet<Unlocked>,
+    ) -> Task<AppMessage> {
         match message {
             Message::Back => self.back(wallet),
             Message::SelectFungible(fungible) => return self.select_fungible(fungible, wallet),
@@ -103,7 +107,12 @@ impl<'a> Fungibles {
             None => {
                 let mut elements: Vec<Element<'a, AppMessage>> = Vec::new();
 
-                if let Some(fungibles) = wallet.wallet_data().resource_data.fungibles.get(&self.account_addr) {
+                if let Some(fungibles) = wallet
+                    .wallet_data()
+                    .resource_data
+                    .fungibles
+                    .get(&self.account_addr)
+                {
                     for fungible in fungibles {
                         let button = Self::fungible_list_button(fungible, wallet)
                             .on_press(Message::SelectFungible(fungible.clone()).into());
@@ -142,26 +151,38 @@ impl<'a> Fungibles {
     ) -> Button<'a, AppMessage> {
         let icon: iced::Element<'a, AppMessage> =
             match wallet.resource_icons().get(&fungible.resource_address) {
-                Some(bytes) => widget::image(Handle::from_bytes(bytes.clone())).width(40).height(40).into(),
+                Some(bytes) => widget::image(Handle::from_bytes(bytes.clone()))
+                    .width(40)
+                    .height(40)
+                    .into(),
                 None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))
                     .center_x(40)
                     .center_y(40)
                     .into(),
             };
         let (name, symbol) = match wallet.resources().get(&fungible.resource_address) {
-            Some(resource) => (resource.name.as_str(), resource.symbol.as_str()),
-            None => ("NoName", ""),
+            Some(resource) => {
+                let symbol;
+                if resource.symbol.is_empty() {
+                    symbol = None;
+                } else {
+                    symbol = Some(resource.symbol.as_str());
+                }
+                (resource.name.as_str(), symbol)
+            }
+            None => ("NoName", None),
         };
 
-        let name_and_symbol = column![text(name).size(16), text(symbol).size(14)]
+        let mut name_and_symbol = column![text(name).size(16)]
             .spacing(3)
             .align_x(iced::Alignment::Start);
+        name_and_symbol = name_and_symbol.push_maybe(symbol.and_then(|s| Some(text(s).size(14))));
 
         let list_button_content = row![
             icon,
             name_and_symbol,
             widget::Space::new(Length::Fill, 1),
-            text(format!("{} {}", &fungible.amount, symbol)).size(18)
+            text(format!("{} {}", &fungible.amount, symbol.unwrap_or(""))).size(18)
         ]
         .padding(Padding {
             left: 10.,
