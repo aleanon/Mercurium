@@ -6,15 +6,16 @@ use deps::*;
 
 use super::style::StyleSheet;
 use iced::{
+    Alignment, Border, Color, Element, Event, Rectangle, Shadow, Size, Vector,
     advanced::{
+        Clipboard, Layout, Overlay, Shell,
         layout::{Limits, Node},
         overlay, renderer,
         widget::{Operation, Tree},
-        Clipboard, Layout, Overlay, Shell,
     },
     alignment, event, keyboard,
     mouse::{self, Cursor},
-    touch, Alignment, Border, Color, Element, Event, Rectangle, Shadow, Size, Vector,
+    touch,
 };
 
 /// The overlay of the modal.
@@ -74,7 +75,6 @@ where
     Renderer: renderer::Renderer,
     Theme: StyleSheet,
 {
-
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> Node {
         let limits = Limits::new(Size::ZERO, bounds);
         let mut content = self
@@ -197,6 +197,7 @@ where
                         color: Color::TRANSPARENT,
                     },
                     shadow: Shadow::default(),
+                    snap: true,
                 },
                 style_sheet.background,
             );

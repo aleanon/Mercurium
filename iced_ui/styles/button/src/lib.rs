@@ -24,6 +24,7 @@ pub fn setup_selection(theme: &Theme, status: Status) -> Style {
                 offset: Vector::ZERO,
                 blur_radius: 10.,
             },
+            snap: true,
         },
         Status::Hovered => Style {
             background: Some(Background::Color(palette.primary.weak.color)),
@@ -115,6 +116,7 @@ pub fn menu_button(theme: &Theme, status: Status) -> Style {
                 offset: Vector::ZERO,
                 blur_radius: 0.,
             },
+            snap: true,
         },
         Status::Hovered | Status::Pressed => Style {
             text_color: palette.background.strong.text,
@@ -160,6 +162,7 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
                     offset: Vector::new(0., 0.),
                     blur_radius: 5.,
                 },
+                snap: true,
             }
         }
         Status::Hovered => {

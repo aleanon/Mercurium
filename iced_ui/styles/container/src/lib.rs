@@ -102,6 +102,7 @@ pub fn seed_word_wrapper(theme: &Theme) -> Style {
         border: Border::default().rounded(5),
         text_color: Some(palette.secondary.base.text.inverse()),
         shadow: shadow,
+        snap: true,
     }
 }
 
@@ -137,6 +138,7 @@ pub fn account_overview(theme: &Theme) -> Style {
         },
         background: Some(iced::Background::Color(background_color)),
         text_color: Some(text_color),
+        snap: true,
     }
 }
 
@@ -155,6 +157,7 @@ pub fn asset_list_item(theme: &Theme) -> Style {
         },
         shadow: Shadow::default(),
         text_color: None,
+        snap: true,
     }
 }
 
@@ -210,5 +213,6 @@ pub fn password_input(theme: &Theme) -> Style {
         },
         shadow: Shadow::default(),
         text_color: None,
+        snap: true,
     }
 }

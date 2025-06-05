@@ -19,5 +19,6 @@ pub fn text_input_rule(theme: &Theme) -> Style {
         fill_mode: FillMode::Full,
         width: 3,
         color: theme.extended_palette().primary.base.color,
+        snap: true,
     }
 }
