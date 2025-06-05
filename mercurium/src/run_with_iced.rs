@@ -29,8 +29,8 @@ pub fn run() -> Result<(), deps::iced::Error> {
 
     let window_settings = window::Settings {
         min_size: Some(Size {
-            height: 800.,
-            width: 1000.,
+            height: 400.,
+            width: 300.,
         }),
         icon: Some(icon),
         ..Default::default()

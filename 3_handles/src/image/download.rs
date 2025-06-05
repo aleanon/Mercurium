@@ -11,9 +11,11 @@ use futures::future::join_all;
 // use iced::{futures::future::join_all, widget::image::Handle};
 use image::DynamicImage;
 use store::IconsDb;
-use types::{address::ResourceAddress, Network};
+use types::{Network, address::ResourceAddress};
 
-use crate::image::resize::{resize_small_dimensions, resize_standard_dimensions};
+use crate::image::resize::{
+    self, resize_big_dimensions, resize_small_dimensions, resize_standard_dimensions,
+};
 
 // pub async fn download_resize_and_store_resource_icons_as_handle(
 //     icon_urls: BTreeMap<ResourceAddress, String>,
@@ -74,7 +76,7 @@ use crate::image::resize::{resize_small_dimensions, resize_standard_dimensions};
 //     icons
 // }
 
-async fn download_image(url: &String) -> Option<DynamicImage> {
+async fn download_image(url: &str) -> Option<DynamicImage> {
     let response = reqwest::get(url).await.ok()?;
 
     let bytes = response.bytes().await.ok()?;
@@ -95,11 +97,7 @@ pub async fn download_resize_and_store_resource_icons(
 
                 let encoded_small = resize_small_dimensions(&image)?;
 
-                Some((
-                    resource_address,
-                    encoded_standard,
-                    encoded_small,
-                ))
+                Some((resource_address, encoded_standard, encoded_small))
             })
         })
     });
@@ -136,6 +134,17 @@ pub async fn download_resize_and_store_resource_icons(
     icons
 }
 
+pub async fn download_and_resize_icon(url: &str) -> Option<Vec<u8>> {
+    let image = download_image(url).await?;
+    if image.height() < resize::IMAGE_STANDARD_HEIGHT
+        && image.width() < resize::IMAGE_STANDARD_WIDTH
+    {
+        return Some(image.into_bytes());
+    }
+    let image = resize_standard_dimensions(&image)?;
+    Some(image)
+}
+
 pub async fn download_and_resize_icons(
     icon_urls: BTreeMap<ResourceAddress, String>,
 ) -> HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)> {
@@ -144,10 +153,7 @@ pub async fn download_and_resize_icons(
             download_image(&url).await.and_then(|image| {
                 let standard = resize_standard_dimensions(&image)?;
                 let small = resize_small_dimensions(&image)?;
-                Some((
-                    resource_address,
-                    (small, standard)
-                ))
+                Some((resource_address, (small, standard)))
             })
         })
     });

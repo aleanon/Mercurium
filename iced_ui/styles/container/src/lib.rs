@@ -237,3 +237,29 @@ pub fn password_input(theme: &Theme) -> Style {
         ..Default::default()
     }
 }
+
+pub fn nfid_card(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+    let mut background_color = palette.background.weak.color;
+    background_color.r -= 0.005;
+    background_color.g -= 0.005;
+    background_color.b -= 0.005;
+
+    let shadow_color = Color::BLACK;
+
+    Style {
+        background: Some(Background::Color(background_color)),
+        text_color: Some(palette.background.base.text),
+        border: Border {
+            radius: Radius::from(5.),
+            color: Color::TRANSPARENT,
+            width: 0.,
+        },
+        shadow: Shadow {
+            color: shadow_color,
+            offset: Vector::new(0., 0.),
+            blur_radius: 3.,
+        },
+        ..Default::default()
+    }
+}

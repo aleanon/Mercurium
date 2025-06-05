@@ -9,7 +9,10 @@ use iced::{
 use store::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppMessage, unlocked::app_view};
+use crate::{
+    app::AppMessage,
+    unlocked::{accounts::non_fungible, app_view},
+};
 use types::{
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
@@ -26,6 +29,7 @@ pub enum Message {
     SelectNonFungible(NonFungibleAsset),
     InsertResourceIcon(Vec<u8>),
     ResourceIconNotFound,
+    NonFungibleMessage(non_fungible::Message),
 }
 
 impl Into<AppMessage> for Message {
@@ -68,6 +72,11 @@ impl<'a> NonFungibles {
                     fungible.image = Icon::None
                 }
             }
+            Message::NonFungibleMessage(message) => {
+                if let Some(non_fungible) = &mut self.selected {
+                    return non_fungible.update(message);
+                }
+            }
         }
         Task::none()
     }
@@ -76,26 +85,12 @@ impl<'a> NonFungibles {
 
     fn select_fungible(
         &mut self,
-        fungible: NonFungibleAsset,
+        non_fungible: NonFungibleAsset,
         wallet: &'a mut Wallet<Unlocked>,
     ) -> Task<AppMessage> {
-        let address = fungible.resource_address.clone();
-        self.selected = Some(NonFungible::new(fungible, Icon::Loading));
-
-        let network = wallet.settings().network;
-        Task::perform(
-            async move {
-                let icon_cache = IconsDb::get(network).ok_or(DbError::DatabaseNotLoaded)?;
-                icon_cache.get_resource_icon(address).await
-            },
-            |result| match result {
-                Ok((_, icon_data)) => Message::InsertResourceIcon(icon_data).into(),
-                Err(_) => {
-                    debug_println!("Could not find image");
-                    Message::ResourceIconNotFound.into()
-                }
-            },
-        )
+        let (selected, task) = NonFungible::new(non_fungible, wallet);
+        self.selected = Some(selected);
+        task
     }
 
     fn insert_fungible_image(&mut self, image_data: Vec<u8>) {
