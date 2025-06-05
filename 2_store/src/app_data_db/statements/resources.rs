@@ -1,4 +1,6 @@
-pub const CREATE_TABLE_RESOURCES: &'static str = "CREATE TABLE IF NOT EXISTS 
+use deps::async_sqlite::rusqlite::ffi::SQLITE_STATIC;
+
+pub const CREATE_TABLE_RESOURCES: &'static str = "CREATE TABLE IF NOT EXISTS
         resources (
             address BLOB NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
@@ -22,7 +24,7 @@ pub const UPSERT_RESOURCE: &'static str = "INSERT INTO
     )
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (address)
-    DO UPDATE SET 
+    DO UPDATE SET
         name = excluded.name,
         symbol = excluded.symbol,
         description = excluded.description,
