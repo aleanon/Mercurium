@@ -1,21 +1,50 @@
-use deps::{scrypto::prelude::ContextualTryInto, *};
+use std::collections::HashMap;
+
+use deps::{
+    debug_print::debug_println,
+    iced::{alignment::Horizontal, widget::column, ContentFit, Task},
+    *,
+};
 
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, container, image::Handle, row, text, Container},
     Element, Length, Padding,
 };
+use store::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
 
-use crate::app::AppMessage;
+use crate::{
+    app::AppMessage,
+    unlocked::accounts::{self, account_view, non_fungibles},
+};
 use types::{
     address::Address,
-    assets::{FungibleAsset, NonFungibleAsset},
+    assets::{NonFungibleAsset, NFID},
 };
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
 
 #[derive(Debug, Clone)]
+pub enum Message {
+    ResourceIcon(Icon),
+    ImageLoaded(String, Icon),
+    FailedToGetImage(String),
+}
+
+impl Into<AppMessage> for Message {
+    fn into(self) -> AppMessage {
+        AppMessage::AppView(crate::unlocked::app_view::Message::AccountsViewMessage(
+            accounts::accounts_view::Message::AccountViewMessage(
+                account_view::Message::NonFungiblesMessage(
+                    non_fungibles::Message::NonFungibleMessage(self),
+                ),
+            ),
+        ))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Icon {
     None,
     Loading,
@@ -25,15 +54,104 @@ pub enum Icon {
 #[derive(Debug, Clone)]
 pub struct NonFungible {
     pub non_fungible: NonFungibleAsset,
+    pub nfid_images: HashMap<String, (Icon, String)>,
     pub image: Icon,
 }
 
 impl<'a> NonFungible {
-    pub fn new(fungible: NonFungibleAsset, image: Icon) -> Self {
-        Self {
-            non_fungible: fungible,
-            image,
+    pub fn new(
+        non_fungible: NonFungibleAsset,
+        wallet: &mut Wallet<Unlocked>,
+    ) -> (Self, Task<AppMessage>) {
+        let nfid_images: HashMap<String, (Icon, String)> = non_fungible
+            .nfids
+            .iter()
+            .map(|nfid| {
+                let (icon, url) = nfid
+                    .nfdata
+                    .iter()
+                    .find_map(|nfdata| {
+                        if nfdata.key == "key_image_url" {
+                            Some((Icon::Loading, nfdata.value.clone()))
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or((Icon::None, String::new()));
+                (nfid.id.clone(), (icon, url))
+            })
+            .collect();
+
+        let mut load_images = nfid_images
+            .iter()
+            .filter(|(_, (icon, _))| icon == &Icon::Loading)
+            .map(|(nfid, (_, url))| {
+                let nfid_clone = nfid.clone();
+                let url_clone = url.clone();
+                Task::perform(
+                    async move {
+                        let image_handle =
+                            handles::image::download::download_and_resize_icon(&url_clone)
+                                .await
+                                .and_then(|image| Some(Handle::from_bytes(image)));
+                        match image_handle {
+                            Some(handle) => (nfid_clone, Icon::Some(handle)),
+                            None => (nfid_clone, Icon::None),
+                        }
+                    },
+                    |(nfid, icon)| match &icon {
+                        Icon::Some(_) => Message::ImageLoaded(nfid, icon).into(),
+                        _ => Message::FailedToGetImage(nfid).into(),
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let network = wallet.settings().network;
+        let address = non_fungible.resource_address.clone();
+        let get_asset_icon = Task::perform(
+            async move {
+                let icon_cache = IconsDb::get(network).ok_or(DbError::DatabaseNotLoaded)?;
+                icon_cache.get_resource_icon(address).await
+            },
+            |result| match result {
+                Ok((_, icon_data)) => {
+                    Message::ResourceIcon(Icon::Some(Handle::from_bytes(icon_data))).into()
+                }
+                Err(_) => {
+                    debug_println!("Could not find image");
+                    Message::ResourceIcon(Icon::None).into()
+                }
+            },
+        );
+
+        load_images.push(get_asset_icon);
+
+        (
+            Self {
+                non_fungible,
+                nfid_images,
+                image: Icon::Loading,
+            },
+            Task::batch(load_images),
+        )
+    }
+
+    pub fn update(&mut self, message: Message) -> Task<AppMessage> {
+        match message {
+            Message::FailedToGetImage(nfid) => {
+                if let Some((icon, _)) = self.nfid_images.get_mut(&nfid) {
+                    *icon = Icon::None;
+                }
+            }
+            Message::ImageLoaded(nfid, new_icon) => {
+                if let Some((icon, _)) = self.nfid_images.get_mut(&nfid) {
+                    *icon = new_icon;
+                }
+            }
+            Message::ResourceIcon(icon) => self.image = icon,
         }
+        Task::none()
     }
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
@@ -51,14 +169,9 @@ impl<'a> NonFungible {
         .size(15)
         .line_height(2.);
 
-        let image: Element<'a, AppMessage> = match &self.image {
-            Icon::Some(handle) => widget::image(handle.clone()).into(),
-            Icon::Loading => Container::new("").width(150).height(150).into(),
-            Icon::None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(100))
-                .center_x(150)
-                .center_y(150)
-                .into(),
-        };
+        let image = container(create_image(&self.image))
+            .center_x(150)
+            .center_y(150);
 
         let amount = row![
             text(&self.non_fungible.nfids.len())
@@ -135,16 +248,33 @@ impl<'a> NonFungible {
         .height(Length::Shrink)
         .padding(Padding::from([0, 10]));
 
-        let content = container(col)
-            .padding(15)
+        let mut nfids = iced::widget::Grid::new().spacing(10).fluid(250);
+
+        for nfid in self.non_fungible.nfids.iter() {
+            let icon = self
+                .nfid_images
+                .get(&nfid.id)
+                .and_then(|(icon, _)| Some(icon))
+                .unwrap_or(&Icon::None);
+
+            let nfid_card = nfid_card(nfid, icon)
+                .padding(5)
+                .center_x(Length::Fill)
+                .center_y(Length::Fill)
+                .max_width(250)
+                .max_height(300);
+
+            nfids = nfids.push(nfid_card);
+        }
+
+        let scrollable = widget::scrollable(column![col, nfids].spacing(20).padding(15))
+            .style(styles::scrollable::vertical_scrollable);
+
+        let content = container(scrollable)
+            .padding(5)
             .style(styles::container::token_container);
 
-        let scrollable = widget::scrollable(content).style(styles::scrollable::vertical_scrollable);
-
-        let space_left = widget::Space::new(Length::Fill, Length::Fill);
-        let space_right = widget::Space::new(Length::Fill, Length::Fill);
-
-        container(scrollable)
+        container(content)
             .center_x(Length::Fill)
             .center_y(Length::Fill)
             .padding(Padding::ZERO.right(30).left(30))
@@ -152,3 +282,64 @@ impl<'a> NonFungible {
             .into()
     }
 }
+
+fn create_image(icon: &Icon) -> Element<'_, AppMessage> {
+    let height_and_width = 150;
+    match icon {
+        Icon::Some(handle) => container(widget::image(handle.clone()).expand(true))
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into(),
+        Icon::Loading => container("")
+            .width(height_and_width)
+            .height(height_and_width)
+            .into(),
+        Icon::None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(100))
+            .center_x(height_and_width)
+            .center_y(height_and_width)
+            .into(),
+    }
+}
+
+fn nfid_card<'a>(nfid: &'a NFID, icon: &'a Icon) -> Container<'a, AppMessage> {
+    let image = create_image(&icon);
+
+    let nf_name = nfid
+        .nfdata
+        .iter()
+        .find_map(|nfdata| {
+            if nfdata.key == "name" {
+                Some(text(&nfdata.value).size(12))
+            } else {
+                None
+            }
+        })
+        .unwrap_or(text(""));
+
+    let nf_id = nfid.id.trim_matches(|c| c == '{' || c == '}');
+    let nf_id = match nf_id.len() {
+        len @ 22.. => container(row![
+            text(&nfid.id[1..8]).size(12),
+            text("...").size(12),
+            text(&nfid.id[len - 5..len]).size(12)
+        ]),
+        len => container(text(&nfid.id[1..len])),
+    };
+
+    let content = column![image, nf_name, nf_id]
+        .spacing(5)
+        .align_x(Horizontal::Left);
+
+    container(content).style(styles::container::nfid_card)
+}
+
+fn nfdata_row<'a>(key: &'a str, value: &'a str) -> Element<'a, AppMessage> {
+    row![
+        text(key).size(10),
+        widget::Space::new(Length::Fill, 1),
+        text(value).size(10),
+    ]
+    .into()
+}
+
+fn nft() {}

@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 
-use deps::*;
+// use deps::*;
 
 pub mod app;
 mod common;
@@ -15,7 +15,7 @@ mod unlocked;
 
 pub use app::App;
 // use font_and_icons::{images::WINDOW_LOGO, BOOTSTRAP_FONT_BYTES};
-pub use iced::Error;
+pub use deps::iced::Error;
 
 // fn main() -> Result<(), iced::Error> {
 //     dioxus_devtools::connect_subsecond();

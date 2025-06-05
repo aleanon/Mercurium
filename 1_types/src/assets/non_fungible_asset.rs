@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     address::{AccountAddress, ResourceAddress},
-    response_models::{non_fungible_id_data::Field, NFTVaults},
+    response_models::{NFTVaults, non_fungible_id_data::Field},
 };
 
 use super::AssetId;
@@ -40,7 +40,7 @@ impl NonFungibleAsset {
     pub fn nfids_as_string(&mut self) -> Vec<String> {
         std::mem::replace(&mut self.nfids, NFIDs::new())
             .into_iter()
-            .map(|nfid|nfid.id)
+            .map(|nfid| nfid.id)
             .collect()
     }
 
@@ -181,8 +181,8 @@ impl rusqlite::types::ToSql for NFIDs {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq)]
 pub struct NFID {
-    id: String,
-    nfdata: Vec<NFData>,
+    pub id: String,
+    pub nfdata: Vec<NFData>,
 }
 
 impl NFID {
@@ -211,7 +211,6 @@ impl NFID {
     pub fn into_id(self) -> String {
         self.id
     }
-
 }
 
 impl PartialEq<String> for NFID {
@@ -231,6 +230,6 @@ impl From<String> for NFID {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NFData {
-    key: String,
-    value: String,
+    pub key: String,
+    pub value: String,
 }
