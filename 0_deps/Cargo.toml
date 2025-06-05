@@ -1,7 +1,6 @@
-cargo-features = ["profile-rustflags"]
 
-[features]
-reload = ["dep:hot-lib-reloader", "dep:hot_ice"]
+# [features]
+# reload = ["dep:hot-lib-reloader", "dep:hot_ice"]
 
 [package]
 name = "deps"
@@ -9,29 +8,29 @@ version = "0.1.0"
 edition.workspace = true
 
 
-[lib]
-crate-type = ["rlib", "cdylib"]
+# [lib]
+# crate-type = ["rlib", "dylib"]
 
 [profile.dev]
-opt-level = 3
+# opt-level = 3
 features = ["iced/debug"]
 
-[profile.dev.package."*"]
-opt-level = 3
-codegen-units = 1
+# [profile.dev.package."*"]
+# opt-level = 3
+# codegen-units = 1
 
 
-[profile.reload]
-inherits = "dev"
-opt-level = 1
-lto = false
-codegen-units = 1
-debug-assertions = true
-debug = 0
+# [profile.reload]
+# inherits = "dev"
+# opt-level = 1
+# lto = false
+# codegen-units = 1
+# debug-assertions = true
+# debug = 0
 
-[profile.reload.package."*"]
-opt-level = 3
-codegen-units = 1
+# [profile.reload.package."*"]
+# opt-level = 3
+# codegen-units = 1
 
 [dependencies]
 iced = { workspace = true, features = [
@@ -76,8 +75,8 @@ simple_logger = { workspace = true }
 # secrecy = { workspace = true }
 
 # Optional
-hot-lib-reloader = { workspace = true, optional = true }
-hot_ice = { workspace = true, optional = true }
+hot-lib-reloader = { workspace = true }
+hot_ice = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { workspace = true, features = ["winuser"] }

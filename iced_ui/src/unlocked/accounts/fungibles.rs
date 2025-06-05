@@ -14,7 +14,7 @@ use types::{address::AccountAddress, assets::FungibleAsset};
 
 use super::{
     account_view, accounts_view,
-    fungible_view::{FungibleView, Icon},
+    fungible::{FungibleView, Icon},
 };
 
 #[derive(Debug, Clone)]

@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{iced::Background, *};
 
 use std::collections::HashMap;
 
@@ -109,7 +109,11 @@ impl TransactionView {
 }
 
 impl<'a> TransactionView {
-    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
+    pub fn update(
+        &mut self,
+        message: Message,
+        wallet: &'a mut Wallet<Unlocked>,
+    ) -> Task<AppMessage> {
         match message {
             Message::OverView => self.view = View::Transaction,
             Message::SelectAccount(account) => self.from_account = Some(account),
@@ -292,8 +296,10 @@ impl<'a> TransactionView {
         })
         .placeholder("Select account")
         .text_line_height(2.)
-        .text_size(12)
-        .width(Length::Fill);
+        .text_size(14)
+        .width(Length::Fill)
+        .style(styles::pick_list::from_account)
+        .padding(10);
 
         let col = widget::column![label, picklist]
             .width(Length::Fill)
@@ -356,7 +362,12 @@ impl<'a> TransactionView {
                         .resource_icons()
                         .get(&resource_address)
                         .and_then(|bytes| {
-                            Some(widget::image(Handle::from_bytes(bytes.clone())).width(25).height(25).into())
+                            Some(
+                                widget::image(Handle::from_bytes(bytes.clone()))
+                                    .width(25)
+                                    .height(25)
+                                    .into(),
+                            )
                         })
                         .unwrap_or(
                             container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(18))

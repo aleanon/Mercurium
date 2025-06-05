@@ -1,7 +1,7 @@
 
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib", "dylib"]
 
 [package]
 name = "font_and_icons"
