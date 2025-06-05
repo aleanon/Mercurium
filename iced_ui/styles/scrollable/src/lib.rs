@@ -15,7 +15,7 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active {
             is_horizontal_scrollbar_disabled,
-            is_vertical_scrollbar_disabled
+            is_vertical_scrollbar_disabled,
         } => {
             let palette = theme.extended_palette();
             Style {
@@ -27,7 +27,7 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
                         border: Border {
                             radius: Radius::from(10),
                             width: 3.5,
-                            color: palette.background.base.color,
+                            color: palette.background.weakest.color,
                         },
                         color: palette.background.weak.color,
                     },
@@ -50,7 +50,7 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
 
             if is_vertical_scrollbar_hovered {
                 border_width = 2.;
-                color = palette.background.base.text
+                color = palette.background.base.color
             } else {
                 border_width = 3.5;
                 color = palette.background.weak.color
@@ -63,7 +63,7 @@ pub fn vertical_scrollable(theme: &Theme, status: Status) -> Style {
                         border: Border {
                             radius: Radius::from(10),
                             width: border_width,
-                            color: palette.background.base.color,
+                            color: palette.background.weakest.color,
                         },
                         color,
                     },

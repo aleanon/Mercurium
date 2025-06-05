@@ -10,7 +10,7 @@ run-reloading *ARGS="":
 
 watch:
     @echo "Watching for changes..."
-    cargo watch -w iced_ui -x "rustc --package iced_ui --crate-type dylib --profile reload --features reload -- -C prefer-dynamic"
+    cargo watch -w iced_ui -d 0.01 -x "rustc --package iced_ui --crate-type dylib --profile reload --features reload -- -C link-arg=-Wl,--whole-archive"
 
 run:
     @echo "Launching program..."
@@ -19,13 +19,10 @@ run:
 experiment:
     cargo rustc --profile reload --package deps --crate-type dylib -- -L dependency=. -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package types --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
-    cargo rustc --profile reload --package store --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
+    cargo rustc --profile reload --package store --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code -l static=sqlcipher -L native=$(find target/reload/build -name "libsqlite3-sys-*" -type d | head -1)/out
     cargo rustc --profile reload --package handles --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package font_and_icons --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package wallet --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
-    cargo rustc --profile reload --features reload --package iced_ui --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
-    cargo rustc --profile reload --package styles --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
-    cargo rustc --profile reload --package widgets --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package dynbutton --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package dyncontainer --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package dynpick_list --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
@@ -33,5 +30,9 @@ experiment:
     cargo rustc --profile reload --package dynscrollable --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package dyntext --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package dyntext_input --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
+    cargo rustc --profile reload --package widgets --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
+    cargo rustc --profile reload --package styles --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
+    cargo rustc --profile reload --features reload --package iced_ui --crate-type dylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --features reload --package mercurium -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic
     cp .cargo/libstd-b38d63f8b721b18d.so target/reload
+    cd target/reload && LD_LIBRARY_PATH=. ./mercurium

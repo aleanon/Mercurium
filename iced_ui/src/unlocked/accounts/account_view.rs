@@ -23,7 +23,8 @@ use types::Account;
 use wallet::Unlocked;
 use wallet::Wallet;
 
-use super::accounts_view;
+use super::non_fungibles::NonFungibles;
+use super::{accounts_view, non_fungibles};
 use super::{fungibles, fungibles::Fungibles};
 
 #[derive(Debug, Clone)]
@@ -40,6 +41,7 @@ pub enum Message {
         poolunit_id: usize,
     },
     FungiblesMessage(fungibles::Message),
+    NonFungiblesMessage(non_fungibles::Message),
     //Transaction(Account),
 }
 
@@ -54,7 +56,7 @@ impl Into<AppMessage> for Message {
 #[derive(Debug, Clone)]
 pub enum AssetView {
     Tokens(Fungibles),
-    NonFungibles,
+    NonFungibles(NonFungibles),
 }
 
 #[derive(Debug, Clone)]
@@ -76,7 +78,7 @@ impl<'a> AccountView {
     pub fn new(
         name: String,
         address: AccountAddress,
-        fungible_assets: BTreeSet<FungibleAsset>,
+        // fungible_assets: BTreeSet<FungibleAsset>,
     ) -> Self {
         Self {
             name,
@@ -99,13 +101,19 @@ impl<'a> AccountView {
 }
 
 impl<'a> AccountView {
-    pub fn update(&mut self, message: Message, wallet: &'a mut Wallet<Unlocked>) -> Task<AppMessage> {
+    pub fn update(
+        &mut self,
+        message: Message,
+        wallet: &'a mut Wallet<Unlocked>,
+    ) -> Task<AppMessage> {
         let mut command = Task::none();
         match message {
             Message::FungiblesView(account_address) => {
                 self.view = AssetView::Tokens(Fungibles::new(account_address))
             }
-            Message::NonFungiblesView(account_address) => self.view = AssetView::NonFungibles,
+            Message::NonFungiblesView(account_address) => {
+                self.view = AssetView::NonFungibles(NonFungibles::new(account_address))
+            }
             Message::SelectFungible => self.select_fungible(wallet),
             Message::SelectNonFungible {
                 account_id,
@@ -118,6 +126,11 @@ impl<'a> AccountView {
             Message::FungiblesMessage(fungibles_message) => {
                 if let AssetView::Tokens(fungibles) = &mut self.view {
                     command = fungibles.update(fungibles_message, wallet)
+                }
+            }
+            Message::NonFungiblesMessage(nfts_message) => {
+                if let AssetView::NonFungibles(non_fungibles) = &mut self.view {
+                    command = non_fungibles.update(nfts_message, wallet)
                 }
             } // Self::Transaction(account) => Self::transaction_from_account(account, app),
         }
@@ -144,7 +157,12 @@ impl<'a> AccountView {
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         // let mut accounts = appdata.db.get_accounts_map().unwrap_or(BTreeMap::new());
-        let Some(account) = wallet.wallet_data().resource_data.accounts.get(&self.address) else {
+        let Some(account) = wallet
+            .wallet_data()
+            .resource_data
+            .accounts
+            .get(&self.address)
+        else {
             return column!().into();
         };
         // let account = accounts.remove(&self.address).unwrap_or(Account::none());
@@ -203,16 +221,17 @@ impl<'a> AccountView {
         let mut nft_button = Self::select_asset_button("NFTs")
             .on_press(Message::NonFungiblesView(self.address.clone()).into());
 
-        let assets = match self.view {
-            AssetView::Tokens(ref fungibles_view) => {
+        let assets = match &self.view {
+            AssetView::Tokens(fungibles_view) => {
                 fung_button = fung_button.style(styles::button::general_selected_button);
 
                 fungibles_view.view(wallet)
             }
-            AssetView::NonFungibles => {
+            AssetView::NonFungibles(non_fungibles) => {
                 nft_button = nft_button.style(styles::button::general_selected_button);
 
-                self.view_non_fungibles(wallet)
+                non_fungibles.view(wallet)
+                // self.view_non_fungibles(wallet)
             }
         };
 
@@ -233,7 +252,10 @@ impl<'a> AccountView {
 
     // fn account_header() -> Container<'a, Message> {}
 
-    pub fn view_non_fungibles(&self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
+    pub fn view_non_fungibles(
+        &self,
+        wallet: &'a Wallet<Unlocked>,
+    ) -> iced::Element<'a, AppMessage> {
         let non_fungibles = wallet.non_fungibles().get(&self.address);
 
         let column = {
@@ -243,13 +265,14 @@ impl<'a> AccountView {
 
             if let Some(non_fungibles) = non_fungibles {
                 for non_fungible in non_fungibles {
-                    let icon: iced::Element<'a, AppMessage> = match wallet
-                        .resource_icons()
-                        .get(&non_fungible.resource_address)
-                    {
-                        Some(bytes) => widget::image(Handle::from_bytes(bytes.clone())).width(40).height(40).into(),
-                        None => widget::Space::new(40, 40).into(),
-                    };
+                    let icon: iced::Element<'a, AppMessage> =
+                        match wallet.resource_icons().get(&non_fungible.resource_address) {
+                            Some(bytes) => widget::image(Handle::from_bytes(bytes.clone()))
+                                .width(40)
+                                .height(40)
+                                .into(),
+                            None => widget::Space::new(40, 40).into(),
+                        };
 
                     let name = wallet
                         .resources()

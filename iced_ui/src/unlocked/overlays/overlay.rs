@@ -6,7 +6,7 @@ use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppMessage, unlocked::app_view};
 
-use super::{add_account::AddAccountView, receive::Receive};
+use super::{add_account::AddAccount, receive::Receive};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -28,7 +28,7 @@ pub enum SpawnOverlay {
 
 #[derive(Debug, Clone)]
 pub enum Overlay {
-    AddAccount(AddAccountView),
+    AddAccount(AddAccount),
     Receive(Receive),
 }
 

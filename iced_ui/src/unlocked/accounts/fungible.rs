@@ -31,7 +31,11 @@ impl<'a> FungibleView {
     }
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
-        let resource = wallet.wallet_data().resource_data.resources.get(&self.fungible.resource_address);
+        let resource = wallet
+            .wallet_data()
+            .resource_data
+            .resources
+            .get(&self.fungible.resource_address);
 
         let name = text(
             resource
@@ -67,7 +71,7 @@ impl<'a> FungibleView {
         .spacing(2)
         .align_y(iced::Alignment::Center);
 
-        let col = widget::column![name, image, amount]
+        let image_name_amount = widget::column![name, image, amount]
             .align_x(iced::Alignment::Center)
             .spacing(10)
             .padding(Padding {
@@ -112,21 +116,34 @@ impl<'a> FungibleView {
         let rule = widget::Rule::horizontal(2);
         let rule2 = widget::Rule::horizontal(2);
 
-        let col = widget::column![col, rule, description, rule2, address, current_supply,]
-            .spacing(15)
-            .align_x(iced::Alignment::Center)
-            .height(Length::Shrink)
-            .width(FUNGIBLE_VIEW_WIDTH)
-            .padding(Padding::from([0, 10]));
+        let col = widget::column![
+            image_name_amount,
+            rule,
+            description,
+            rule2,
+            address,
+            current_supply,
+        ]
+        .spacing(15)
+        .align_x(iced::Alignment::Center)
+        .height(Length::Shrink)
+        .width(Length::Fill)
+        .padding(Padding::from([0, 10]));
 
-        let scrollable = widget::scrollable(col).style(styles::scrollable::vertical_scrollable);
+        let content = container(col)
+            .padding(15)
+            .style(styles::container::token_container);
 
-        let space_left = widget::Space::new(Length::Fill, Length::Fill);
-        let space_right = widget::Space::new(Length::Fill, Length::Fill);
+        let scrollable = widget::scrollable(content).style(styles::scrollable::vertical_scrollable);
 
-        row![space_left, scrollable, space_right]
-            .width(Length::Fill)
-            .height(Length::Fill)
+        // let space_left = widget::Space::new(Length::Fill, Length::Fill);
+        // let space_right = widget::Space::new(Length::Fill, Length::Fill);
+
+        container(scrollable)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .max_width(1000)
+            .padding(20)
             .into()
     }
 }

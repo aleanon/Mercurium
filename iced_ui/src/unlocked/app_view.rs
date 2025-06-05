@@ -5,16 +5,16 @@ use iced::{
     widget::{self, button, image::Handle, row, text, Row, Text},
     Element, Length, Task,
 };
-use wallet::{Unlocked, Wallet};
 use std::{collections::HashMap, str::FromStr};
 use types::{address::ResourceAddress, Account, Decimal, RadixDecimal};
+use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppMessage, App};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},
     overlays::{
-        add_account::AddAccountView,
+        add_account::AddAccount,
         overlay::{self, Overlay, SpawnOverlay},
         receive::Receive,
     },
@@ -82,7 +82,7 @@ impl<'a> AppView {
             }
             Message::SpawnOverlay(overlay_type) => match overlay_type {
                 SpawnOverlay::AddAccount => {
-                    let (add_account_view, task) = AddAccountView::new();
+                    let (add_account_view, task) = AddAccount::new();
                     self.overlay = Some(Overlay::AddAccount(add_account_view));
                     return task;
                 }
@@ -113,7 +113,9 @@ impl<'a> AppView {
     fn new_transaction(&mut self, from_account: Option<Account>, wallet: &'a mut Wallet<Unlocked>) {
         match from_account {
             Some(ref account) => {
-                let asset_amounts = wallet.wallet_data().resource_data
+                let asset_amounts = wallet
+                    .wallet_data()
+                    .resource_data
                     .fungibles
                     .get(&account.address)
                     .and_then(|fungibles| {
@@ -143,9 +145,7 @@ impl<'a> AppView {
         let menu = self.menu(wallet, app);
 
         let center_panel = match self.active_tab {
-            ActiveTab::Accounts(ref accounts_view) => {
-                widget::container(accounts_view.view(wallet))
-            }
+            ActiveTab::Accounts(ref accounts_view) => widget::container(accounts_view.view(wallet)),
             ActiveTab::Transfer(ref transaction_view) => {
                 widget::container(transaction_view.view(wallet))
             }

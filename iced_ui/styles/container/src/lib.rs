@@ -29,10 +29,10 @@ pub fn main_window(theme: &Theme) -> Style {
 pub fn menu_container(theme: &Theme) -> Style {
     let mut style = Style::default();
     let palette = theme.extended_palette();
-    let background_color = palette.background.weakest.color;
-    // background_color.r += 0.05;
-    // background_color.g += 0.05;
-    // background_color.b += 0.05;
+    let mut background_color = palette.background.weakest.color;
+    background_color.r -= 0.005;
+    background_color.g -= 0.005;
+    background_color.b -= 0.005;
 
     style.background = Some(Background::Color(background_color));
     // style
@@ -90,6 +90,27 @@ pub fn center_panel(theme: &Theme) -> Style {
     Style::default()
 }
 
+pub fn token_container(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+    let mut background_color = palette.background.weakest.color;
+    background_color.r -= 0.005;
+    background_color.g -= 0.005;
+    background_color.b -= 0.005;
+
+    let shadow_color = palette.background.base.color;
+
+    Style {
+        background: Some(Background::Color(background_color)),
+        border: Border::default().rounded(5),
+        shadow: Shadow {
+            color: shadow_color,
+            blur_radius: 5.,
+            offset: Vector::new(0., 0.),
+        },
+        ..Default::default()
+    }
+}
+
 #[no_mangle_if_debug]
 pub fn seed_word_wrapper(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
@@ -102,7 +123,7 @@ pub fn seed_word_wrapper(theme: &Theme) -> Style {
         border: Border::default().rounded(5),
         text_color: Some(palette.secondary.base.text.inverse()),
         shadow: shadow,
-        snap: true,
+        ..Default::default()
     }
 }
 
@@ -138,7 +159,7 @@ pub fn account_overview(theme: &Theme) -> Style {
         },
         background: Some(iced::Background::Color(background_color)),
         text_color: Some(text_color),
-        snap: true,
+        ..Default::default()
     }
 }
 
@@ -157,7 +178,7 @@ pub fn asset_list_item(theme: &Theme) -> Style {
         },
         shadow: Shadow::default(),
         text_color: None,
-        snap: true,
+        ..Default::default()
     }
 }
 
@@ -213,6 +234,6 @@ pub fn password_input(theme: &Theme) -> Style {
         },
         shadow: Shadow::default(),
         text_color: None,
-        snap: true,
+        ..Default::default()
     }
 }

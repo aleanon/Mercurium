@@ -197,7 +197,7 @@ where
                         color: Color::TRANSPARENT,
                     },
                     shadow: Shadow::default(),
-                    snap: true,
+                    ..Default::default()
                 },
                 style_sheet.background,
             );

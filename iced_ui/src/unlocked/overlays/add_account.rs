@@ -4,14 +4,11 @@ use iced::{
     widget::{self, button, column, row, text, text_input, Space},
     Element, Length, Task,
 };
-use wallet::{Unlocked, Wallet};
 use types::crypto::Password;
+use wallet::{Unlocked, Wallet};
 use zeroize::Zeroize;
 
-use crate::{
-    app::AppMessage,
-    unlocked::app_view,
-};
+use crate::{app::AppMessage, unlocked::app_view};
 
 pub const INPUT_ACCOUNT_NAME: &'static str = "input_account_name";
 pub const INPUT_PASSWORD: &'static str = "input_password";
@@ -42,14 +39,14 @@ pub enum View {
 }
 
 #[derive(Debug, Clone)]
-pub struct AddAccountView {
+pub struct AddAccount {
     pub notification: String,
     pub account_name: String,
     pub password: Password,
     pub view: View,
 }
 
-impl<'a> AddAccountView {
+impl<'a> AddAccount {
     pub fn new() -> (Self, Task<AppMessage>) {
         let add_account_view = Self {
             notification: String::new(),
@@ -153,24 +150,24 @@ impl<'a> AddAccountView {
         //         let network = wallet.settings().network;
         //         let resources = wallet.resources().clone();
         //     }
-            // Task::perform(
-            //         async move {
-            //             let accounts_update = handles::radix_dlt::updates::update_accounts(
-            //                 network,
-            //                 Arc::new(resources),
-            //                 vec![account],
-            //             )
-            //             .await;
-            //             Ok(accounts_update)
-            //         },
-            //         |result| match result {
-            //             Ok(accounts_update) => {
-            //                 external_task_response::Message::AccountsUpdated(accounts_update).into()
-            //             }
-            //             Err(err) => external_task_response::Message::Error(err).into(),
-            //         },
-            //     )
-            // }
+        // Task::perform(
+        //         async move {
+        //             let accounts_update = handles::radix_dlt::updates::update_accounts(
+        //                 network,
+        //                 Arc::new(resources),
+        //                 vec![account],
+        //             )
+        //             .await;
+        //             Ok(accounts_update)
+        //         },
+        //         |result| match result {
+        //             Ok(accounts_update) => {
+        //                 external_task_response::Message::AccountsUpdated(accounts_update).into()
+        //             }
+        //             Err(err) => external_task_response::Message::Error(err).into(),
+        //         },
+        //     )
+        // }
         //     Err(err) => self.notification = format!("Unable to create account: {err}"),
         // };
 
