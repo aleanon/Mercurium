@@ -18,7 +18,7 @@ use types::response_models::{
 };
 use types::{debug_info, Resource};
 
-/// Returns two tuples, first with the resource_address and resource and the second wit the resource_address and url to the resources icon
+/// Returns two tuples, first with the resource_address and resource and the second with the resource_address and url to the resources icon
 /// Returns None if the resource_address conversion failes.
 pub fn parse_resource_details_response(
     response: StateEntityDetailsResponseItem,
