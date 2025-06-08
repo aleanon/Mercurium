@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{image::codecs::webp::WebPEncoder, *};
 
 use fast_image_resize::{
     FilterType, IntoImageView, ResizeAlg, ResizeOptions, Resizer, images::Image,
@@ -37,7 +37,7 @@ pub fn fast_resize(
         .ok()?;
 
     let mut result_buf = BufWriter::new(Vec::new());
-    PngEncoder::new(&mut result_buf)
+    WebPEncoder::new_lossless(&mut result_buf)
         .write_image(
             dst_image.buffer(),
             new_width,
@@ -45,6 +45,14 @@ pub fn fast_resize(
             image.color().into(),
         )
         .ok()?;
+    // PngEncoder::new(&mut result_buf)
+    //     .write_image(
+    //         dst_image.buffer(),
+    //         new_width,
+    //         new_height,
+    //         image.color().into(),
+    //     )
+    //     .ok()?;
 
     Some(result_buf)
 }

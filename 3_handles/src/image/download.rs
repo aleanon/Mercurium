@@ -2,7 +2,7 @@ use deps::*;
 
 use std::{
     collections::{BTreeMap, HashMap},
-    io::{BufWriter, Cursor},
+    io::Cursor,
 };
 
 use bytes::Bytes;
@@ -13,9 +13,7 @@ use image::DynamicImage;
 use store::IconsDb;
 use types::{Network, address::ResourceAddress};
 
-use crate::image::resize::{
-    self, resize_big_dimensions, resize_small_dimensions, resize_standard_dimensions,
-};
+use crate::image::resize::{resize_small_dimensions, resize_standard_dimensions};
 
 // pub async fn download_resize_and_store_resource_icons_as_handle(
 //     icon_urls: BTreeMap<ResourceAddress, String>,
@@ -136,13 +134,13 @@ pub async fn download_resize_and_store_resource_icons(
 
 pub async fn download_and_resize_icon(url: &str) -> Option<Vec<u8>> {
     let image = download_image(url).await?;
-    if image.height() < resize::IMAGE_STANDARD_HEIGHT
-        && image.width() < resize::IMAGE_STANDARD_WIDTH
-    {
-        return Some(image.into_bytes());
-    }
-    let image = resize_standard_dimensions(&image)?;
-    Some(image)
+    // if image.height() < resize::IMAGE_STANDARD_HEIGHT
+    //     && image.width() < resize::IMAGE_STANDARD_WIDTH
+    // {
+    //     return Some(image.into_bytes());
+    // }
+    // debug_println!("resizing img {}", url);
+    resize_standard_dimensions(&image)
 }
 
 pub async fn download_and_resize_icons(

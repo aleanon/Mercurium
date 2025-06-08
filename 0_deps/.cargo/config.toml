@@ -1,0 +1,2 @@
+[profile.reload]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]

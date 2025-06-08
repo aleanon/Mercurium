@@ -10,7 +10,9 @@ edition = "2021"
 crate-type = ["rlib", "cdylib"]
 
 [features]
-reload = ["dep:hot-lib-reloader"]
+reload = [
+    # "dep:hot-lib-reloader"
+]
 
 
 # [profile.dev.package."*"]
@@ -32,7 +34,7 @@ reload = ["dep:hot-lib-reloader"]
 # codegen-units = 1
 
 [dependencies]
-hot-lib-reloader = { workspace = true, optional = true }
+# hot-lib-reloader = { workspace = true, optional = true }
 # deps ={ path = "../../0_deps"}
 dynbutton = { path = "./button" }
 dyncontainer = { path = "./container" }

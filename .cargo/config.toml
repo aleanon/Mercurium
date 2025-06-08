@@ -21,12 +21,16 @@ debug-assertions = true
 codegen-backend = "cranelift"
 
 [profile.reload]
-# rustflags = [
-#     "-C",
-#     "link-arg=-fuse-ld=mold",
-#     "-C",
-#     "link-arg=-Wl,--whole-archive",
-# ]
+rustflags = [
+    "-C",
+    "link-arg=-fuse-ld=mold",
+    "-C",
+    "prefer-dynamic",
+    "-C",
+    "link-args=-Wl,--whole-archive",
+    "-C",
+    "link-args=-Wl,--no-as-needed",
+]
 inherits = "dev"
 opt-level = 0
 lto = false

@@ -2,7 +2,7 @@ cargo-features = ["profile-rustflags"]
 
 
 [lib]
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib", "cdylib"]
 
 [features]
 reload = []

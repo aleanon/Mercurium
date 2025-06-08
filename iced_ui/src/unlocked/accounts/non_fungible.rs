@@ -2,7 +2,11 @@ use std::collections::HashMap;
 
 use deps::{
     debug_print::debug_println,
-    iced::{alignment::Horizontal, widget::column, ContentFit, Task},
+    iced::{
+        alignment::Horizontal,
+        widget::{button, column},
+        ContentFit, Task,
+    },
     *,
 };
 
@@ -21,6 +25,7 @@ use crate::{
 use types::{
     address::Address,
     assets::{NonFungibleAsset, NFID},
+    Resource,
 };
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
@@ -30,6 +35,7 @@ pub enum Message {
     ResourceIcon(Icon),
     ImageLoaded(String, Icon),
     FailedToGetImage(String),
+    SelectNFT(String),
 }
 
 impl Into<AppMessage> for Message {
@@ -56,6 +62,7 @@ pub struct NonFungible {
     pub non_fungible: NonFungibleAsset,
     pub nfid_images: HashMap<String, (Icon, String)>,
     pub image: Icon,
+    pub selected_nft: Option<String>,
 }
 
 impl<'a> NonFungible {
@@ -132,6 +139,7 @@ impl<'a> NonFungible {
                 non_fungible,
                 nfid_images,
                 image: Icon::Loading,
+                selected_nft: None,
             },
             Task::batch(load_images),
         )
@@ -150,6 +158,7 @@ impl<'a> NonFungible {
                 }
             }
             Message::ResourceIcon(icon) => self.image = icon,
+            Message::SelectNFT(nfid) => self.selected_nft = Some(nfid),
         }
         Task::none()
     }
@@ -161,6 +170,20 @@ impl<'a> NonFungible {
             .resources
             .get(&self.non_fungible.resource_address);
 
+        let content = match &self.selected_nft {
+            Some(nfid) => self.nft_details(nfid),
+            None => self.non_fungible_asset(resource),
+        };
+
+        container(content)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .padding(Padding::ZERO.right(30).left(30))
+            .max_width(1000)
+            .into()
+    }
+
+    fn non_fungible_asset(&'a self, resource: Option<&'a Resource>) -> Container<'a, AppMessage> {
         let name = text(
             resource
                 .and_then(|resource| Some(resource.name.as_str()))
@@ -257,51 +280,86 @@ impl<'a> NonFungible {
                 .and_then(|(icon, _)| Some(icon))
                 .unwrap_or(&Icon::None);
 
-            let nfid_card = nfid_card(nfid, icon)
-                .padding(5)
-                .center_x(Length::Fill)
-                .center_y(Length::Fill)
-                .max_width(250)
-                .max_height(300);
+            let nfid_card = nft_card(nfid, icon).max_width(250).max_height(300);
 
             nfids = nfids.push(nfid_card);
         }
 
-        let scrollable = widget::scrollable(column![col, nfids].spacing(20).padding(15))
-            .style(styles::scrollable::vertical_scrollable);
+        let scrollable = widget::scrollable(
+            column![col, nfids]
+                .spacing(20)
+                .align_x(Horizontal::Center)
+                .padding(15),
+        )
+        .style(styles::scrollable::vertical_scrollable);
 
-        let content = container(scrollable)
+        container(scrollable)
             .padding(5)
-            .style(styles::container::token_container);
+            .style(styles::container::token_container)
+    }
 
-        container(content)
-            .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .padding(Padding::ZERO.right(30).left(30))
-            .max_width(1000)
-            .into()
+    fn nft_details(&'a self, nfid: &'a String) -> Container<'a, AppMessage> {
+        let Some(nft) = self.non_fungible.nfids.iter().find(|nft| &nft.id == nfid) else {
+            return container(text("NFT not found").size(20))
+                .center_x(Length::Fill)
+                .center_y(Length::Fill);
+        };
+
+        let icon = self
+            .nfid_images
+            .get(nfid)
+            .and_then(|(i, _)| Some(i))
+            .unwrap_or(&Icon::None);
+
+        let image = create_image(icon);
+
+        let nf_name = nft
+            .nfdata
+            .iter()
+            .find_map(|nfdata| {
+                if nfdata.key == "name" {
+                    Some(text(&nfdata.value).size(12))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(text(""));
+
+        let trim: &[_] = &['{', '}', '<', '>'];
+        let nf_id = nfid.trim_matches(trim);
+        let nf_id = match nf_id.len() {
+            len @ 22.. => container(row![
+                text(&nf_id[0..8]).size(12),
+                text("...").size(12),
+                text(&nf_id[len - 5..len]).size(12)
+            ]),
+            _ => container(text(nf_id)),
+        };
+
+        let content = column![nf_name, nf_id].spacing(5).align_x(Horizontal::Left);
+
+        container(content).style(styles::container::nfid_card)
     }
 }
 
 fn create_image(icon: &Icon) -> Element<'_, AppMessage> {
-    let height_and_width = 150;
     match icon {
         Icon::Some(handle) => container(widget::image(handle.clone()).expand(true))
             .center_x(Length::Fill)
             .center_y(Length::Fill)
             .into(),
         Icon::Loading => container("")
-            .width(height_and_width)
-            .height(height_and_width)
+            .width(Length::Fill)
+            .height(Length::Fill)
             .into(),
         Icon::None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(100))
-            .center_x(height_and_width)
-            .center_y(height_and_width)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
             .into(),
     }
 }
 
-fn nfid_card<'a>(nfid: &'a NFID, icon: &'a Icon) -> Container<'a, AppMessage> {
+fn nft_card<'a>(nfid: &'a NFID, icon: &'a Icon) -> Container<'a, AppMessage> {
     let image = create_image(&icon);
 
     let nf_name = nfid
@@ -316,21 +374,28 @@ fn nfid_card<'a>(nfid: &'a NFID, icon: &'a Icon) -> Container<'a, AppMessage> {
         })
         .unwrap_or(text(""));
 
-    let nf_id = nfid.id.trim_matches(|c| c == '{' || c == '}');
+    let trim: &[_] = &['{', '}', '<', '>'];
+    let nf_id = nfid.id.trim_matches(trim);
     let nf_id = match nf_id.len() {
         len @ 22.. => container(row![
-            text(&nfid.id[1..8]).size(12),
+            text(&nf_id[0..8]).size(12),
             text("...").size(12),
-            text(&nfid.id[len - 5..len]).size(12)
+            text(&nf_id[len - 5..len]).size(12)
         ]),
-        len => container(text(&nfid.id[1..len])),
+        _ => container(text(nf_id)),
     };
 
     let content = column![image, nf_name, nf_id]
-        .spacing(5)
+        .spacing(10)
         .align_x(Horizontal::Left);
+    let content = button(content)
+        .on_press(Message::SelectNFT(nfid.id.clone()).into())
+        .padding(10)
+        .style(styles::button::nfid_card);
 
-    container(content).style(styles::container::nfid_card)
+    container(content)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
 }
 
 fn nfdata_row<'a>(key: &'a str, value: &'a str) -> Element<'a, AppMessage> {

@@ -1,6 +1,6 @@
 
 [lib]
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib", "cdylib"]
 
 [package]
 name = "handles"
