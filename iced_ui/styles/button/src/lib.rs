@@ -220,3 +220,40 @@ pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
         }
     }
 }
+
+pub fn nfid_card(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
+    match status {
+        Status::Active | Status::Pressed | Status::Disabled => {
+            let mut background_color = palette.background.weakest.color;
+            background_color.r -= 0.02;
+            background_color.g -= 0.02;
+            background_color.b -= 0.02;
+
+            Style {
+                background: Some(Background::Color(background_color)),
+                text_color: palette.background.base.text,
+                border: Border {
+                    radius: Radius::from(5.),
+                    color: Color::TRANSPARENT,
+                    width: 0.,
+                },
+                shadow: Shadow {
+                    color: Color::BLACK,
+                    offset: Vector::new(0., 0.),
+                    blur_radius: 3.,
+                },
+                ..Default::default()
+            }
+        }
+        Status::Hovered => {
+            let mut background_color = palette.background.weak.color;
+            background_color.a = 0.1;
+
+            Style {
+                background: Some(Background::Color(background_color)),
+                ..nfid_card(theme, Status::Active)
+            }
+        }
+    }
+}

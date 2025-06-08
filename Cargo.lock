@@ -4895,7 +4895,6 @@ dependencies = [
  "dynscrollable",
  "dyntext",
  "dyntext_input",
- "hot-lib-reloader",
 ]
 
 [[package]]

@@ -6,7 +6,7 @@ edition.workspace = true
 
 
 [lib]
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 deps = { path = "../0_deps" }

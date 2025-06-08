@@ -21,5 +21,5 @@ edition.workspace = true
 [dependencies]
 deps = { path = "../../0_deps" }
 
-# [lib]
-# crate-type = ["rlib", "dylib"]
+[lib]
+crate-type = ["rlib", "cdylib"]
