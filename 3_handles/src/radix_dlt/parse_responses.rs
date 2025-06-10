@@ -10,13 +10,13 @@ use radix_gateway_sdk::generated::model::{
 };
 
 use types::address::{AccountAddress, ResourceAddress};
-use types::assets::{FungibleAsset, NFIDs, NonFungibleAsset, NFID};
+use types::assets::{FungibleAsset, NFT, NFTs, NonFungibleAsset};
 use types::response_models::non_fungible_id_data::NFIdData;
 use types::response_models::{
     FungibleCollectionItemGlobal, MetaDataStringArrayValue, MetaDataStringValue,
     NonFungibleCollectionItemVaultAggregated, ResourceDetails,
 };
-use types::{debug_info, Resource};
+use types::{Resource, debug_info};
 
 /// Returns two tuples, first with the resource_address and resource and the second with the resource_address and url to the resources icon
 /// Returns None if the resource_address conversion failes.
@@ -156,7 +156,7 @@ pub fn parse_non_fungible_balances_response_without_nfids(
                 let vault_address = vault.vault_address;
 
                 let asset =
-                    NonFungibleAsset::new(account_address, NFIDs::new(), resource_address.clone());
+                    NonFungibleAsset::new(account_address, NFTs::new(), resource_address.clone());
 
                 return Some((resource_address, (vault_address, asset)));
             }
@@ -193,9 +193,9 @@ pub fn parse_non_fungibles_data_response_for_asset(
                 })
                 .unwrap();
 
-            NFID::from_nfid_data(id, nft_data.fields)
+            NFT::from_nfid_data(id, nft_data.fields)
         })
-        .collect::<Vec<NFID>>()
+        .collect::<Vec<NFT>>()
         .into();
 
     asset.nfids = nfids;

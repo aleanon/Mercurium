@@ -16,13 +16,13 @@ use super::AssetId;
 pub struct NonFungibleAsset {
     pub id: AssetId,
     pub resource_address: ResourceAddress,
-    pub nfids: NFIDs,
+    pub nfids: NFTs,
 }
 
 impl NonFungibleAsset {
     pub fn new(
         account_address: &AccountAddress,
-        nfids: NFIDs,
+        nfids: NFTs,
         resource_address: ResourceAddress,
     ) -> Self {
         let id = AssetId::new(account_address, &resource_address);
@@ -33,12 +33,12 @@ impl NonFungibleAsset {
         }
     }
 
-    pub fn take_nfids(&mut self) -> NFIDs {
-        std::mem::replace(&mut self.nfids, NFIDs::new())
+    pub fn take_nfts(&mut self) -> NFTs {
+        std::mem::replace(&mut self.nfids, NFTs::new())
     }
 
-    pub fn nfids_as_string(&mut self) -> Vec<String> {
-        std::mem::replace(&mut self.nfids, NFIDs::new())
+    pub fn nft_id_as_string(&mut self) -> Vec<String> {
+        std::mem::replace(&mut self.nfids, NFTs::new())
             .into_iter()
             .map(|nfid| nfid.id)
             .collect()
@@ -49,7 +49,7 @@ impl NonFungibleAsset {
         Self {
             id: AssetId::from_array([0; AssetId::LENGTH]),
             resource_address: ResourceAddress::empty(crate::Network::Mainnet),
-            nfids: NFIDs::new(),
+            nfids: NFTs::new(),
         }
     }
 }
@@ -79,9 +79,9 @@ impl Ord for NonFungibleAsset {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NFIDs(Vec<NFID>);
+pub struct NFTs(Vec<NFT>);
 
-impl NFIDs {
+impl NFTs {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -91,47 +91,47 @@ impl NFIDs {
     }
 }
 
-impl Deref for NFIDs {
-    type Target = Vec<NFID>;
+impl Deref for NFTs {
+    type Target = Vec<NFT>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for NFIDs {
+impl DerefMut for NFTs {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl IntoIterator for NFIDs {
+impl IntoIterator for NFTs {
     type IntoIter = std::vec::IntoIter<Self::Item>;
-    type Item = NFID;
+    type Item = NFT;
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl<T: Into<NFID>> FromIterator<T> for NFIDs {
+impl<T: Into<NFT>> FromIterator<T> for NFTs {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self(iter.into_iter().map(|item| item.into()).collect())
     }
 }
 
-impl From<Vec<NFID>> for NFIDs {
-    fn from(value: Vec<NFID>) -> Self {
+impl From<Vec<NFT>> for NFTs {
+    fn from(value: Vec<NFT>) -> Self {
         Self(value)
     }
 }
 
-impl From<NFTVaults> for NFIDs {
+impl From<NFTVaults> for NFTs {
     fn from(value: NFTVaults) -> Self {
         Self(
             value
                 .items
                 .into_iter()
                 .flat_map(|vault| {
-                    vault.items.into_iter().map(|id| NFID {
+                    vault.items.into_iter().map(|id| NFT {
                         id,
                         nfdata: Vec::new(),
                     })
@@ -141,14 +141,14 @@ impl From<NFTVaults> for NFIDs {
     }
 }
 
-impl From<&NFTVaults> for NFIDs {
+impl From<&NFTVaults> for NFTs {
     fn from(value: &NFTVaults) -> Self {
         Self(
             value
                 .items
                 .iter()
                 .flat_map(|vault| {
-                    vault.items.iter().map(|id| NFID {
+                    vault.items.iter().map(|id| NFT {
                         id: id.clone(),
                         nfdata: Vec::new(),
                     })
@@ -158,7 +158,7 @@ impl From<&NFTVaults> for NFIDs {
     }
 }
 
-impl rusqlite::types::FromSql for NFIDs {
+impl rusqlite::types::FromSql for NFTs {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value {
             rusqlite::types::ValueRef::Blob(value) => Ok(serde_json::from_slice(value)
@@ -168,7 +168,7 @@ impl rusqlite::types::FromSql for NFIDs {
     }
 }
 
-impl rusqlite::types::ToSql for NFIDs {
+impl rusqlite::types::ToSql for NFTs {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Owned(
             rusqlite::types::Value::Blob(
@@ -180,12 +180,12 @@ impl rusqlite::types::ToSql for NFIDs {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq)]
-pub struct NFID {
+pub struct NFT {
     pub id: String,
     pub nfdata: Vec<NFData>,
 }
 
-impl NFID {
+impl NFT {
     pub fn new(id: String) -> Self {
         Self {
             id,
@@ -213,13 +213,13 @@ impl NFID {
     }
 }
 
-impl PartialEq<String> for NFID {
+impl PartialEq<String> for NFT {
     fn eq(&self, other: &String) -> bool {
         &self.id == other
     }
 }
 
-impl From<String> for NFID {
+impl From<String> for NFT {
     fn from(value: String) -> Self {
         Self {
             id: value,

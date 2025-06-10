@@ -2,7 +2,7 @@ use deps::*;
 
 use super::AddressValidator;
 use crate::unwrap_unreachable::UnwrapUnreachable;
-use crate::{debug_info, Network};
+use crate::{Network, debug_info};
 
 use super::{Address, AddressError, AddressType};
 use async_sqlite::rusqlite;
@@ -79,8 +79,8 @@ impl Address for AccountAddress {
     }
 }
 
+#[cfg(test)]
 impl AccountAddress {
-    #[cfg(test)]
     pub fn empty(network: Network) -> Self {
         match network {
             Network::Mainnet => AccountAddress::Mainnet([0; Self::MAINNET_LENGTH]),
@@ -91,7 +91,7 @@ impl AccountAddress {
 
 impl Default for AccountAddress {
     fn default() -> Self {
-        Self::Mainnet([0;Self::MAINNET_LENGTH])
+        Self::Mainnet([0; Self::MAINNET_LENGTH])
     }
 }
 

@@ -5,10 +5,10 @@ use std::collections::{BTreeSet, HashMap};
 use async_sqlite::rusqlite::{self, Row};
 use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
 use types::{
+    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
-    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
 };
 
 use crate::DbError;
@@ -36,28 +36,20 @@ impl AppDataDb {
         .map_err(|err| err.into())
     }
 
-    
-
     pub async fn get_account_addresses<T>(&self) -> Result<T, DbError>
     where
         T: FromIterator<AccountAddress> + Send + 'static,
     {
-        self.query_map(
-            "SELECT address FROM accounts",
-            [], 
-            |row| Ok(row.get(0)?))
-        .await
+        self.query_map("SELECT address FROM accounts", [], |row| Ok(row.get(0)?))
+            .await
     }
 
     pub async fn get_accounts<T>(&self) -> Result<T, DbError>
     where
         T: FromIterator<Account> + Send + 'static,
     {
-        self.query_map(
-            "SELECT * FROM accounts", 
-            [], 
-            Self::get_account_from_row
-        ).await
+        self.query_map("SELECT * FROM accounts", [], Self::get_account_from_row)
+            .await
     }
 
     pub async fn get_all_fungible_assets_per_account<T, U>(&self) -> Result<T, DbError>
@@ -103,8 +95,7 @@ impl AppDataDb {
     {
         let all_fungibles = account_addresses
             .into_aiter()
-            .afilter_map(|account_address| 
-                self.get_fungible_assets_for_account(account_address))
+            .afilter_map(|account_address| self.get_fungible_assets_for_account(account_address))
             .collect()
             .await;
 
@@ -169,12 +160,8 @@ impl AppDataDb {
     where
         T: FromIterator<Resource> + Send + 'static,
     {
-        self.query_map(
-            "SELECT * FROM resources", 
-            [], 
-            Self::get_resource_from_row
-        )
-        .await
+        self.query_map("SELECT * FROM resources", [], Self::get_resource_from_row)
+            .await
     }
 
     pub async fn get_last_transaction_for_account(
@@ -243,17 +230,16 @@ impl AppDataDb {
             },
         )
         .await
-    } 
+    }
 
     pub async fn get_all_transactions<T>(&self) -> Result<T, DbError>
     where
         T: FromAsyncIterator<Transaction> + Send + 'static,
     {
         let transactions: Vec<Transaction> = self
-            .query_map(
-                "SELECT * FROM transactions",
-                 [], 
-                 |row| Self::get_transaction_from_row(row, Vec::new()))
+            .query_map("SELECT * FROM transactions", [], |row| {
+                Self::get_transaction_from_row(row, Vec::new())
+            })
             .await?;
 
         let transactions = transactions
@@ -298,7 +284,7 @@ impl AppDataDb {
         };
         Ok(account)
     }
-    
+
     fn get_non_fungible_asset_from_row(row: &Row<'_>) -> Result<NonFungibleAsset, rusqlite::Error> {
         Ok(NonFungibleAsset {
             id: row.get(0)?,
@@ -306,7 +292,7 @@ impl AppDataDb {
             nfids: row.get(2)?,
         })
     }
-    
+
     fn get_fungible_asset_from_row(row: &Row<'_>) -> Result<FungibleAsset, rusqlite::Error> {
         Ok(FungibleAsset {
             id: row.get(0)?,
@@ -328,7 +314,10 @@ impl AppDataDb {
         Ok(resource)
     }
 
-    fn get_transaction_from_row(row: &Row<'_>, balance_changes: Vec<BalanceChange>) -> Result<Transaction, rusqlite::Error> {
+    fn get_transaction_from_row(
+        row: &Row<'_>,
+        balance_changes: Vec<BalanceChange>,
+    ) -> Result<Transaction, rusqlite::Error> {
         Ok(Transaction {
             id: row.get(0)?,
             transaction_address: row.get(1)?,
@@ -347,7 +336,7 @@ impl AppDataDb {
             id: row.get(0)?,
             account: row.get(1)?,
             resource: row.get(2)?,
-            nfids: row.get(3)?,
+            nfts: row.get(3)?,
             amount: row.get(4)?,
         };
         Ok((transaction_id, balance_change))
@@ -368,7 +357,7 @@ impl AppDataDb {
             id: row.get(0)?,
             account: row.get(1)?,
             resource: row.get(2)?,
-            nfids: row.get(3)?,
+            nfts: row.get(3)?,
             amount: row.get(4)?,
         })
     }

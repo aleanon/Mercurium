@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{iced::widget::Rule, *};
 
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
@@ -113,16 +113,25 @@ impl<'a> FungibleView {
             .size(12),
         ];
 
-        let rule = widget::Rule::horizontal(2);
-        let rule2 = widget::Rule::horizontal(2);
+        let divisibility = row![
+            text("Divisibility:").size(12),
+            widget::horizontal_space(),
+            text(
+                resource
+                    .and_then(|resource| Some(resource.divisibility.unwrap_or(1).to_string()))
+                    .unwrap_or("Unknown".to_string())
+            )
+            .size(12),
+        ];
 
         let col = widget::column![
             image_name_amount,
-            rule,
+            Rule::horizontal(2),
             description,
-            rule2,
+            Rule::horizontal(2),
             address,
             current_supply,
+            divisibility
         ]
         .spacing(15)
         .align_x(iced::Alignment::Center)
