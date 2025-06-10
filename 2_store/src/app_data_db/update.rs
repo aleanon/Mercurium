@@ -4,7 +4,10 @@ use super::statements::*;
 use crate::DbError;
 use async_sqlite::rusqlite::params;
 use types::{
-    address::AccountAddress, assets::{FungibleAsset, NonFungibleAsset}, crypto::HashedPassword, Account, Resource, Transaction
+    Account, Resource, Transaction,
+    address::AccountAddress,
+    assets::{FungibleAsset, NonFungibleAsset},
+    crypto::HashedPassword,
 };
 
 use super::AppDataDb;
@@ -37,7 +40,10 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_accounts<Accounts: IntoIterator<Item = Account> + Send + 'static>(&self, accounts: Accounts) -> Result<(), DbError> {
+    pub async fn upsert_accounts<Accounts: IntoIterator<Item = Account> + Send + 'static>(
+        &self,
+        accounts: Accounts,
+    ) -> Result<(), DbError> {
         self.transaction(accounts::UPSERT_ACCOUNT, move |cached_stmt| {
             for account in accounts {
                 cached_stmt.execute(params![
@@ -58,7 +64,10 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_resources<Resources: IntoIterator<Item = Resource> + Send + 'static>(&self, resources: Resources) -> Result<(), DbError> {
+    pub async fn upsert_resources<Resources: IntoIterator<Item = Resource> + Send + 'static>(
+        &self,
+        resources: Resources,
+    ) -> Result<(), DbError> {
         self.transaction(resources::UPSERT_RESOURCE, move |cached_stmt| {
             for resource in resources {
                 cached_stmt.execute(params![
@@ -76,12 +85,13 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_fungible_assets_for_account<Fungibles: IntoIterator<Item = FungibleAsset> + Send + 'static>(
+    pub async fn upsert_fungible_assets_for_account<
+        Fungibles: IntoIterator<Item = FungibleAsset> + Send + 'static,
+    >(
         &self,
         account_address: AccountAddress,
         fungibles: Fungibles,
     ) -> Result<(), DbError> {
-
         self.transaction(fungible_assets::UPSERT_FUNGIBLE_ASSET, move |cached_stmt| {
             for fungible_asset in fungibles {
                 cached_stmt.execute(params![
@@ -96,7 +106,9 @@ impl AppDataDb {
         .await
     }
 
-    pub async fn upsert_non_fungible_assets_for_account<NonFungibles: IntoIterator<Item = NonFungibleAsset> + Send + 'static>(
+    pub async fn upsert_non_fungible_assets_for_account<
+        NonFungibles: IntoIterator<Item = NonFungibleAsset> + Send + 'static,
+    >(
         &self,
         account_address: AccountAddress,
         non_fungibles: NonFungibles,
@@ -184,7 +196,7 @@ impl AppDataDb {
                             balance_change.id,
                             balance_change.account,
                             balance_change.resource,
-                            balance_change.nfids,
+                            balance_change.nfts,
                             balance_change.amount,
                             transaction.transaction_address,
                         ])?;

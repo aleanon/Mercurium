@@ -4,8 +4,8 @@ use deps::{
     debug_print::debug_println,
     iced::{
         alignment::Horizontal,
-        widget::{button, column},
-        ContentFit, Task,
+        widget::{button, column, scrollable, text::Wrapping, Rule, Space},
+        Task,
     },
     *,
 };
@@ -20,11 +20,12 @@ use wallet::{Unlocked, Wallet};
 
 use crate::{
     app::AppMessage,
+    common,
     unlocked::accounts::{self, account_view, non_fungibles},
 };
 use types::{
     address::Address,
-    assets::{NonFungibleAsset, NFID},
+    assets::{NonFungibleAsset, NFT},
     Resource,
 };
 
@@ -59,8 +60,8 @@ pub enum Icon {
 
 #[derive(Debug, Clone)]
 pub struct NonFungible {
-    pub non_fungible: NonFungibleAsset,
-    pub nfid_images: HashMap<String, (Icon, String)>,
+    pub non_fungible_asset: NonFungibleAsset,
+    pub nft_images: HashMap<String, (Icon, String)>,
     pub image: Icon,
     pub selected_nft: Option<String>,
 }
@@ -136,8 +137,8 @@ impl<'a> NonFungible {
 
         (
             Self {
-                non_fungible,
-                nfid_images,
+                non_fungible_asset: non_fungible,
+                nft_images: nfid_images,
                 image: Icon::Loading,
                 selected_nft: None,
             },
@@ -148,12 +149,12 @@ impl<'a> NonFungible {
     pub fn update(&mut self, message: Message) -> Task<AppMessage> {
         match message {
             Message::FailedToGetImage(nfid) => {
-                if let Some((icon, _)) = self.nfid_images.get_mut(&nfid) {
+                if let Some((icon, _)) = self.nft_images.get_mut(&nfid) {
                     *icon = Icon::None;
                 }
             }
             Message::ImageLoaded(nfid, new_icon) => {
-                if let Some((icon, _)) = self.nfid_images.get_mut(&nfid) {
+                if let Some((icon, _)) = self.nft_images.get_mut(&nfid) {
                     *icon = new_icon;
                 }
             }
@@ -168,7 +169,7 @@ impl<'a> NonFungible {
             .wallet_data()
             .resource_data
             .resources
-            .get(&self.non_fungible.resource_address);
+            .get(&self.non_fungible_asset.resource_address);
 
         let content = match &self.selected_nft {
             Some(nfid) => self.nft_details(nfid),
@@ -192,12 +193,10 @@ impl<'a> NonFungible {
         .size(15)
         .line_height(2.);
 
-        let image = container(create_image(&self.image))
-            .center_x(150)
-            .center_y(150);
+        let image = create_image(&self.image).center_x(150).center_y(150);
 
         let amount = row![
-            text(&self.non_fungible.nfids.len())
+            text(&self.non_fungible_asset.nfids.len())
                 .line_height(1.5)
                 .size(12)
                 .width(Length::Shrink),
@@ -235,7 +234,7 @@ impl<'a> NonFungible {
         let address = row![
             text("Address:").size(12),
             space,
-            text(self.non_fungible.resource_address.truncate()).size(12)
+            text(self.non_fungible_asset.resource_address.truncate()).size(12)
         ]
         .padding(Padding {
             top: 5.,
@@ -273,9 +272,9 @@ impl<'a> NonFungible {
 
         let mut nfids = iced::widget::Grid::new().spacing(10).fluid(250);
 
-        for nfid in self.non_fungible.nfids.iter() {
+        for nfid in self.non_fungible_asset.nfids.iter() {
             let icon = self
-                .nfid_images
+                .nft_images
                 .get(&nfid.id)
                 .and_then(|(icon, _)| Some(icon))
                 .unwrap_or(&Icon::None);
@@ -298,71 +297,136 @@ impl<'a> NonFungible {
             .style(styles::container::token_container)
     }
 
-    fn nft_details(&'a self, nfid: &'a String) -> Container<'a, AppMessage> {
-        let Some(nft) = self.non_fungible.nfids.iter().find(|nft| &nft.id == nfid) else {
+    fn nft_details(&'a self, nft_id: &'a String) -> Container<'a, AppMessage> {
+        let Some(nft) = self
+            .non_fungible_asset
+            .nfids
+            .iter()
+            .find(|nft| &nft.id == nft_id)
+        else {
             return container(text("NFT not found").size(20))
                 .center_x(Length::Fill)
-                .center_y(Length::Fill);
+                .center_y(Length::Shrink);
         };
 
-        let icon = self
-            .nfid_images
-            .get(nfid)
-            .and_then(|(i, _)| Some(i))
-            .unwrap_or(&Icon::None);
-
-        let image = create_image(icon);
-
-        let nf_name = nft
+        let name = nft
             .nfdata
             .iter()
             .find_map(|nfdata| {
                 if nfdata.key == "name" {
-                    Some(text(&nfdata.value).size(12))
+                    Some(nfdata.value.as_str())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or("");
+
+        let header = container(text(name).size(20))
+            .padding(10)
+            .center_x(Length::Fill);
+
+        let icon = self
+            .nft_images
+            .get(nft_id)
+            .and_then(|(i, _)| Some(i))
+            .unwrap_or(&Icon::None);
+
+        let image = create_image(icon).center_x(150).center_y(150);
+
+        let description = nft
+            .nfdata
+            .iter()
+            .find_map(|nft_data| {
+                if nft_data.key == "description" {
+                    Some(text(nft_data.value.as_str()).size(12))
                 } else {
                     None
                 }
             })
             .unwrap_or(text(""));
 
+        let nft_name = row![
+            text("Name").size(12),
+            Space::new(Length::Fill, 1),
+            text(name).size(13)
+        ];
+
         let trim: &[_] = &['{', '}', '<', '>'];
-        let nf_id = nfid.trim_matches(trim);
-        let nf_id = match nf_id.len() {
-            len @ 22.. => container(row![
-                text(&nf_id[0..8]).size(12),
-                text("...").size(12),
-                text(&nf_id[len - 5..len]).size(12)
-            ]),
-            _ => container(text(nf_id)),
+        let nft_id = nft_id.trim_matches(trim);
+        let nft_id: Element<'_, AppMessage> = match nft_id.len() {
+            len @ 22.. => row![
+                text(&nft_id[0..8]).size(13),
+                text("...").size(13),
+                text(&nft_id[len - 5..len]).size(13)
+            ]
+            .into(),
+            _ => text(nft_id).size(13).into(),
         };
 
-        let content = column![nf_name, nf_id].spacing(5).align_x(Horizontal::Left);
+        let nft_id = row![
+            text("ID").size(12),
+            Space::new(Length::Fill, 1),
+            button(row![nft_id, text(Bootstrap::Copy).font(BOOTSTRAP_FONT).size(13)].spacing(5))
+                .style(button::text)
+                .on_press(common::Message::CopyToClipBoard(nft.id.clone()).into())
+        ];
 
-        container(content).style(styles::container::nfid_card)
+        let mut metadata = column![].spacing(10);
+
+        for nft_data in &nft.nfdata {
+            if nft_data.key == "name"
+                || nft_data.key == "description"
+                || nft_data.key == "key_image_url"
+            {
+                continue;
+            };
+
+            let data = row![
+                text(nft_data.key.as_str()).size(12),
+                Space::new(Length::Fill, 1),
+                text(nft_data.value.as_str()).size(13)
+            ];
+            metadata = metadata.push(data);
+        }
+
+        let content = column![
+            header,
+            image,
+            Rule::horizontal(1),
+            description,
+            Rule::horizontal(1),
+            nft_id,
+            nft_name,
+            Rule::horizontal(1),
+            metadata
+        ]
+        .spacing(10)
+        .align_x(Horizontal::Center)
+        .padding(15);
+
+        container(scrollable(content).style(styles::scrollable::vertical_scrollable))
+            .center_x(Length::Fill)
+            .style(styles::container::token_container)
+            .max_width(800)
     }
 }
 
-fn create_image(icon: &Icon) -> Element<'_, AppMessage> {
+fn create_image(icon: &Icon) -> Container<'_, AppMessage> {
     match icon {
         Icon::Some(handle) => container(widget::image(handle.clone()).expand(true))
             .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .into(),
-        Icon::Loading => container("")
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into(),
+            .center_y(Length::Fill),
+        Icon::Loading => container("").width(Length::Fill).height(Length::Fill),
         Icon::None => container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(100))
             .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .into(),
+            .center_y(Length::Fill),
     }
 }
 
-fn nft_card<'a>(nfid: &'a NFID, icon: &'a Icon) -> Container<'a, AppMessage> {
+fn nft_card<'a>(nft: &'a NFT, icon: &'a Icon) -> Container<'a, AppMessage> {
     let image = create_image(&icon);
 
-    let nf_name = nfid
+    let nft_name = nft
         .nfdata
         .iter()
         .find_map(|nfdata| {
@@ -375,30 +439,31 @@ fn nft_card<'a>(nfid: &'a NFID, icon: &'a Icon) -> Container<'a, AppMessage> {
         .unwrap_or(text(""));
 
     let trim: &[_] = &['{', '}', '<', '>'];
-    let nf_id = nfid.id.trim_matches(trim);
-    let nf_id = match nf_id.len() {
+    let nft_id = nft.id.trim_matches(trim);
+    let nft_id = match nft_id.len() {
         len @ 22.. => container(row![
-            text(&nf_id[0..8]).size(12),
+            text(&nft_id[0..8]).size(12),
             text("...").size(12),
-            text(&nf_id[len - 5..len]).size(12)
+            text(&nft_id[len - 5..len]).size(12)
         ]),
-        _ => container(text(nf_id)),
+        _ => container(text(nft_id)),
     };
 
-    let content = column![image, nf_name, nf_id]
+    let content = column![image, nft_name, nft_id]
         .spacing(10)
         .align_x(Horizontal::Left);
+
     let content = button(content)
-        .on_press(Message::SelectNFT(nfid.id.clone()).into())
+        .on_press(Message::SelectNFT(nft.id.clone()).into())
         .padding(10)
-        .style(styles::button::nfid_card);
+        .style(styles::button::nft_button);
 
     container(content)
         .center_x(Length::Fill)
         .center_y(Length::Fill)
 }
 
-fn nfdata_row<'a>(key: &'a str, value: &'a str) -> Element<'a, AppMessage> {
+fn nft_data_row<'a>(key: &'a str, value: &'a str) -> Element<'a, AppMessage> {
     row![
         text(key).size(10),
         widget::Space::new(Length::Fill, 1),

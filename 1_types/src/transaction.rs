@@ -7,7 +7,7 @@ use asynciter::FromAsyncIterator;
 
 use crate::{
     address::{AccountAddress, Address, ResourceAddress, TransactionAddress},
-    assets::NFIDs,
+    assets::NFTs,
     debug_info,
     unwrap_unreachable::UnwrapUnreachable,
 };
@@ -295,7 +295,7 @@ pub struct BalanceChange {
     pub id: BalanceChangeId,
     pub account: AccountAddress,
     pub resource: ResourceAddress,
-    pub nfids: Option<NFIDs>,
+    pub nfts: Option<NFTs>,
     pub amount: Option<String>,
 }
 
@@ -304,7 +304,7 @@ impl BalanceChange {
         transaction: TransactionId,
         account: AccountAddress,
         resource: ResourceAddress,
-        nfids: Option<NFIDs>,
+        nfts: Option<NFTs>,
         amount: Option<String>,
     ) -> Self {
         Self {
@@ -315,7 +315,7 @@ impl BalanceChange {
             ),
             account,
             resource,
-            nfids,
+            nfts,
             amount,
         }
     }

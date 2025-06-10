@@ -238,7 +238,7 @@ pub fn password_input(theme: &Theme) -> Style {
     }
 }
 
-pub fn nfid_card(theme: &Theme) -> Style {
+pub fn nft_card(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.weak.color;
     background_color.r -= 0.005;

@@ -10,16 +10,16 @@ run-reloading *ARGS="":
 
 watch:
     @echo "Watching for changes..."
-    cargo watch -w iced_ui -d 0.01 -x "rustc --package iced_ui --crate-type dylib --profile reload --features reload -- -C link-arg=-Wl,--whole-archive"
+    cargo watch -w iced_ui -d 0.01 -x "rustc --package iced_ui --crate-type cdylib --profile reload --features reload -- -C link-arg=-Wl,--whole-archive"
 
 run:
     @echo "Launching program..."
-    cargo run --profile reload --features reload --target-dir target-bin
+    cargo run --profile hot-ice-bin --features reload
 
 experiment:
-    cargo rustc --profile reload --package deps --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,--whole-archive -C link-dead-code #-C link-args=-Wl,--export-dynamic
+    cargo rustc --profile reload --package deps --crate-type cdylib -- -C link-arg=-Wl,--whole-archive -C link-dead-code -C link-args=-Wl,--export-dynamic
     cargo rustc --profile reload --package types --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
-    cargo rustc --profile reload --package store --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code -l static=sqlcipher -L native=$(find target/reload/build -name "libsqlite3-sys-*" -type d | head -1)/out
+    cargo rustc --profile reload --package store --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package handles --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package font_and_icons --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code
     cargo rustc --profile reload --package wallet --crate-type cdylib -- -L dependency=. -C link-arg=-Wl,-rpath,'$ORIGIN' -C prefer-dynamic -C link-arg=-Wl,--whole-archive -C link-dead-code

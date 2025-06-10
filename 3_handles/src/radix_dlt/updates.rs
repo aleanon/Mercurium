@@ -8,10 +8,10 @@ use store::AppDataDb;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use types::{
-    address::{AccountAddress, Address, ResourceAddress},
-    assets::{FungibleAsset, NonFungibleAsset, NFID},
-    collections::{AccountUpdate, AccountsUpdate},
     Account, AppError, Network, Resource, UnsafeRef,
+    address::{AccountAddress, Address, ResourceAddress},
+    assets::{FungibleAsset, NFT, NonFungibleAsset},
+    collections::{AccountUpdate, AccountsUpdate},
 };
 
 #[derive(Debug, Error)]
@@ -47,11 +47,9 @@ pub async fn update_accounts(
     // therefore we pass around a non reference counted unsafe reference to resources to sub tasks
     let resources = unsafe { UnsafeRef::new(&*resources) };
 
-    let tasks = accounts
-        .into_iter()
-        .map(|account| tokio::spawn(async move { 
-            update_account(network, resources, account).await 
-        }));
+    let tasks = accounts.into_iter().map(|account| {
+        tokio::spawn(async move { update_account(network, resources, account).await })
+    });
 
     join_all(tasks)
         .await
@@ -59,13 +57,13 @@ pub async fn update_accounts(
         .filter_map(get_successful_task_value)
         .fold(
             AccountsUpdate::new(network),
-            add_account_update_and_resources_to_accounts_update
+            add_account_update_and_resources_to_accounts_update,
         )
 }
 
 fn add_account_update_and_resources_to_accounts_update(
-    mut acc: AccountsUpdate, 
-    (account_update, new_resources):(AccountUpdate, HashMap<ResourceAddress, (Resource, String)>)
+    mut acc: AccountsUpdate,
+    (account_update, new_resources): (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>),
 ) -> AccountsUpdate {
     new_resources
         .into_iter()
@@ -93,7 +91,7 @@ async fn update_account(
     mut account: Account,
 ) -> (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>) {
     let balances_last_updated_at_state_version = account.balances_last_updated.unwrap_or(0);
-    // TODO get transactions 
+    // TODO get transactions
     let transactions_last_updated = account.transactions_last_updated;
 
     // The account address should be used througout tasks and is never mutated or removed from the Account struct.
@@ -538,7 +536,7 @@ async fn update_non_fungible_ids_for_asset(
                     .non_fungible_ids_collection
                     .items
                     .into_iter()
-                    .map(|id| NFID::new(id)),
+                    .map(|id| NFT::new(id)),
             );
             break;
         } else {
@@ -563,7 +561,7 @@ async fn update_non_fungible_ids_for_asset(
                     .non_fungible_ids_collection
                     .items
                     .into_iter()
-                    .map(|id| NFID::new(id)),
+                    .map(|id| NFT::new(id)),
             );
 
             match next_response.await {
@@ -621,7 +619,7 @@ async fn update_non_fungible_data_for_ids(
     assets
         .into_iter()
         .for_each(|(resource_address, mut asset)| {
-            let ids = asset.nfids_as_string();
+            let ids = asset.nft_id_as_string();
             for chunk in ids.chunks(100) {
                 let chunk = chunk.to_vec();
                 let resource_address = resource_address.clone();

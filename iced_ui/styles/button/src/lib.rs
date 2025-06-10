@@ -221,7 +221,7 @@ pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-pub fn nfid_card(theme: &Theme, status: Status) -> Style {
+pub fn nft_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
         Status::Active | Status::Pressed | Status::Disabled => {
@@ -252,7 +252,7 @@ pub fn nfid_card(theme: &Theme, status: Status) -> Style {
 
             Style {
                 background: Some(Background::Color(background_color)),
-                ..nfid_card(theme, Status::Active)
+                ..nft_button(theme, Status::Active)
             }
         }
     }
