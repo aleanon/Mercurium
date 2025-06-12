@@ -64,7 +64,7 @@ deps = { path = "0_deps" }
 serde = { version = "*", features = ["derive"] }
 zeroize = { version = "*", features = ["zeroize_derive"] }
 hot-lib-reloader = { version = "0.7.0" }
-thiserror = "*"
+thiserror = "2.0"
 
 #used from the deps crate
 iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", default-features = false, features = [
@@ -102,7 +102,7 @@ radix-gateway-sdk = { git = "https://github.com/aleanon/radix-gateway-sdk-fork.g
 asynciter = "*"
 futures = "*"
 bincode = "*"
-no-mangle-if-debug = "0.1.0"
+no-mangle-if-debug = "0.1"
 simple_logger = "*"
 
 # Windows specific imports
