@@ -1,3 +1,5 @@
+use std::default;
+
 use deps::{
     iced::{
         gradient::{ColorStop, Linear},
@@ -257,6 +259,34 @@ pub fn nft_card(theme: &Theme) -> Style {
         },
         shadow: Shadow {
             color: shadow_color,
+            offset: Vector::new(0., 0.),
+            blur_radius: 3.,
+        },
+        ..Default::default()
+    }
+}
+
+pub fn tag(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+    let mut background_color = palette.background.base.color;
+    background_color.r -= 0.005;
+    background_color.g -= 0.005;
+    background_color.b -= 0.005;
+
+    Style {
+        background: Some(Background::Color(background_color)),
+        text_color: Some(palette.background.base.text),
+        border: Border {
+            radius: Radius {
+                bottom_right: 50.,
+                top_right: 50.,
+                ..Default::default()
+            },
+            color: Color::TRANSPARENT,
+            width: 0.,
+        },
+        shadow: Shadow {
+            color: Color::BLACK,
             offset: Vector::new(0., 0.),
             blur_radius: 3.,
         },

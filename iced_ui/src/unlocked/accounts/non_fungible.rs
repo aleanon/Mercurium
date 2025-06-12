@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use deps::{
     debug_print::debug_println,
     iced::{
-        alignment::Horizontal,
+        alignment::{self, Horizontal},
         widget::{button, column, scrollable, text::Wrapping, Rule, Space},
         Task,
     },
@@ -347,6 +347,7 @@ impl<'a> NonFungible {
 
         let nft_name = row![
             text("Name").size(12),
+            Space::new(10, 1),
             Space::new(Length::Fill, 1),
             text(name).size(13)
         ];
@@ -365,11 +366,13 @@ impl<'a> NonFungible {
 
         let nft_id = row![
             text("ID").size(12),
+            Space::new(10, 1),
             Space::new(Length::Fill, 1),
             button(row![nft_id, text(Bootstrap::Copy).font(BOOTSTRAP_FONT).size(13)].spacing(5))
                 .style(button::text)
                 .on_press(common::Message::CopyToClipBoard(nft.id.clone()).into())
-        ];
+        ]
+        .align_y(alignment::Vertical::Center);
 
         let mut metadata = column![].spacing(10);
 
@@ -383,6 +386,7 @@ impl<'a> NonFungible {
 
             let data = row![
                 text(nft_data.key.as_str()).size(12),
+                Space::new(10, 1),
                 Space::new(Length::Fill, 1),
                 text(nft_data.value.as_str()).size(13)
             ];
