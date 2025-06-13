@@ -90,25 +90,29 @@ pub fn general_button(theme: &Theme, status: Status) -> Style {
 pub fn choose_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.base.color;
-    background_color.r -= 0.005;
-    background_color.g -= 0.005;
-    background_color.b -= 0.005;
+    background_color.r -= 0.03;
+    background_color.g -= 0.03;
+    background_color.b -= 0.03;
 
-    match status {
-        _ => Style {
-            background: Some(Background::Color(background_color)),
-            border: Border {
-                radius: Radius {
-                    top_left: 10.,
-                    top_right: 10.,
-                    bottom_right: 0.,
-                    bottom_left: 0.,
-                },
-                ..Default::default()
-            },
-            text_color: palette.background.base.text,
+    let style = Style {
+        background: None,
+        border: Border {
+            radius: Radius::from(5.),
             ..Default::default()
         },
+        text_color: palette.background.base.text,
+        ..Default::default()
+    };
+
+    match status {
+        Status::Active | Status::Pressed => {
+            background_color.r -= 0.03;
+            background_color.g -= 0.03;
+            background_color.b -= 0.03;
+            style.with_background(background_color)
+        }
+        Status::Hovered => style.with_background(background_color),
+        Status::Disabled => style.with_background(palette.background.weak.color),
     }
 }
 

@@ -293,3 +293,31 @@ pub fn tag(theme: &Theme) -> Style {
         ..Default::default()
     }
 }
+
+pub fn recipient(theme: &Theme) -> Style {
+    let extended_palette = theme.extended_palette();
+    let background_base = extended_palette.background.base;
+    let mut background_color = background_base.color;
+    background_color.r -= 0.005;
+    background_color.g -= 0.005;
+    background_color.b -= 0.005;
+
+    let shadow_color = Color::BLACK;
+    let text_color = background_base.text;
+
+    Style {
+        border: iced::Border {
+            color: Color::TRANSPARENT,
+            width: 1.,
+            radius: Radius::new(5),
+        },
+        shadow: iced::Shadow {
+            color: shadow_color,
+            offset: Vector::new(0., 0.),
+            blur_radius: 3.,
+        },
+        background: Some(iced::Background::Color(background_color)),
+        text_color: Some(text_color),
+        ..Default::default()
+    }
+}

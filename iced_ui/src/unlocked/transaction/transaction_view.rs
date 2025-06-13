@@ -1,4 +1,15 @@
-use deps::{iced::Background, *};
+use deps::{
+    iced::{
+        alignment::Horizontal,
+        widget::{
+            column,
+            text::Wrapping,
+            text_editor::{Action, Edit},
+            Button, Column, Rule, Space,
+        },
+    },
+    *,
+};
 
 use std::collections::HashMap;
 
@@ -19,12 +30,6 @@ use super::{
     add_recipient::{self, AddRecipient},
 };
 
-// pub struct TransactionView {
-//     from_account: Option<String>,
-//     recipient: Recipient,
-//     message: Option<String>,
-// }
-
 const PICK_LIST_DEFAULT_TEXT: &'static str = "Select account";
 
 #[derive(Debug, Clone)]
@@ -32,6 +37,7 @@ pub enum Message {
     OverView,
     SelectAccount(Account),
     UpdateMessage(String),
+    UpdateTextMessage(Edit),
     RemoveRecipient(usize),
     UpdateResourceAmount(usize, ResourceAddress, String),
     SelectRecipient(usize),
@@ -80,6 +86,7 @@ pub struct TransactionView {
     pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
     pub(crate) message: String,
+    pub(crate) editor: iced::widget::text_editor::Content<iced::Renderer>,
     pub(crate) view: View,
 }
 
@@ -93,6 +100,7 @@ impl TransactionView {
             resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
             message: String::new(),
+            editor: iced::widget::text_editor::Content::new(),
             view: View::Transaction,
         }
     }
@@ -103,6 +111,7 @@ impl TransactionView {
             resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
             message: String::new(),
+            editor: iced::widget::text_editor::Content::new(),
             view: View::Transaction,
         }
     }
@@ -118,6 +127,9 @@ impl<'a> TransactionView {
             Message::OverView => self.view = View::Transaction,
             Message::SelectAccount(account) => self.from_account = Some(account),
             Message::UpdateMessage(message) => self.message = message,
+            Message::UpdateTextMessage(edit) => {
+                self.editor.perform(widget::text_editor::Action::Edit(edit))
+            }
             Message::RemoveRecipient(recipient_index) => self.remove_recipient(recipient_index),
             Message::UpdateResourceAmount(account_index, resource, amount) => {
                 self.update_resource_amount(account_index, resource, amount)
@@ -189,13 +201,13 @@ impl<'a> TransactionView {
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         match &self.view {
-            View::Transaction => self.overview(wallet),
+            View::Transaction => self.create_transaction(wallet),
             View::ChooseRecipient(choose_recipient) => choose_recipient.view(wallet),
             View::AddAssets(choose_assets) => choose_assets.view(wallet),
         }
     }
 
-    fn overview(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
+    fn create_transaction(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         let mut accounts = wallet
             .accounts()
             .values()
@@ -206,35 +218,32 @@ impl<'a> TransactionView {
         accounts.sort_unstable_by(|a, b| a.cmp(b));
 
         let header = Self::header("Transaction");
-        let space = widget::Space::new(Length::Fill, 50);
 
         let from_account_field = self.from_account_field(accounts);
-        let space2 = widget::Space::new(Length::Fill, 30);
 
         let recipient_field = self.recipients(wallet);
 
-        let space3 = widget::Space::new(Length::Fill, 20);
-
-        let add_recipient = button("Add recipient")
-            .width(Length::Fill)
-            .height(Length::Shrink)
-            .on_press(Message::AddRecipient.into());
-
-        let space4 = widget::Space::new(Length::Fill, 50);
+        let add_recipient = row![
+            Space::new(Length::FillPortion(2), 1),
+            button(text("Add recipient").center())
+                .padding(5)
+                .width(Length::FillPortion(6))
+                .height(Length::Shrink)
+                .style(styles::button::choose_account)
+                .on_press(Message::AddRecipient.into()),
+            Space::new(Length::FillPortion(2), 1)
+        ];
 
         let message_field = self.message();
 
         let fields = widget::column![
             header,
-            space,
             from_account_field,
-            space2,
             recipient_field,
-            space3,
             add_recipient,
-            space4,
             message_field
         ]
+        .spacing(30)
         .width(600)
         .height(Length::Shrink)
         .padding(Padding {
@@ -243,18 +252,8 @@ impl<'a> TransactionView {
             ..Padding::ZERO
         });
 
-        let row = row![
-            widget::Space::new(Length::Fill, 1),
-            fields,
-            widget::Space::new(Length::Fill, 1)
-        ];
+        let scrollable = widget::scrollable(fields).style(styles::scrollable::vertical_scrollable);
 
-        let scrollable = widget::scrollable(row).style(styles::scrollable::vertical_scrollable);
-
-        // let left_space = widget::Space::new(Length::Fill, Length::Fill);
-        // let right_space = widget::Space::new(Length::Fill, Length::Fill);
-
-        // let content = widget::row![left_space, scrollable, right_space];
         widget::container(scrollable)
             .height(Length::Fill)
             .center_x(Length::Fill)
@@ -266,19 +265,20 @@ impl<'a> TransactionView {
             .into()
     }
 
-    fn message(&self) -> Container<'a, AppMessage> {
+    fn message(&'a self) -> Container<'a, AppMessage> {
         let label = Self::field_label("Message");
 
-        let text_field = widget::text_input("Enter Message", &self.message)
-            .size(12)
-            .line_height(1.5)
-            .on_input(|message| Message::UpdateMessage(message).into())
-            .on_paste(|message| Message::UpdateMessage(message).into())
-            .style(styles::text_input::asset_amount);
+        let text_field = widget::text_editor(&self.editor)
+            .on_action(|action| match action {
+                Action::Edit(edit) => Message::UpdateTextMessage(edit).into(),
+                _ => AppMessage::None,
+            })
+            .placeholder("Enter Message")
+            .height(60);
 
-        let rule = widget::Rule::horizontal(4).style(styles::rule::text_input_rule);
-
-        let col = widget::column![label, text_field, rule].align_x(Alignment::Start);
+        let col = widget::column![label, text_field]
+            .spacing(5)
+            .align_x(Alignment::Start);
 
         widget::container(col)
     }
@@ -304,7 +304,8 @@ impl<'a> TransactionView {
         let col = widget::column![label, picklist]
             .width(Length::Fill)
             .height(Length::Shrink)
-            .align_x(Alignment::Start);
+            .align_x(Alignment::Start)
+            .spacing(5);
 
         widget::container(col)
             .width(Length::Fill)
@@ -314,151 +315,15 @@ impl<'a> TransactionView {
     fn recipients(&'a self, wallet: &'a Wallet<Unlocked>) -> Container<'a, AppMessage> {
         let label = Self::field_label("TO");
 
-        //create empty recipient
+        let recipients = self
+            .recipients
+            .iter()
+            .enumerate()
+            .map(|(recipient_index, recipient)| self.recipient(recipient_index, recipient, wallet));
 
-        let mut recipients: Vec<Element<'a, AppMessage>> =
-            Vec::with_capacity(self.recipients.len());
+        let recipients = column(recipients).spacing(10);
 
-        for (recipient_index, recipient) in self.recipients.iter().enumerate() {
-            let choose_recipient_button = {
-                let address = recipient
-                    .address
-                    .as_ref()
-                    .and_then(|address| Some(address.truncate_long()))
-                    .unwrap_or("Choose account".to_owned());
-
-                let address = text(address).size(15).line_height(1.5).width(Length::Fill);
-
-                let mut remove_recipient_button =
-                    button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).line_height(1.))
-                        .padding(0)
-                        .style(styles::button::choose_account)
-                        .on_press(Message::RemoveRecipient(recipient_index).into());
-
-                if recipient_index == 0 {
-                    if let None = &recipient.address {
-                        remove_recipient_button = button(text("")).style(button::text);
-                    }
-                }
-
-                let choose_recipient_content = row![address, remove_recipient_button]
-                    .align_y(Alignment::Center)
-                    .height(Length::Fill);
-
-                button(choose_recipient_content)
-                    .width(Length::Fill)
-                    .height(50)
-                    .padding(10)
-                    .style(styles::button::choose_account)
-                    .on_press(Message::SelectRecipient(recipient_index).into())
-            };
-
-            let assets = {
-                let mut assets: Vec<Element<'a, AppMessage>> =
-                    Vec::with_capacity(recipient.resources.len());
-
-                for (resource_address, (symbol, amount)) in recipient.resources.iter() {
-                    let icon: Element<'a, AppMessage> = wallet
-                        .resource_icons()
-                        .get(&resource_address)
-                        .and_then(|bytes| {
-                            Some(
-                                widget::image(Handle::from_bytes(bytes.clone()))
-                                    .width(25)
-                                    .height(25)
-                                    .into(),
-                            )
-                        })
-                        .unwrap_or(
-                            container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(18))
-                                .center_x(25)
-                                .center_y(25)
-                                .into(),
-                        );
-
-                    let symbol = Self::resource_text_field(&symbol);
-
-                    let space = widget::Space::new(Length::Fill, 1);
-
-                    let amount = widget::text_input("Amount", &amount)
-                        .width(100)
-                        .style(styles::text_input::asset_amount)
-                        .on_input(move |input| {
-                            Message::UpdateResourceAmount(
-                                recipient_index,
-                                resource_address.clone(),
-                                input,
-                            )
-                            .into()
-                        })
-                        .on_paste(move |input| {
-                            Message::UpdateResourceAmount(
-                                recipient_index,
-                                resource_address.clone(),
-                                input,
-                            )
-                            .into()
-                        });
-
-                    let remove_resource = widget::button(
-                        text(Bootstrap::XLg)
-                            .font(BOOTSTRAP_FONT)
-                            .size(15)
-                            .line_height(1.),
-                    )
-                    .padding(0)
-                    .style(button::text)
-                    .on_press(
-                        Message::RemoveAsset(recipient_index, resource_address.clone()).into(),
-                    );
-
-                    let resource_row = row![icon, symbol, space, amount, remove_resource]
-                        .spacing(10)
-                        .padding(5)
-                        .align_y(Alignment::Center)
-                        .height(Length::Shrink)
-                        .width(Length::Fill);
-
-                    let resource = widget::column![widget::Rule::horizontal(1), resource_row]
-                        .height(Length::Shrink)
-                        .width(Length::Fill);
-
-                    assets.push(resource.into())
-                }
-
-                widget::column(assets).spacing(1).width(Length::Fill)
-            };
-
-            let add_resource = widget::button(
-                text("Add assets")
-                    .height(Length::Fill)
-                    .width(Length::Fill)
-                    .align_x(iced::alignment::Horizontal::Center)
-                    .align_y(iced::alignment::Vertical::Center),
-            )
-            .height(30)
-            .padding(0)
-            .width(Length::Fill)
-            .on_press_maybe(self.from_account.as_ref().and_then(|account| {
-                Some(
-                    Message::AddAssets {
-                        recipient_index: recipient_index,
-                        from_account: account.address.clone(),
-                    }
-                    .into(),
-                )
-            }));
-
-            let recipient = widget::column![choose_recipient_button, assets, add_resource]
-                .width(Length::Fill)
-                .height(Length::Shrink);
-
-            recipients.push(recipient.into())
-        }
-
-        let recipients = widget::column(recipients).spacing(10);
-
-        widget::container(widget::column![label, recipients])
+        container(column![label, recipients].spacing(5))
     }
 
     fn resource_text_field(str: &'a str) -> widget::Text<'a> {
@@ -477,5 +342,153 @@ impl<'a> TransactionView {
             .align_x(iced::alignment::Horizontal::Left)
             .align_y(iced::alignment::Vertical::Center)
             .width(Length::Fill)
+    }
+
+    fn recipient(
+        &self,
+        recipient_index: usize,
+        recipient: &'a Recipient,
+        wallet: &'a Wallet<Unlocked>,
+    ) -> Element<'a, AppMessage> {
+        let choose_recipient_button = Self::choose_recipient(recipient_index, recipient);
+
+        let assets = Self::selected_assets(recipient_index, recipient, wallet);
+
+        let add_assets = widget::button(
+            text("Add assets")
+                .size(14)
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
+        )
+        .padding(Padding {
+            bottom: 5.,
+            top: 5.,
+            left: 10.,
+            right: 10.,
+        })
+        .style(styles::button::choose_account)
+        .on_press_maybe(self.from_account.as_ref().and_then(|account| {
+            Some(
+                Message::AddAssets {
+                    recipient_index: recipient_index,
+                    from_account: account.address.clone(),
+                }
+                .into(),
+            )
+        }));
+
+        let recipient = widget::column![choose_recipient_button, assets, add_assets]
+            .width(Length::Fill)
+            .height(Length::Shrink)
+            .align_x(Horizontal::Center)
+            .spacing(10);
+
+        container(recipient)
+            .padding(10)
+            .style(styles::container::recipient)
+            .into()
+    }
+
+    fn choose_recipient(
+        recipient_index: usize,
+        recipient: &'a Recipient,
+    ) -> Button<'a, AppMessage> {
+        let address = recipient
+            .address
+            .as_ref()
+            .and_then(|address| Some(address.truncate_long()))
+            .unwrap_or("Choose account".to_owned());
+
+        let address = text(address).size(15).line_height(1.5).width(Length::Fill);
+
+        let remove_recipient_button = if recipient_index == 0 && recipient.address.is_none() {
+            button(text("")).style(button::text)
+        } else {
+            button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).line_height(1.))
+                .padding(0)
+                .style(styles::button::choose_account)
+                .on_press(Message::RemoveRecipient(recipient_index).into())
+        };
+
+        let choose_recipient_content = row![address, remove_recipient_button]
+            .align_y(Alignment::Center)
+            .height(Length::Fill);
+
+        button(choose_recipient_content)
+            .height(50)
+            .padding(10)
+            .style(styles::button::choose_account)
+            .on_press(Message::SelectRecipient(recipient_index).into())
+    }
+
+    fn selected_assets(
+        recipient_index: usize,
+        recipient: &'a Recipient,
+        wallet: &'a Wallet<Unlocked>,
+    ) -> Column<'a, AppMessage> {
+        let mut assets: Vec<Element<'a, AppMessage>> =
+            Vec::with_capacity(recipient.resources.len());
+
+        for (resource_address, (symbol, amount)) in recipient.resources.iter() {
+            let icon: Element<'a, AppMessage> = wallet
+                .resource_icons()
+                .get(&resource_address)
+                .and_then(|bytes| {
+                    Some(
+                        widget::image(Handle::from_bytes(bytes.clone()))
+                            .width(25)
+                            .height(25)
+                            .into(),
+                    )
+                })
+                .unwrap_or(
+                    container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(18))
+                        .center_x(25)
+                        .center_y(25)
+                        .into(),
+                );
+
+            let symbol = Self::resource_text_field(&symbol);
+
+            let space = widget::Space::new(Length::Fill, 1);
+
+            let amount = widget::text_input("Amount", &amount)
+                .width(100)
+                .style(styles::text_input::asset_amount)
+                .on_input(move |input| {
+                    Message::UpdateResourceAmount(recipient_index, resource_address.clone(), input)
+                        .into()
+                })
+                .on_paste(move |input| {
+                    Message::UpdateResourceAmount(recipient_index, resource_address.clone(), input)
+                        .into()
+                });
+
+            let remove_resource = widget::button(
+                text(Bootstrap::XLg)
+                    .font(BOOTSTRAP_FONT)
+                    .size(15)
+                    .line_height(1.),
+            )
+            .padding(0)
+            .style(button::text)
+            .on_press(Message::RemoveAsset(recipient_index, resource_address.clone()).into());
+
+            let resource_row = row![icon, symbol, space, amount, remove_resource]
+                .spacing(10)
+                .padding(5)
+                .align_y(Alignment::Center)
+                .height(Length::Shrink)
+                .width(Length::Fill);
+
+            assets.push(Rule::horizontal(1).into());
+            assets.push(resource_row.into());
+        }
+
+        if assets.len() > 0 {
+            assets.push(widget::Rule::horizontal(1).into());
+        }
+
+        widget::column(assets).spacing(1).width(Length::Fill)
     }
 }

@@ -26,13 +26,17 @@ pub fn general_input(theme: &Theme, status: Status) -> Style {
 pub fn asset_amount(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     let palette = theme.extended_palette();
+    let mut background_color = palette.background.base.color;
+    background_color.r -= 0.03;
+    background_color.g -= 0.03;
+    background_color.b -= 0.03;
     style.border = Border {
         width: 0.,
         color: Color::TRANSPARENT,
         radius: Radius::new(10),
     };
     style.icon = Color::TRANSPARENT;
-    style.background = Background::Color(palette.background.base.color);
+    style.background = Background::Color(background_color);
 
     style
 }

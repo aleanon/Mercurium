@@ -1,8 +1,11 @@
 use deps::*;
 
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
-use iced::{alignment::Vertical, border::Radius, widget::{self, button, column, container::{self, Style}, row, text, text_input}, Border, Color, Length, Shadow, Theme};
-
+use iced::{
+    alignment::Vertical,
+    widget::{self, button, column, container, row, text, text_input},
+    Length,
+};
 
 pub fn password_input<'a, Message>(
     placeholder: &'static str,
@@ -41,11 +44,9 @@ where
         .padding(2.)
         .spacing(5);
 
-    let rule = widget::Rule::horizontal(1)
-        .style(styles::rule::text_input_rule);
+    let rule = widget::Rule::horizontal(1).style(styles::rule::text_input_rule);
 
     let content = column![input_and_button, rule];
 
-    widget::container(content)
-        .style(styles::container::password_input)
+    widget::container(content).style(styles::container::password_input)
 }
