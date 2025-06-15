@@ -7,13 +7,18 @@ use deps::{
             text_editor::{Action, Edit},
             Button, Column, Rule, Space,
         },
+        Theme,
     },
     *,
 };
 
 use std::collections::HashMap;
 
-use crate::{app::AppMessage, unlocked::app_view};
+use crate::{
+    app::AppMessage,
+    components::{self, text_field},
+    unlocked::app_view,
+};
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, container, image::Handle, row, text, Container},
@@ -37,7 +42,7 @@ pub enum Message {
     OverView,
     SelectAccount(Account),
     UpdateMessage(String),
-    UpdateTextMessage(Edit),
+    // UpdateTextMessage(Edit),
     RemoveRecipient(usize),
     UpdateResourceAmount(usize, ResourceAddress, String),
     SelectRecipient(usize),
@@ -49,6 +54,7 @@ pub enum Message {
         from_account: AccountAddress,
     },
     AddAssetsMessage(add_assets::Message),
+    TextFieldMessage(components::text_field::Message),
     RemoveAsset(usize, ResourceAddress),
 }
 
@@ -86,7 +92,7 @@ pub struct TransactionView {
     pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
     pub(crate) message: String,
-    pub(crate) editor: iced::widget::text_editor::Content<iced::Renderer>,
+    pub(crate) editor: components::text_field::TextField,
     pub(crate) view: View,
 }
 
@@ -100,7 +106,7 @@ impl TransactionView {
             resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
             message: String::new(),
-            editor: iced::widget::text_editor::Content::new(),
+            editor: components::text_field::TextField::new("Enter message", 60, Some(200)),
             view: View::Transaction,
         }
     }
@@ -111,7 +117,7 @@ impl TransactionView {
             resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
             message: String::new(),
-            editor: iced::widget::text_editor::Content::new(),
+            editor: components::text_field::TextField::new("Enter message", 60, Some(200)),
             view: View::Transaction,
         }
     }
@@ -127,9 +133,9 @@ impl<'a> TransactionView {
             Message::OverView => self.view = View::Transaction,
             Message::SelectAccount(account) => self.from_account = Some(account),
             Message::UpdateMessage(message) => self.message = message,
-            Message::UpdateTextMessage(edit) => {
-                self.editor.perform(widget::text_editor::Action::Edit(edit))
-            }
+            // Message::UpdateTextMessage(edit) => {
+            //     self.editor.perform(widget::text_editor::Action::Edit(edit))
+            // }
             Message::RemoveRecipient(recipient_index) => self.remove_recipient(recipient_index),
             Message::UpdateResourceAmount(account_index, resource, amount) => {
                 self.update_resource_amount(account_index, resource, amount)
@@ -164,6 +170,12 @@ impl<'a> TransactionView {
                 self.recipients[recipient_index]
                     .resources
                     .remove(&resource_address);
+            }
+            Message::TextFieldMessage(message) => {
+                return self
+                    .editor
+                    .update(message)
+                    .map(|message| Message::TextFieldMessage(message).into())
             }
         }
 
@@ -268,13 +280,14 @@ impl<'a> TransactionView {
     fn message(&'a self) -> Container<'a, AppMessage> {
         let label = Self::field_label("Message");
 
-        let text_field = widget::text_editor(&self.editor)
-            .on_action(|action| match action {
-                Action::Edit(edit) => Message::UpdateTextMessage(edit).into(),
-                _ => AppMessage::None,
-            })
-            .placeholder("Enter Message")
-            .height(60);
+        // let text_field = widget::text_editor(&self.editor)
+        //     .on_action(|action| match action {
+        //         Action::Edit(edit) => Message::UpdateTextMessage(edit).into(),
+        //         _ => AppMessage::None,
+        //     })
+        //     .placeholder("Enter Message")
+        //     .height(60);
+        let text_field: Element<'_, AppMessage, Theme, iced::Renderer> = self.editor.view();
 
         let col = widget::column![label, text_field]
             .spacing(5)
