@@ -1,24 +1,14 @@
 use deps::{
     iced::{
         alignment::Horizontal,
-        widget::{
-            column,
-            text::Wrapping,
-            text_editor::{Action, Edit},
-            Button, Column, Rule, Space,
-        },
-        Theme,
+        widget::{column, Button, Column, Rule, Space},
     },
     *,
 };
 
 use std::collections::HashMap;
 
-use crate::{
-    app::AppMessage,
-    components::{self, text_field},
-    unlocked::app_view,
-};
+use crate::{app::AppMessage, components, unlocked::app_view};
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, container, image::Handle, row, text, Container},
@@ -41,7 +31,6 @@ const PICK_LIST_DEFAULT_TEXT: &'static str = "Select account";
 pub enum Message {
     OverView,
     SelectAccount(Account),
-    UpdateMessage(String),
     // UpdateTextMessage(Edit),
     RemoveRecipient(usize),
     UpdateResourceAmount(usize, ResourceAddress, String),
@@ -91,8 +80,7 @@ pub struct TransactionView {
     pub(crate) from_account: Option<Account>,
     pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
-    pub(crate) message: String,
-    pub(crate) editor: components::text_field::TextField,
+    pub(crate) text_field: components::text_field::TextField,
     pub(crate) view: View,
 }
 
@@ -105,8 +93,7 @@ impl TransactionView {
             from_account,
             resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
-            message: String::new(),
-            editor: components::text_field::TextField::new(),
+            text_field: components::text_field::TextField::new(),
             view: View::Transaction,
         }
     }
@@ -116,8 +103,7 @@ impl TransactionView {
             from_account: None,
             resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
-            message: String::new(),
-            editor: components::text_field::TextField::new(),
+            text_field: components::text_field::TextField::new(),
             view: View::Transaction,
         }
     }
@@ -132,10 +118,6 @@ impl<'a> TransactionView {
         match message {
             Message::OverView => self.view = View::Transaction,
             Message::SelectAccount(account) => self.from_account = Some(account),
-            Message::UpdateMessage(message) => self.message = message,
-            // Message::UpdateTextMessage(edit) => {
-            //     self.editor.perform(widget::text_editor::Action::Edit(edit))
-            // }
             Message::RemoveRecipient(recipient_index) => self.remove_recipient(recipient_index),
             Message::UpdateResourceAmount(account_index, resource, amount) => {
                 self.update_resource_amount(account_index, resource, amount)
@@ -173,7 +155,7 @@ impl<'a> TransactionView {
             }
             Message::TextFieldMessage(message) => {
                 return self
-                    .editor
+                    .text_field
                     .update(message)
                     .map(|message| Message::TextFieldMessage(message).into())
             }
@@ -281,7 +263,7 @@ impl<'a> TransactionView {
         let label = Self::field_label("Message");
 
         let text_field = self
-            .editor
+            .text_field
             .view(|m| Message::TextFieldMessage(m).into())
             .placeholder("Enter Message")
             .height(120);
