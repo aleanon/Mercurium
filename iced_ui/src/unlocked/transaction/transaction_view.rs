@@ -106,7 +106,7 @@ impl TransactionView {
             resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
             message: String::new(),
-            editor: components::text_field::TextField::new("Enter message", 60, Some(200)),
+            editor: components::text_field::TextField::new(),
             view: View::Transaction,
         }
     }
@@ -117,7 +117,7 @@ impl TransactionView {
             resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
             message: String::new(),
-            editor: components::text_field::TextField::new("Enter message", 60, Some(200)),
+            editor: components::text_field::TextField::new(),
             view: View::Transaction,
         }
     }
@@ -280,14 +280,11 @@ impl<'a> TransactionView {
     fn message(&'a self) -> Container<'a, AppMessage> {
         let label = Self::field_label("Message");
 
-        // let text_field = widget::text_editor(&self.editor)
-        //     .on_action(|action| match action {
-        //         Action::Edit(edit) => Message::UpdateTextMessage(edit).into(),
-        //         _ => AppMessage::None,
-        //     })
-        //     .placeholder("Enter Message")
-        //     .height(60);
-        let text_field: Element<'_, AppMessage, Theme, iced::Renderer> = self.editor.view();
+        let text_field = self
+            .editor
+            .view(|m| Message::TextFieldMessage(m).into())
+            .placeholder("Enter Message")
+            .height(120);
 
         let col = widget::column![label, text_field]
             .spacing(5)
