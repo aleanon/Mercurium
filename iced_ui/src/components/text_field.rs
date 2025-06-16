@@ -34,7 +34,7 @@ impl TextField {
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) {
         match message {
             Message::Edit(edit) => self.content.perform(Action::Edit(edit)),
             Message::SelectWord => self.content.perform(Action::SelectWord),
@@ -46,29 +46,25 @@ impl TextField {
             Message::Move(motion) => self.content.perform(Action::Move(motion)),
             Message::Scroll(lines) => self.content.perform(Action::Scroll { lines }),
         }
-        Task::none()
     }
 
-    pub fn view<M>(
-        &self,
-        map_message: fn(Message) -> M,
-    ) -> TextEditor<'_, PlainText, M, Theme, iced::Renderer>
+    pub fn view<F, M>(&self, map: F) -> TextEditor<'_, PlainText, M, Theme, iced::Renderer>
     where
-        // F: Fn(Message) -> M + 'static,
+        F: Fn(Message) -> M + 'static,
         M: Clone + 'static,
     {
         TextEditor::new(&self.content)
             .key_binding(Self::key_bindings)
             .on_action(move |action| match action {
-                Action::Edit(edit) => map_message(Message::Edit(edit)),
-                Action::Click(point) => map_message(Message::Click(point)),
-                Action::Drag(point) => map_message(Message::Drag(point)),
-                Action::Move(motion) => map_message(Message::Move(motion)),
-                Action::Scroll { lines } => map_message(Message::Scroll(lines)),
-                Action::SelectWord => map_message(Message::SelectWord),
-                Action::SelectLine => map_message(Message::SelectLine),
-                Action::SelectAll => map_message(Message::SelectAll),
-                Action::Select(motion) => map_message(Message::Select(motion)),
+                Action::Edit(edit) => map(Message::Edit(edit)),
+                Action::Click(point) => map(Message::Click(point)),
+                Action::Drag(point) => map(Message::Drag(point)),
+                Action::Move(motion) => map(Message::Move(motion)),
+                Action::Scroll { lines } => map(Message::Scroll(lines)),
+                Action::SelectWord => map(Message::SelectWord),
+                Action::SelectLine => map(Message::SelectLine),
+                Action::SelectAll => map(Message::SelectAll),
+                Action::Select(motion) => map(Message::Select(motion)),
             })
     }
 

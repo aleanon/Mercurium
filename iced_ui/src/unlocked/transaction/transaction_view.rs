@@ -153,12 +153,7 @@ impl<'a> TransactionView {
                     .resources
                     .remove(&resource_address);
             }
-            Message::TextFieldMessage(message) => {
-                return self
-                    .text_field
-                    .update(message)
-                    .map(|message| Message::TextFieldMessage(message).into())
-            }
+            Message::TextFieldMessage(message) => self.text_field.update(message),
         }
 
         Task::none()
