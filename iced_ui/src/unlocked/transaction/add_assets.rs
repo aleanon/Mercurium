@@ -3,7 +3,9 @@ use deps::*;
 use std::{collections::HashMap, str::FromStr};
 
 use iced::{
-    widget::{self, button, checkbox, column, container, image::Handle, row, text, Container, TextInput},
+    widget::{
+        self, button, checkbox, column, container, image::Handle, row, text, Container, TextInput,
+    },
     Element, Length, Padding, Task,
 };
 
@@ -16,7 +18,7 @@ use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppMessage, unlocked::app_view};
 
-use super::transaction_view::{self, Recipient};
+use super::create_transaction::{self, Recipient};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -34,7 +36,7 @@ pub enum Message {
 impl Into<AppMessage> for Message {
     fn into(self) -> AppMessage {
         AppMessage::AppView(app_view::Message::TransactionMessage(
-            super::transaction_view::Message::AddAssetsMessage(self),
+            super::create_transaction::Message::AddAssetsMessage(self),
         ))
     }
 }
@@ -187,7 +189,7 @@ impl<'a> AddAssets {
             }
         }
 
-        Task::perform(async {}, |_| transaction_view::Message::OverView.into())
+        Task::perform(async {}, |_| create_transaction::Message::OverView.into())
     }
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
@@ -355,7 +357,12 @@ impl<'a> AddAssets {
                             .resource_icons()
                             .get(&token.resource_address)
                             .and_then(|bytes| {
-                                Some(widget::image(Handle::from_bytes(bytes.clone())).width(40).height(40).into())
+                                Some(
+                                    widget::image(Handle::from_bytes(bytes.clone()))
+                                        .width(40)
+                                        .height(40)
+                                        .into(),
+                                )
                             })
                             .unwrap_or(
                                 container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))

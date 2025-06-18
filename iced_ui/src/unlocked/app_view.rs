@@ -18,7 +18,7 @@ use super::{
         overlay::{self, Overlay, SpawnOverlay},
         receive::Receive,
     },
-    transaction::{self, transaction_view::TransactionView},
+    transaction::{self, create_transaction::CreateTransaction},
 };
 
 #[derive(Debug, Clone)]
@@ -26,7 +26,7 @@ pub enum Message {
     SelectTab(TabId),
     AccountsViewMessage(super::accounts::accounts_view::Message),
     NewTransaction(Option<Account>),
-    TransactionMessage(transaction::transaction_view::Message),
+    TransactionMessage(transaction::create_transaction::Message),
     SpawnOverlay(SpawnOverlay),
     CloseOverlay,
     OverlayMessage(overlay::Message),
@@ -41,7 +41,7 @@ impl Into<AppMessage> for Message {
 #[derive(Debug)]
 pub enum ActiveTab {
     Accounts(accounts::AccountsView),
-    Transfer(TransactionView),
+    Transfer(CreateTransaction),
 }
 
 #[derive(Debug, Clone)]
@@ -105,7 +105,7 @@ impl<'a> AppView {
         match tab_id {
             TabId::Accounts => self.active_tab = ActiveTab::Accounts(accounts::AccountsView::new()),
             TabId::Transfer => {
-                self.active_tab = ActiveTab::Transfer(TransactionView::new(None, None))
+                self.active_tab = ActiveTab::Transfer(CreateTransaction::new(None, None))
             }
         }
     }
@@ -133,10 +133,10 @@ impl<'a> AppView {
                     });
 
                 self.active_tab =
-                    ActiveTab::Transfer(TransactionView::new(from_account, asset_amounts));
+                    ActiveTab::Transfer(CreateTransaction::new(from_account, asset_amounts));
             }
             None => {
-                self.active_tab = ActiveTab::Transfer(TransactionView::new(None, None));
+                self.active_tab = ActiveTab::Transfer(CreateTransaction::new(None, None));
             }
         }
     }
@@ -207,7 +207,8 @@ impl<'a> AppView {
         let transaction_icon = text(Bootstrap::ArrowBarUp).font(BOOTSTRAP_FONT);
         let message = match &self.active_tab {
             ActiveTab::Transfer(_) => {
-                Message::TransactionMessage(transaction::transaction_view::Message::OverView).into()
+                Message::TransactionMessage(transaction::create_transaction::Message::OverView)
+                    .into()
             }
             _ => Message::SelectTab(TabId::Transfer).into(),
         };

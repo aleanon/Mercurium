@@ -11,7 +11,7 @@ use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppMessage, unlocked::app_view};
 
-use super::transaction_view::{self, Recipient};
+use super::create_transaction::{self, Recipient};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -23,7 +23,7 @@ pub enum Message {
 impl Into<AppMessage> for Message {
     fn into(self) -> AppMessage {
         AppMessage::AppView(app_view::Message::TransactionMessage(
-            transaction_view::Message::ChooseRecipientMessage(self),
+            create_transaction::Message::ChooseRecipientMessage(self),
         ))
     }
 }
@@ -83,7 +83,7 @@ impl<'a> AddRecipient {
 
     fn submit(&mut self, recipients: &'a mut Vec<Recipient>) -> Task<AppMessage> {
         recipients[self.recipient_index].address = self.chosen_account.take();
-        Task::perform(async {}, |_| transaction_view::Message::OverView.into())
+        Task::perform(async {}, |_| create_transaction::Message::OverView.into())
     }
 
     pub fn view(&self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {

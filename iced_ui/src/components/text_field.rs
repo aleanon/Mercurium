@@ -6,7 +6,7 @@ use deps::iced::{
         text_editor::{self, Action, Binding, Content, Edit, KeyPress, Motion},
         TextEditor,
     },
-    Point, Task, Theme,
+    Point, Theme,
 };
 
 #[derive(Debug, Clone)]
@@ -69,6 +69,7 @@ impl TextField {
     }
 
     fn key_bindings<M: Clone + 'static>(key_press: KeyPress) -> Option<Binding<M>> {
+        // Needs fixing, custom bindings don't work
         match key_press {
             KeyPress {
                 key: Key::Named(Named::Backspace),

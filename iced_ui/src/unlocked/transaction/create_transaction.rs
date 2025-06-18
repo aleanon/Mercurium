@@ -25,8 +25,6 @@ use super::{
     add_recipient::{self, AddRecipient},
 };
 
-const PICK_LIST_DEFAULT_TEXT: &'static str = "Select account";
-
 #[derive(Debug, Clone)]
 pub enum Message {
     OverView,
@@ -38,10 +36,7 @@ pub enum Message {
     AddRecipient,
     ChooseRecipientMessage(add_recipient::Message),
     ///Pass the index of the account to add assets for
-    AddAssets {
-        recipient_index: usize,
-        from_account: AccountAddress,
-    },
+    AddAssets(usize),
     AddAssetsMessage(add_assets::Message),
     TextFieldMessage(components::text_field::Message),
     RemoveAsset(usize, ResourceAddress),
@@ -76,7 +71,7 @@ pub enum View {
 }
 
 #[derive(Debug)]
-pub struct TransactionView {
+pub struct CreateTransaction {
     pub(crate) from_account: Option<Account>,
     pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
@@ -84,7 +79,7 @@ pub struct TransactionView {
     pub(crate) view: View,
 }
 
-impl TransactionView {
+impl CreateTransaction {
     pub fn new(
         from_account: Option<Account>,
         account_resources: Option<HashMap<ResourceAddress, Decimal>>,
@@ -109,7 +104,7 @@ impl TransactionView {
     }
 }
 
-impl<'a> TransactionView {
+impl<'a> CreateTransaction {
     pub fn update(
         &mut self,
         message: Message,
@@ -130,10 +125,11 @@ impl<'a> TransactionView {
                 self.view = View::ChooseRecipient(AddRecipient::new(recipient_index, from_address))
             }
             Message::AddRecipient => self.recipients.push(Recipient::new(None)),
-            Message::AddAssets {
-                recipient_index,
-                from_account,
-            } => self.create_new_add_assets_view(recipient_index, from_account),
+            Message::AddAssets(recipient_index) => {
+                if let Some(account) = &self.from_account {
+                    self.create_new_add_assets_view(recipient_index, account.address.clone())
+                }
+            }
             Message::AddAssetsMessage(add_assets_message) => {
                 if let View::AddAssets(add_assets) = &mut self.view {
                     return add_assets.update(add_assets_message, &mut self.recipients, wallet);
@@ -233,7 +229,6 @@ impl<'a> TransactionView {
             message_field
         ]
         .spacing(30)
-        .width(600)
         .height(Length::Shrink)
         .padding(Padding {
             left: 10.,
@@ -243,15 +238,28 @@ impl<'a> TransactionView {
 
         let scrollable = widget::scrollable(fields).style(styles::scrollable::vertical_scrollable);
 
-        widget::container(scrollable)
+        let page_top = widget::container(scrollable)
             .height(Length::Fill)
             .center_x(Length::Fill)
             .padding(Padding {
                 left: 5.,
                 right: 5.,
+                bottom: 10.,
                 ..Padding::ZERO
-            })
-            .into()
+            });
+
+        let create_transaction = container(
+            button(text("Create transaction").width(Length::Fill).center())
+                .width(Length::Fill)
+                .height(50),
+        )
+        .padding(Padding {
+            left: 15.,
+            right: 20.,
+            ..Padding::ZERO
+        });
+
+        column![page_top, create_transaction].into()
     }
 
     fn message(&'a self) -> Container<'a, AppMessage> {
@@ -261,6 +269,7 @@ impl<'a> TransactionView {
             .text_field
             .view(|m| Message::TextFieldMessage(m).into())
             .placeholder("Enter Message")
+            .padding(10)
             .height(120);
 
         let col = widget::column![label, text_field]
@@ -354,15 +363,11 @@ impl<'a> TransactionView {
             right: 10.,
         })
         .style(styles::button::choose_account)
-        .on_press_maybe(self.from_account.as_ref().and_then(|account| {
-            Some(
-                Message::AddAssets {
-                    recipient_index: recipient_index,
-                    from_account: account.address.clone(),
-                }
-                .into(),
-            )
-        }));
+        .on_press_maybe(
+            self.from_account
+                .as_ref()
+                .and_then(|_| Some(Message::AddAssets(recipient_index).into())),
+        );
 
         let recipient = widget::column![choose_recipient_button, assets, add_assets]
             .width(Length::Fill)
