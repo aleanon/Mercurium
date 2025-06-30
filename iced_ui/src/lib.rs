@@ -11,6 +11,7 @@ mod components;
 mod error;
 mod initial;
 mod locked;
+mod styles;
 mod unlocked;
 
 pub use app::App;

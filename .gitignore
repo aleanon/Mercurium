@@ -1,5 +1,6 @@
 /target
 /target-bin
 /.vscode
+/.0_Archive
 entity_details.json
 transactions.json

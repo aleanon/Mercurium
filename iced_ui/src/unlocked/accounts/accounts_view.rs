@@ -1,12 +1,10 @@
 use deps::{iced::widget::image::Handle, *};
 
-use std::{
-    collections::{BTreeSet, HashMap},
-    io::Read,
-};
+use std::collections::{BTreeSet, HashMap};
 
 use crate::{
     app::AppMessage,
+    styles,
     unlocked::{app_view, overlays::overlay::SpawnOverlay},
 };
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};

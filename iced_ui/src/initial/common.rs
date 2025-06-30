@@ -1,9 +1,11 @@
 use deps::*;
 
-use iced::{ widget::{self, text::LineHeight, Button, Row}, Length
+use iced::{
+    widget::{self, text::LineHeight, Button, Row},
+    Length,
 };
 
-use crate::app::AppMessage;
+use crate::{app::AppMessage, styles};
 
 pub fn nav_button<'a, Message: Clone>(text: &'a str, on_press: Message) -> Button<'a, Message> {
     Button::new(
@@ -22,19 +24,23 @@ pub fn nav_row<'a, Message: Clone + 'a>(
     next: Button<'a, Message>,
 ) -> Row<'a, Message> {
     let space = widget::Space::with_width(Length::Fill);
-    widget::row![back, space, next]
-        .align_y(iced::Alignment::Start)
+    widget::row![back, space, next].align_y(iced::Alignment::Start)
 }
 
-
-pub fn seed_word_field<'a, Message: Clone>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
+pub fn seed_word_field<'a, Message: Clone>(
+    placeholder: &str,
+    input: &str,
+) -> widget::TextInput<'a, Message> {
     widget::text_input(placeholder, input)
         .size(16)
         .width(100)
         .line_height(LineHeight::Relative(2.))
 }
 
-pub fn text_input_field<'a, Message: Clone + 'a>(placeholder: &str, input: &str) -> widget::TextInput<'a, Message> {
+pub fn text_input_field<'a, Message: Clone + 'a>(
+    placeholder: &str,
+    input: &str,
+) -> widget::TextInput<'a, Message> {
     widget::text_input(placeholder, input)
         .size(16)
         .width(250)

@@ -7,7 +7,10 @@ use iced::{
 use types::{address::Address, Account, AccountSummary};
 use wallet::{Setup, Wallet};
 
-use crate::initial::common::{nav_button, nav_row};
+use crate::{
+    initial::common::{nav_button, nav_row},
+    styles,
+};
 
 #[derive(Clone)]
 pub enum Message {

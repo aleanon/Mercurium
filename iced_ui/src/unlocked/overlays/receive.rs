@@ -10,7 +10,7 @@ use types::{
     debug_info, UnwrapUnreachable,
 };
 
-use crate::{app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, styles, unlocked::app_view};
 
 use super::overlay;
 

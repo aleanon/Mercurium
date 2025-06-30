@@ -7,6 +7,8 @@ use iced::{
     Length,
 };
 
+use crate::styles;
+
 pub fn password_input<'a, Message>(
     placeholder: &'static str,
     password: &str,

@@ -10,7 +10,7 @@ use iced::{
 };
 use wallet::{Unlocked, Wallet};
 
-use crate::app::AppMessage;
+use crate::{app::AppMessage, styles};
 use types::{address::Address, assets::FungibleAsset};
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);

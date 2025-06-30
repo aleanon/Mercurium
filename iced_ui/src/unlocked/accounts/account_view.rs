@@ -1,11 +1,9 @@
 use deps::*;
 
-use std::collections::BTreeSet;
-
 use crate::app::AppMessage;
-use crate::common;
 use crate::unlocked::app_view;
 use crate::unlocked::overlays::overlay::SpawnOverlay;
+use crate::{common, styles};
 
 use iced::widget::button;
 use iced::widget::image::Handle;
@@ -18,7 +16,6 @@ use iced::{
 
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use types::address::{AccountAddress, Address};
-use types::assets::FungibleAsset;
 use types::Account;
 use wallet::Unlocked;
 use wallet::Wallet;

@@ -1,6 +1,6 @@
 use deps::iced::{
     widget::pick_list::{Status, Style},
-    Background, Border, Element, Theme,
+    Background, Border, Theme,
 };
 
 pub fn from_account(theme: &Theme, status: Status) -> Style {

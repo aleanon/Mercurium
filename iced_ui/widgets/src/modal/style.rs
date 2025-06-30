@@ -24,7 +24,7 @@ impl Default for Appearance {
     }
 }
 /// The appearance of a [`Modal`](crate::native::Modal).
-pub trait StyleSheet {
+pub trait Catalog {
     ///Style for the trait to use.
     type Style: Default + Clone;
     /// The normal appearance of a [`Modal`](crate::native::Modal).
@@ -37,17 +37,17 @@ pub trait StyleSheet {
 pub enum ModalStyles {
     #[default]
     Default,
-    Custom(Rc<dyn StyleSheet<Style = Theme>>),
+    Custom(Rc<dyn Catalog<Style = Theme>>),
 }
 
 impl ModalStyles {
     /// Creates a custom [`ModalStyles`] style variant.
-    pub fn custom(style_sheet: impl StyleSheet<Style = Theme> + 'static) -> Self {
+    pub fn custom(style_sheet: impl Catalog<Style = Theme> + 'static) -> Self {
         Self::Custom(Rc::new(style_sheet))
     }
 }
 
-impl StyleSheet for Theme {
+impl Catalog for Theme {
     type Style = ModalStyles;
 
     fn active(&self, style: &Self::Style) -> Appearance {

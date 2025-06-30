@@ -1,13 +1,11 @@
 use deps::*;
-use no_mangle_if_debug::no_mangle_if_debug;
 
-pub use iced::{
+use iced::{
     border::Radius,
     widget::rule::{FillMode, Style},
     Theme,
 };
 
-#[no_mangle_if_debug]
 pub fn text_input_rule(theme: &Theme) -> Style {
     Style {
         radius: Radius {

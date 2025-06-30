@@ -9,19 +9,19 @@ use deps::*;
 use modal_overlay::ModalOverlay;
 
 use iced::{
+    Element, Event, Length, Rectangle, Size, Vector,
     advanced::{
+        Clipboard, Layout, Shell, Widget,
         layout::{Limits, Node},
         overlay::{self, Group},
         renderer,
         widget::{Operation, Tree},
-        Clipboard, Layout, Shell, Widget,
     },
     alignment, event,
     mouse::{self, Cursor},
-    Element, Event, Length, Rectangle, Size, Vector,
 };
 
-pub use style::StyleSheet;
+pub use style::Catalog;
 
 /// A modal content as an overlay.
 ///
@@ -49,7 +49,7 @@ pub struct Modal<'a, Message, Theme = iced::Theme, Renderer = iced::Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     /// The underlying element.
     underlay: Element<'a, Message, Theme, Renderer>,
@@ -60,7 +60,7 @@ where
     /// The optional message that will be send when the ESC key was pressed.
     esc: Option<Message>,
     /// The style of the [`ModalOverlay`].
-    style: <Theme as StyleSheet>::Style,
+    style: <Theme as Catalog>::Style,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 }
@@ -69,7 +69,7 @@ impl<'a, Message, Theme, Renderer> Modal<'a, Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     /// Creates a new [`Modal`] wrapping the underlying element to show some content as an overlay.
     ///
@@ -88,7 +88,7 @@ where
             overlay: overlay.map(Into::into),
             backdrop: None,
             esc: None,
-            style: <Theme as StyleSheet>::Style::default(),
+            style: <Theme as Catalog>::Style::default(),
             horizontal_alignment: alignment::Horizontal::Center,
             vertical_alignment: alignment::Vertical::Center,
         }
@@ -128,7 +128,7 @@ where
 
     /// Sets the style of the [`Modal`].
     #[must_use]
-    pub fn style(mut self, style: <Theme as StyleSheet>::Style) -> Self {
+    pub fn style(mut self, style: <Theme as Catalog>::Style) -> Self {
         self.style = style;
         self
     }
@@ -139,13 +139,12 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     fn size_hint(&self) -> Size<Length> {
         self.underlay.as_widget().size_hint()
     }
 
-        
     fn children(&self) -> Vec<Tree> {
         self.overlay.as_ref().map_or_else(
             || vec![Tree::new(&self.underlay)],
@@ -247,7 +246,7 @@ where
     //         _renderer: &Renderer,
     //         _translation: Vector,
     //     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        
+
     // }
 
     // fn overlay<'b>(
@@ -314,7 +313,7 @@ impl<'a, Message, Theme, Renderer> From<Modal<'a, Message, Theme, Renderer>>
 where
     Message: 'a + Clone,
     Renderer: 'a + renderer::Renderer,
-    Theme: 'a + StyleSheet,
+    Theme: 'a + Catalog,
 {
     fn from(modal: Modal<'a, Message, Theme, Renderer>) -> Self {
         Element::new(modal)

@@ -10,7 +10,7 @@ members = [
     "4_font_and_icons",
     "5_wallet",
     "iced_ui",
-    "iced_ui/styles",
+    # "iced_ui/styles",
     "mercurium",
 ]
 workspace.resolver = "3"

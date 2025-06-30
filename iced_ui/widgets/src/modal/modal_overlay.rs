@@ -4,7 +4,7 @@
 
 use deps::*;
 
-use super::style::StyleSheet;
+use super::style::Catalog;
 use iced::{
     Alignment, Border, Color, Element, Event, Rectangle, Shadow, Size, Vector,
     advanced::{
@@ -24,7 +24,7 @@ pub struct ModalOverlay<'a, 'b, Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     /// The state of the [`ModalOverlay`](ModalOverlay).
     state: &'b mut Tree,
@@ -35,7 +35,7 @@ where
     /// The optional message that will be send when the ESC key was pressed.
     esc: Option<Message>,
     /// The style of the [`ModalOverlay`](ModalOverlay).
-    style: <Theme as StyleSheet>::Style,
+    style: <Theme as Catalog>::Style,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 }
@@ -44,7 +44,7 @@ impl<'a, 'b, Message, Theme, Renderer> ModalOverlay<'a, 'b, Message, Theme, Rend
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     /// Creates a new [`ModalOverlay`](ModalOverlay).
     pub fn new(
@@ -52,7 +52,7 @@ where
         content: &'b mut Element<'a, Message, Theme, Renderer>,
         backdrop: Option<Message>,
         esc: Option<Message>,
-        style: <Theme as StyleSheet>::Style,
+        style: <Theme as Catalog>::Style,
         horizontal_alignment: alignment::Horizontal,
         vertical_alignment: alignment::Vertical,
     ) -> Self {
@@ -73,7 +73,7 @@ impl<'a, 'b, Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: renderer::Renderer,
-    Theme: StyleSheet,
+    Theme: Catalog,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> Node {
         let limits = Limits::new(Size::ZERO, bounds);

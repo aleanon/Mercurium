@@ -1,21 +1,8 @@
-use std::default;
-
-use deps::{
-    iced::{
-        gradient::{ColorStop, Linear},
-        widget, Gradient, Radians,
-    },
-    rand::distr::weighted::Weight,
-    *,
+use deps::iced;
+use iced::{
+    border::Radius, widget::container::Style, Background, Border, Color, Shadow, Theme, Vector,
 };
-use no_mangle_if_debug::no_mangle_if_debug;
 
-use iced::{border::Radius, Background, Border, Color, Shadow, Vector};
-
-//re export for the hot reloading module
-pub use iced::{widget::container::Style, Theme};
-
-#[no_mangle_if_debug]
 pub fn main_window(theme: &Theme) -> Style {
     // Style::default()
     // style.background = Some(Background::Color(Color::from_rgb8(50, 50, 50)));
@@ -27,7 +14,6 @@ pub fn main_window(theme: &Theme) -> Style {
     // style
 }
 
-#[no_mangle_if_debug]
 pub fn menu_container(theme: &Theme) -> Style {
     let mut style = Style::default();
     let palette = theme.extended_palette();
@@ -79,7 +65,6 @@ pub fn menu_container(theme: &Theme) -> Style {
     // }
 }
 
-#[no_mangle_if_debug]
 pub fn center_panel(theme: &Theme) -> Style {
     // let mut background = theme.extended_palette().background.base.color;
     // background.a -= 0.004;
@@ -113,7 +98,6 @@ pub fn token_container(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn seed_word_wrapper(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     let background_color = Color::from_rgb8(40, 40, 40);
@@ -129,7 +113,6 @@ pub fn seed_word_wrapper(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn account_overview(theme: &Theme) -> Style {
     let extended_palette = theme.extended_palette();
     let background_base = extended_palette.background.base;
@@ -165,7 +148,6 @@ pub fn account_overview(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn asset_list_item(theme: &Theme) -> Style {
     let background = theme.extended_palette().background.base;
     let mut background_color = background.color;
@@ -184,7 +166,6 @@ pub fn asset_list_item(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn overlay_container(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.base.color;
@@ -196,7 +177,6 @@ pub fn overlay_container(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn overlay_inner(theme: &Theme) -> Style {
     let mut style = center_panel(theme);
     style.border.radius = Radius::from(10.);
@@ -205,7 +185,6 @@ pub fn overlay_inner(theme: &Theme) -> Style {
     style
 }
 
-#[no_mangle_if_debug]
 pub fn notification_success(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     Style {
@@ -215,7 +194,6 @@ pub fn notification_success(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn notification_error(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
     Style {
@@ -225,7 +203,6 @@ pub fn notification_error(theme: &Theme) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn password_input(theme: &Theme) -> Style {
     Style {
         background: None,

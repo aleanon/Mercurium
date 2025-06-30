@@ -1095,55 +1095,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dynbutton"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
-name = "dyncontainer"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
-name = "dynpick_list"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
-name = "dynrule"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
-name = "dynscrollable"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
-name = "dyntext"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
-name = "dyntext_input"
-version = "0.1.0"
-dependencies = [
- "deps",
-]
-
-[[package]]
 name = "ed25519"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2248,7 +2199,6 @@ dependencies = [
  "font_and_icons",
  "handles",
  "store",
- "styles",
  "types",
  "wallet",
  "widgets",
@@ -4901,19 +4851,6 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 2.0.104",
-]
-
-[[package]]
-name = "styles"
-version = "0.1.0"
-dependencies = [
- "dynbutton",
- "dyncontainer",
- "dynpick_list",
- "dynrule",
- "dynscrollable",
- "dyntext",
- "dyntext_input",
 ]
 
 [[package]]

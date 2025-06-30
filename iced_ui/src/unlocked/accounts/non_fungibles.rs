@@ -1,22 +1,18 @@
 use deps::*;
 
-use debug_print::debug_println;
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, column, container, image::Handle, row, text, Button},
     Element, Length, Padding, Task,
 };
-use store::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
 
 use crate::{
     app::AppMessage,
+    styles,
     unlocked::{accounts::non_fungible, app_view},
 };
-use types::{
-    address::AccountAddress,
-    assets::{FungibleAsset, NonFungibleAsset},
-};
+use types::{address::AccountAddress, assets::NonFungibleAsset};
 
 use super::{
     account_view, accounts_view,

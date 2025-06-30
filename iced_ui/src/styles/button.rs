@@ -1,17 +1,11 @@
-use deps::{
-    iced::{theme::palette, widget::container::background},
-    *,
-};
-use no_mangle_if_debug::no_mangle_if_debug;
+use deps::iced;
 
-use iced::{border::Radius, Background, Border, Color, Shadow, Vector};
-
-pub use iced::{
+use iced::{
+    border::Radius,
     widget::button::{Status, Style},
-    Theme,
+    Background, Border, Color, Shadow, Theme, Vector,
 };
 
-#[no_mangle_if_debug]
 pub fn setup_selection(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -37,7 +31,6 @@ pub fn setup_selection(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -53,7 +46,6 @@ pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn general_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.weakest.color;
@@ -86,7 +78,6 @@ pub fn general_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn choose_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.base.color;
@@ -116,7 +107,6 @@ pub fn choose_account(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn menu_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -146,7 +136,6 @@ pub fn menu_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn selected_menu_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -157,7 +146,6 @@ pub fn selected_menu_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn account_button(theme: &Theme, status: Status) -> Style {
     let ext_palette = theme.extended_palette();
     let mut background_color = ext_palette.background.weakest.color;
@@ -197,7 +185,6 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-#[no_mangle_if_debug]
 pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {

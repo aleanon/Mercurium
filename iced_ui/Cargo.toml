@@ -22,7 +22,7 @@ store = { path = "../2_store" }
 handles = { path = "../3_handles" }
 font_and_icons = { path = "../4_font_and_icons" }
 wallet = { path = "../5_wallet" }
-styles = { path = "styles" }
+# styles = { path = "styles" }
 widgets = { path = "widgets" }
 # zeroize = { workspace = true }
 # iced = { workspace = true }

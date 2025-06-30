@@ -16,7 +16,7 @@ use types::{
 };
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, styles, unlocked::app_view};
 
 use super::create_transaction::{self, Recipient};
 

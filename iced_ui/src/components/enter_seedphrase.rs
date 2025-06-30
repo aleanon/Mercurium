@@ -1,16 +1,21 @@
 use deps::*;
 
-use iced::{widget::{self, text::LineHeight, text_input::Id, Column}, Length};
+use iced::{
+    widget::{self, text::LineHeight, text_input::Id, Column},
+    Length,
+};
 use types::crypto::SeedPhrase;
 
+use crate::styles;
+
 pub fn input_seed<'a, Message>(
-    seed_phrase: &SeedPhrase, 
+    seed_phrase: &SeedPhrase,
     on_input: fn(usize, String) -> Message,
     on_paste: fn(usize, String) -> Message,
-    ) -> Column<'a, Message> 
-    where
-        Message: Clone + 'a,
-    {
+) -> Column<'a, Message>
+where
+    Message: Clone + 'a,
+{
     let mut seed = widget::column![]
         .width(Length::Shrink)
         .height(Length::Shrink)
@@ -32,15 +37,15 @@ pub fn input_seed<'a, Message>(
 
         let text_field = widget::text_input(&format!("Word {}", index + 1), word)
             .size(16)
-            .width(Length::Fill) 
+            .width(Length::Fill)
             .line_height(LineHeight::Relative(2.))
             .id(Id::new(format!("{index}")))
             .style(styles::text_input::seed_word_input)
             .on_input(move |input| on_input(index, input))
             .on_paste(move |input| on_paste(index, input));
-            
-        let text_wrapper = widget::container(text_field)
-            .style(styles::container::seed_word_wrapper);
+
+        let text_wrapper =
+            widget::container(text_field).style(styles::container::seed_word_wrapper);
 
         row = row.push(text_wrapper);
     }

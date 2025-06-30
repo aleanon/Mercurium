@@ -4,7 +4,7 @@ use deps::{
     debug_print::debug_println,
     iced::{
         alignment::{self, Horizontal},
-        widget::{button, column, scrollable, text::Wrapping, Rule, Space},
+        widget::{button, column, scrollable, Rule, Space},
         Task,
     },
     *,
@@ -20,7 +20,7 @@ use wallet::{Unlocked, Wallet};
 
 use crate::{
     app::AppMessage,
-    common,
+    common, styles,
     unlocked::accounts::{self, account_view, non_fungibles},
 };
 use types::{

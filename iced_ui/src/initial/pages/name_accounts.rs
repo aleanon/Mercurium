@@ -14,7 +14,10 @@ use iced::{
 use types::{address::Address, Account};
 use wallet::{wallet::Wallet, Setup};
 
-use crate::initial::common::{nav_button, nav_row};
+use crate::{
+    initial::common::{nav_button, nav_row},
+    styles,
+};
 
 #[derive(Clone)]
 pub enum Message {

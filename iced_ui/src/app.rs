@@ -1,3 +1,4 @@
+use deps::hot_ice::HotMessage;
 use deps::*;
 use no_mangle_if_debug::no_mangle_if_debug;
 use std::borrow::Cow;
@@ -64,7 +65,19 @@ pub struct App {
 }
 
 impl App {
+    #[cfg(debug_assertions)]
+    pub fn new() -> (Self, Task<HotMessage>) {
+        let (app, task) = Self::inner_new();
+        (app, task.map(HotMessage::from_message))
+    }
+
+    #[cfg(not(debug_assertions))]
     pub fn new() -> (Self, Task<AppMessage>) {
+        let (app, task) = Self::inner_new();
+        (app, task)
+    }
+
+    pub fn inner_new() -> (Self, Task<AppMessage>) {
         let settings = wallet::Settings::load_from_disk_or_default();
 
         let app_state =
@@ -96,8 +109,19 @@ impl App {
         (app, Task::none())
     }
 
-    // #[no_mangle_if_debug]
+    #[no_mangle]
+    #[cfg(debug_assertions)]
+    pub fn update(&mut self, message: HotMessage) -> Task<HotMessage> {
+        let message = message.into_message().unwrap();
+        self.inner_update(message).map(HotMessage::from_message)
+    }
+
+    #[cfg(not(debug_assertions))]
     pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
+        self.inner_update(message)
+    }
+
+    pub fn inner_update(&mut self, message: AppMessage) -> Task<AppMessage> {
         let mut task = Task::none();
         match message {
             AppMessage::Setup(message) => match message {
@@ -139,8 +163,18 @@ impl App {
         task
     }
 
-    #[no_mangle_if_debug]
+    #[no_mangle]
+    #[cfg(debug_assertions)]
+    pub fn view(&self) -> iced::Element<HotMessage> {
+        self.inner_view().map(HotMessage::from_message)
+    }
+
+    #[cfg(not(debug_assertions))]
     pub fn view(&self) -> iced::Element<AppMessage> {
+        self.inner_view()
+    }
+
+    pub fn inner_view(&self) -> iced::Element<AppMessage> {
         match &self.app_state {
             AppState::Initial(setup, wallet) => setup.view(self, wallet).map(|message| {
                 if let setup::Message::Error(err) = message {

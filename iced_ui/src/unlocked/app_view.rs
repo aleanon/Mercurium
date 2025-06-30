@@ -9,7 +9,7 @@ use std::{collections::HashMap, str::FromStr};
 use types::{address::ResourceAddress, Account, Decimal, RadixDecimal};
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppMessage, App};
+use crate::{app::AppMessage, styles, App};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},

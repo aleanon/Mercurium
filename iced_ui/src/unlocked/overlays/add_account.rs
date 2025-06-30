@@ -8,7 +8,7 @@ use types::crypto::Password;
 use wallet::{Unlocked, Wallet};
 use zeroize::Zeroize;
 
-use crate::{app::AppMessage, unlocked::app_view};
+use crate::{app::AppMessage, styles, unlocked::app_view};
 
 pub const INPUT_ACCOUNT_NAME: &'static str = "input_account_name";
 pub const INPUT_PASSWORD: &'static str = "input_password";
