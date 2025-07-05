@@ -169,8 +169,7 @@ impl<'a> AddAccount {
         //     )
         // }
         //     Err(err) => self.notification = format!("Unable to create account: {err}"),
-        // };
-
+        // }
         task
     }
 
@@ -179,11 +178,11 @@ impl<'a> AddAccount {
             View::InputAccountName => self.input_account_name(),
             View::InputPassword => self.input_password(),
         };
-        let notification = text(&self.notification);
+        // let notification = text(&self.notification);
 
-        let column = column![notification, content];
+        // let column = column![notification, content];
 
-        widget::container(column)
+        widget::container(content)
             .padding(10)
             .center_x(400)
             .center_y(400)
@@ -191,7 +190,7 @@ impl<'a> AddAccount {
             .into()
     }
 
-    fn input_account_name(&self) -> Element<'a, AppMessage> {
+    fn input_account_name(&'a self) -> Element<'a, AppMessage> {
         let header = text("Create new account")
             .size(16)
             .width(Length::Fill)
@@ -206,13 +205,16 @@ impl<'a> AddAccount {
                 .style(styles::text_input::general_input)
                 .on_submit(Message::Continue.into())
                 .on_input(|input| Message::InputAccountName(input).into())
-                .id(text_input::Id::new(INPUT_ACCOUNT_NAME));
+                .id(text_input::Id::new(INPUT_ACCOUNT_NAME))
+                .padding(10);
 
-            column!(label, account_name_input).spacing(2)
+            let notification = text(&self.notification).size(11);
+
+            column!(label, account_name_input, notification).spacing(10)
         };
 
         let bottom_space = Space::with_height(Length::Fill);
-        let continue_button = button("continue").on_press_maybe(if !self.password.is_empty() {
+        let continue_button = button("continue").on_press_maybe(if !self.account_name.is_empty() {
             Some(Message::Continue.into())
         } else {
             None
@@ -238,9 +240,12 @@ impl<'a> AddAccount {
                 .on_input(|input| Message::InputPassword(input).into())
                 .on_submit(Message::Submit.into())
                 .id(text_input::Id::new(INPUT_PASSWORD))
-                .secure(true);
+                .secure(true)
+                .padding(10);
 
-            column![label, password_input].spacing(2)
+            let notification = text(&self.notification);
+
+            column![label, password_input, notification].spacing(10)
         };
 
         let space = Space::with_height(Length::Fill);

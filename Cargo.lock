@@ -213,9 +213,9 @@ dependencies = [
 
 [[package]]
 name = "avif-serialize"
-version = "0.8.4"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19135c0c7a60bfee564dbe44ab5ce0557c6bf3884e5291a50be76a15640c4fbd"
+checksum = "2ea8ef51aced2b9191c08197f55450d830876d9933f8f48a429b354f1d496b42"
 dependencies = [
  "arrayvec",
 ]
@@ -1813,8 +1813,8 @@ dependencies = [
 
 [[package]]
 name = "hot_ice"
-version = "0.1.8"
-source = "git+https://github.com/aleanon/hot_ice.git?branch=main#e00fddad0a2337423b31a35d25f02c245bdd5233"
+version = "0.1.91"
+source = "git+https://github.com/aleanon/hot_ice.git?branch=main#ec449f51e6843f763f5f7d525732c793d467b53c"
 dependencies = [
  "crc32fast",
  "crossfire",
@@ -1824,7 +1824,7 @@ dependencies = [
  "iced_winit",
  "libloading",
  "log",
- "notify 8.0.0",
+ "notify 8.1.0",
  "notify-debouncer-full 0.5.0",
  "once_cell",
  "thiserror 2.0.12",
@@ -2639,9 +2639,9 @@ checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
 
 [[package]]
 name = "libfuzzer-sys"
-version = "0.4.9"
+version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf78f52d400cf2d84a3a973a78a592b4adc535739e0a5597a0da6f0c357adc75"
+checksum = "5037190e1f70cbeef565bd267599242926f724d3b8a9f510fd7e0b540cfa4404"
 dependencies = [
  "arbitrary",
  "cc",
@@ -3051,12 +3051,11 @@ dependencies = [
 
 [[package]]
 name = "notify"
-version = "8.0.0"
+version = "8.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fee8403b3d66ac7b26aee6e40a897d85dc5ce26f44da36b8b73e987cc52e943"
+checksum = "3163f59cd3fa0e9ef8c32f242966a7b9994fd7378366099593e0e73077cd8c97"
 dependencies = [
  "bitflags 2.9.1",
- "filetime",
  "fsevent-sys",
  "inotify 0.11.0",
  "kqueue",
@@ -3065,7 +3064,7 @@ dependencies = [
  "mio 1.0.4",
  "notify-types",
  "walkdir",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3090,7 +3089,7 @@ checksum = "d2d88b1a7538054351c8258338df7c931a590513fb3745e8c15eb9ff4199b8d1"
 dependencies = [
  "file-id",
  "log",
- "notify 8.0.0",
+ "notify 8.1.0",
  "notify-types",
  "walkdir",
 ]
@@ -6722,9 +6721,9 @@ dependencies = [
 
 [[package]]
 name = "zune-jpeg"
-version = "0.4.18"
+version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7384255a918371b5af158218d131530f694de9ad3815ebdd0453a940485cb0fa"
+checksum = "2c9e525af0a6a658e031e95f14b7f889976b74a11ba0eca5a5fc9ac8a1c43a6a"
 dependencies = [
  "zune-core",
 ]

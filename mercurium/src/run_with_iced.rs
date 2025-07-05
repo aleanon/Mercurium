@@ -34,13 +34,18 @@ pub fn run() -> Result<(), deps::iced::Error> {
         .run()?;
 
     #[cfg(feature = "reload")]
-    deps::hot_ice::hot_application("target/reload", App::new, App::update, App::view)
-        .title(types::consts::APPLICATION_NAME)
-        .settings(settings)
-        .theme(|app| app.preferences.theme.into())
-        .window(window_settings)
-        .run()
-        .unwrap();
+    deps::hot_ice::hot_application(
+        "target/reload",
+        App::inner_new,
+        App::inner_update,
+        App::inner_view,
+    )
+    .title(types::consts::APPLICATION_NAME)
+    .settings(settings)
+    .theme(|app| app.preferences.theme.into())
+    .window(window_settings)
+    .run()
+    .unwrap();
 
     Ok(())
 }

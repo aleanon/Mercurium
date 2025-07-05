@@ -171,16 +171,16 @@ impl<'a> AppView {
 
         let appview = widget::container(panels).style(styles::container::main_window);
 
-        // let overlay = self
-        //     .overlay
-        //     .as_ref()
-        //     .and_then(|overlay| Some(overlay.view(wallet)));
+        let overlay = self
+            .overlay
+            .as_ref()
+            .and_then(|overlay| Some(overlay.view(wallet)));
 
-        // widgets::Modal::new(appview, overlay)
-        //     .on_esc(Message::CloseOverlay.into())
-        //     .backdrop(Message::CloseOverlay.into())
-        //     .into()
-        appview.into()
+        widgets::Modal::new(appview, overlay)
+            .on_esc(Message::CloseOverlay.into())
+            .backdrop(Message::CloseOverlay.into())
+            .into()
+        // appview.into()
     }
 
     fn menu(&self, wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
