@@ -6,6 +6,8 @@ use iced::{
     Background, Border, Color, Shadow, Theme, Vector,
 };
 
+use crate::styles::colors::dark;
+
 pub fn setup_selection(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     match status {
@@ -46,17 +48,31 @@ pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
+pub fn primary(theme: &Theme, status: Status) -> Style {
+    match status {
+        Status::Active | Status::Pressed | Status::Disabled | Status::Hovered => Style {
+            background: Some(Background::Color(dark::ACCENT_PRIMARY)),
+            text_color: dark::TEXT_PRIMARY,
+            border: Border {
+                radius: Radius::from(5.),
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    }
+}
+
 pub fn general_button(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
-    let mut background_color = palette.background.weakest.color;
-    background_color.r -= 0.05;
-    background_color.g -= 0.05;
-    background_color.b -= 0.05;
+    // let mut background_color = palette.background.weakest.color;
+    // background_color.r -= 0.05;
+    // background_color.g -= 0.05;
+    // background_color.b -= 0.05;
 
     let shadow_color = palette.background.base.color;
     match status {
         Status::Active | Status::Pressed | Status::Disabled => Style {
-            background: Some(Background::Color(background_color)),
+            background: Some(Background::Color(dark::BACKGROUND_PRIMARY)),
             text_color: palette.primary.weak.text,
             border: Border {
                 radius: Radius::from(5),
@@ -78,7 +94,7 @@ pub fn general_button(theme: &Theme, status: Status) -> Style {
     }
 }
 
-pub fn choose_account(theme: &Theme, status: Status) -> Style {
+pub fn choose_recipient(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.base.color;
     background_color.r -= 0.03;
@@ -100,10 +116,10 @@ pub fn choose_account(theme: &Theme, status: Status) -> Style {
             background_color.r -= 0.03;
             background_color.g -= 0.03;
             background_color.b -= 0.03;
-            style.with_background(background_color)
+            style.with_background(dark::BACKGROUND_PRIMARY)
         }
-        Status::Hovered => style.with_background(background_color),
-        Status::Disabled => style.with_background(palette.background.weak.color),
+        Status::Hovered => style.with_background(dark::STATE_HOVER),
+        Status::Disabled => style.with_background(dark::STATE_HOVER),
     }
 }
 
@@ -158,11 +174,11 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
         Status::Active | Status::Pressed | Status::Disabled => {
             // background_color.a += 0.1;
             Style {
-                background: Some(iced::Background::Color(background_color)),
+                background: Some(iced::Background::Color(dark::BACKGROUND_PRIMARY)),
                 text_color: ext_palette.background.base.text,
                 border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.,
+                    color: dark::BORDER_SUBTLE,
+                    width: 1.,
                     radius: Radius::new(5),
                 },
                 shadow: Shadow {
@@ -174,11 +190,11 @@ pub fn account_button(theme: &Theme, status: Status) -> Style {
             }
         }
         Status::Hovered => {
-            background_color.r += 0.04;
-            background_color.g += 0.04;
-            background_color.b += 0.04;
+            // background_color.r += 0.04;
+            // background_color.g += 0.04;
+            // background_color.b += 0.04;
             Style {
-                background: Some(Background::Color(background_color)),
+                background: Some(Background::Color(dark::STATE_HOVER)),
                 ..account_button(theme, Status::Active)
             }
         }
@@ -195,7 +211,7 @@ pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
             background_color.b -= 0.02;
 
             Style {
-                background: Some(Background::Color(background_color)),
+                background: Some(Background::Color(dark::BACKGROUND_PRIMARY)),
                 text_color: palette.background.base.text,
                 ..Default::default()
             }
@@ -205,7 +221,7 @@ pub fn asset_list_button(theme: &Theme, status: Status) -> Style {
             background_color.a = 0.1;
 
             Style {
-                background: Some(Background::Color(background_color)),
+                background: Some(Background::Color(dark::STATE_HOVER)),
                 ..asset_list_button(theme, Status::Active)
             }
         }
@@ -222,7 +238,7 @@ pub fn nft_button(theme: &Theme, status: Status) -> Style {
             background_color.b -= 0.02;
 
             Style {
-                background: Some(Background::Color(background_color)),
+                background: Some(Background::Color(dark::BACKGROUND_CARD)),
                 text_color: palette.background.base.text,
                 border: Border {
                     radius: Radius::from(5.),
@@ -242,7 +258,7 @@ pub fn nft_button(theme: &Theme, status: Status) -> Style {
             background_color.a = 0.1;
 
             Style {
-                background: Some(Background::Color(background_color)),
+                background: Some(Background::Color(dark::STATE_HOVER)),
                 ..nft_button(theme, Status::Active)
             }
         }

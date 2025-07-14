@@ -108,7 +108,7 @@ impl<'a> NonFungibles {
                     .get(&self.account_addr)
                 {
                     for non_fungible in non_fungibles {
-                        let button = Self::fungible_list_button(non_fungible, wallet)
+                        let button = Self::non_fungible_list_button(non_fungible, wallet)
                             .on_press(Message::SelectNonFungible(non_fungible.clone()).into());
 
                         let button_container =
@@ -133,13 +133,13 @@ impl<'a> NonFungibles {
                 widget::scrollable(column)
                     .height(Length::Fill)
                     .width(Length::Fill)
-                    .style(styles::scrollable::vertical_scrollable)
+                    .style(styles::scrollable::vertical_scrollable_secondary)
                     .into()
             }
         }
     }
 
-    fn fungible_list_button(
+    fn non_fungible_list_button(
         fungible: &NonFungibleAsset,
         wallet: &'a Wallet<Unlocked>,
     ) -> Button<'a, AppMessage> {

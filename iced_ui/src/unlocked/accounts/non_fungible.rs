@@ -290,7 +290,7 @@ impl<'a> NonFungible {
                 .align_x(Horizontal::Center)
                 .padding(15),
         )
-        .style(styles::scrollable::vertical_scrollable);
+        .style(styles::scrollable::vertical_scrollable_primary);
 
         container(scrollable)
             .padding(5)
@@ -408,7 +408,7 @@ impl<'a> NonFungible {
         .align_x(Horizontal::Center)
         .padding(15);
 
-        container(scrollable(content).style(styles::scrollable::vertical_scrollable))
+        container(scrollable(content).style(styles::scrollable::vertical_scrollable_secondary))
             .center_x(Length::Fill)
             .style(styles::container::token_container)
             .max_width(800)

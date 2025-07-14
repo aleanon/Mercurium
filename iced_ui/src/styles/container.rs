@@ -3,33 +3,34 @@ use iced::{
     border::Radius, widget::container::Style, Background, Border, Color, Shadow, Theme, Vector,
 };
 
+use crate::styles::colors::{self, dark};
+
 pub fn main_window(theme: &Theme) -> Style {
     // Style::default()
     // style.background = Some(Background::Color(Color::from_rgb8(50, 50, 50)));
     let mut style = Style::default();
     let palette = theme.extended_palette();
-    let background_color = palette.background.weakest.color;
-    style.background = Some(Background::Color(background_color));
+    style.background = Some(Background::Color(dark::BACKGROUND_PRIMARY));
     style
     // style
 }
 
 pub fn menu_container(theme: &Theme) -> Style {
     let mut style = Style::default();
-    let palette = theme.extended_palette();
-    let mut background_color = palette.background.weakest.color;
-    background_color.r -= 0.005;
-    background_color.g -= 0.005;
-    background_color.b -= 0.005;
+    // let palette = theme.extended_palette();
+    // let mut background_color = palette.background.weakest.color;
+    // background_color.r -= 0.005;
+    // background_color.g -= 0.005;
+    // background_color.b -= 0.005;
 
-    style.background = Some(Background::Color(background_color));
+    style.background = Some(Background::Color(dark::BACKGROUND_PRIMARY));
     // style
 
     // style.background = Some(Background::Color(Color::from_rgb8(40, 40, 40)));
     style.shadow = Shadow {
-        color: palette.background.base.color,
+        color: dark::BACKGROUND_PRIMARY,
         offset: Vector::new(0.0, 0.0),
-        blur_radius: 5.,
+        blur_radius: 10.,
     };
     style
     // const BACKGROUND_ALPHA_STEP: f32 = 0.001;
@@ -74,7 +75,7 @@ pub fn center_panel(theme: &Theme) -> Style {
     //     ..Default::default()
     // }
 
-    Style::default()
+    Style::default().background(dark::BACKGROUND_SECONDARY)
 }
 
 pub fn token_container(theme: &Theme) -> Style {
@@ -87,7 +88,7 @@ pub fn token_container(theme: &Theme) -> Style {
     let shadow_color = palette.background.base.color;
 
     Style {
-        background: Some(Background::Color(background_color)),
+        background: Some(Background::Color(dark::BACKGROUND_PRIMARY)),
         border: Border::default().rounded(5),
         shadow: Shadow {
             color: shadow_color,
@@ -178,11 +179,26 @@ pub fn overlay_container(theme: &Theme) -> Style {
 }
 
 pub fn overlay_inner(theme: &Theme) -> Style {
-    let mut style = center_panel(theme);
-    style.border.radius = Radius::from(10.);
-    style.border.width = 1.;
-    style.border.color = theme.extended_palette().primary.weak.color;
-    style
+    Style {
+        background: Some(Background::Color(colors::dark::BACKGROUND_PRIMARY)),
+        border: Border {
+            radius: Radius::from(10.),
+            color: dark::BORDER_SUBTLE,
+            width: 1.,
+        },
+        shadow: Shadow {
+            color: Color::TRANSPARENT,
+            offset: Vector::new(0., 0.),
+            blur_radius: 10.,
+        },
+        snap: false,
+        text_color: Some(dark::TEXT_PRIMARY),
+    }
+    // let mut style = center_panel(theme);
+    // style.border.radius = Radius::from(10.);
+    // style.border.width = 1.;
+    // style.border.color = theme.extended_palette().primary.weak.color;
+    // style
 }
 
 pub fn notification_success(theme: &Theme) -> Style {
@@ -227,7 +243,7 @@ pub fn nft_card(theme: &Theme) -> Style {
     let shadow_color = Color::BLACK;
 
     Style {
-        background: Some(Background::Color(background_color)),
+        background: Some(Background::Color(dark::BACKGROUND_CARD)),
         text_color: Some(palette.background.base.text),
         border: Border {
             radius: Radius::from(5.),
@@ -293,8 +309,15 @@ pub fn recipient(theme: &Theme) -> Style {
             offset: Vector::new(0., 0.),
             blur_radius: 3.,
         },
-        background: Some(iced::Background::Color(background_color)),
+        background: Some(iced::Background::Color(dark::BACKGROUND_ELEVATED)),
         text_color: Some(text_color),
+        ..Default::default()
+    }
+}
+
+pub fn recipients(theme: &Theme) -> Style {
+    Style {
+        background: Some(Background::Color(dark::BACKGROUND_PRIMARY)),
         ..Default::default()
     }
 }

@@ -463,7 +463,7 @@ impl<'a> AddAssets {
             right: 15.,
             ..Padding::ZERO
         }))
-        .style(styles::scrollable::vertical_scrollable)
+        .style(styles::scrollable::vertical_scrollable_secondary)
         .height(Length::Shrink);
 
         container(column![headers, scrollable])
@@ -522,7 +522,7 @@ impl<'a> AddAssets {
             right: 15.,
             ..Padding::ZERO
         }))
-        .style(styles::scrollable::vertical_scrollable)
+        .style(styles::scrollable::vertical_scrollable_secondary)
         .height(Length::Shrink);
 
         container(column![headers, scrollable])

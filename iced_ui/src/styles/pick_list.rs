@@ -3,6 +3,8 @@ use deps::iced::{
     Background, Border, Theme,
 };
 
+use crate::styles::colors::dark;
+
 pub fn from_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let mut background_color = palette.background.base.color;
@@ -11,7 +13,7 @@ pub fn from_account(theme: &Theme, status: Status) -> Style {
     background_color.b -= 0.005;
 
     Style {
-        background: Background::Color(background_color),
+        background: Background::Color(dark::BACKGROUND_PRIMARY),
         border: Border::default().rounded(5.),
         text_color: palette.background.base.text,
         placeholder_color: palette.background.weak.text,

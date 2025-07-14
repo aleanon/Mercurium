@@ -143,7 +143,8 @@ impl<'a> FungibleView {
             .padding(15)
             .style(styles::container::token_container);
 
-        let scrollable = widget::scrollable(content).style(styles::scrollable::vertical_scrollable);
+        let scrollable =
+            widget::scrollable(content).style(styles::scrollable::vertical_scrollable_primary);
 
         container(scrollable)
             .center_x(Length::Fill)

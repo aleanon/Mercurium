@@ -232,7 +232,7 @@ impl<'a> AddAccount {
         .into()
     }
 
-    fn input_password(&self) -> Element<'a, AppMessage> {
+    fn input_password(&'a self) -> Element<'a, AppMessage> {
         let password_input = {
             let label = text("Password");
             let password_input = text_input("Enter password", &self.password.as_str())

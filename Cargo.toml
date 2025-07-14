@@ -39,25 +39,6 @@ inherits = "dev"
 inherits = "dev"
 
 
-# [profile.reload]
-# inherits = "dev"
-# rustflags = ["-C", "prefer-dynamic=true"]
-# opt-level = 0
-# lto = false
-# codegen-units = 1
-# debug-assertions = true
-# debug = false
-# features = ["reload"]
-
-# [profile.reload.package.iced_ui]
-# rustflags = ["--crate-type cdylib"]
-
-# [profile.reload.package."*"]
-# opt-level = 3
-# rustflags = ["-C", "prefer-dynamic=true"]
-# codegen-units = 1
-
-
 [workspace.dependencies]
 deps = { path = "0_deps" }
 

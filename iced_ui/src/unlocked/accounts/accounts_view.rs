@@ -145,7 +145,7 @@ impl<'a> AccountsView {
         let scrollable = scrollable::Scrollable::new(col)
             .height(Length::Fill)
             .width(Length::Fill)
-            .style(styles::scrollable::vertical_scrollable);
+            .style(styles::scrollable::vertical_scrollable_secondary);
         // .direction(scrollable::Direction::Vertical(Properties::default()));
 
         let content = widget::column![header, scrollable]
@@ -225,7 +225,9 @@ impl<'a> AccountsView {
             .unwrap_or(0);
 
         let not_showing = fungibles + non_fungibles - icons.len();
+
         let mut icons = row(icons).spacing(5);
+
         if not_showing > 0 {
             icons = icons.push(widget::Space::new(5, 1));
             icons = icons.push(text!("+ {}", not_showing))
@@ -234,6 +236,7 @@ impl<'a> AccountsView {
         let space = iced::widget::Space::new(Length::Fill, Length::Fill);
 
         let columns = column![name_address_row, icons].spacing(20);
+
         let button = widget::button(columns)
             .height(100)
             .width(Length::Fill)

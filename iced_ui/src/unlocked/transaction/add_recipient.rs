@@ -161,7 +161,7 @@ impl<'a> AddRecipient {
             right: 15.,
             ..Padding::ZERO
         }))
-        .style(styles::scrollable::vertical_scrollable)
+        .style(styles::scrollable::vertical_scrollable_secondary)
         .width(Length::Fill)
         .height(Length::Shrink);
 

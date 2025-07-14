@@ -6,10 +6,27 @@ use iced::{
     Background, Border, Color, Theme,
 };
 
+use crate::styles::colors::dark;
+
 pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     style.background = Background::Color(Color::TRANSPARENT);
     style.border = style.border.color(Color::TRANSPARENT);
+    style
+}
+
+/// For a text field on top of a secondary background.
+pub fn secondary(theme: &Theme, status: Status) -> Style {
+    let mut style = default(theme, status);
+    // style.background = Background::Color(theme.extended_palette().secondary.base.color);
+    style.border = style.border.color(dark::BACKGROUND_PRIMARY);
+    style
+}
+
+pub fn elevated(theme: &Theme, status: Status) -> Style {
+    let mut style = default(theme, status);
+    style.background = Background::Color(theme.extended_palette().background.base.color);
+    style.border = style.border.color(dark::BACKGROUND_SECONDARY);
     style
 }
 
@@ -32,7 +49,7 @@ pub fn asset_amount(theme: &Theme, status: Status) -> Style {
         radius: Radius::new(10),
     };
     style.icon = Color::TRANSPARENT;
-    style.background = Background::Color(background_color);
+    style.background = Background::Color(dark::BACKGROUND_SECONDARY);
 
     style
 }

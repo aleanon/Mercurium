@@ -1,3 +1,5 @@
+use std::{collections::btree_set, iter};
+
 use deps::*;
 
 use debug_print::debug_println;
@@ -105,15 +107,14 @@ impl<'a> Fungibles {
         match &self.selected {
             Some(fungible_view) => fungible_view.view(wallet),
             None => {
-                let mut elements: Vec<Element<'a, AppMessage>> = Vec::new();
-
-                if let Some(fungibles) = wallet
+                let elements = wallet
                     .wallet_data()
                     .resource_data
                     .fungibles
                     .get(&self.account_addr)
-                {
-                    for fungible in fungibles {
+                    .into_iter()
+                    .flatten()
+                    .map(|fungible| {
                         let button = Self::fungible_list_button(fungible, wallet)
                             .on_press(Message::SelectFungible(fungible.clone()).into());
 
@@ -122,11 +123,8 @@ impl<'a> Fungibles {
 
                         let rule = widget::Rule::horizontal(2);
 
-                        elements.push(column![button_container, rule].into())
-                    }
-                } else {
-                    // Push no widget to "elements"
-                }
+                        column![button_container, rule].into()
+                    });
 
                 let column = column(elements)
                     .align_x(iced::Alignment::Center)
@@ -139,7 +137,7 @@ impl<'a> Fungibles {
                 widget::scrollable(column)
                     .height(Length::Fill)
                     .width(Length::Fill)
-                    .style(styles::scrollable::vertical_scrollable)
+                    .style(styles::scrollable::vertical_scrollable_secondary)
                     .into()
             }
         }

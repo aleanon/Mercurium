@@ -8,7 +8,12 @@ use deps::{
 
 use std::collections::HashMap;
 
-use crate::{app::AppMessage, components, styles, unlocked::app_view};
+use crate::{
+    app::AppMessage,
+    components::{self, text_field::TextField},
+    styles,
+    unlocked::app_view,
+};
 use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
 use iced::{
     widget::{self, button, container, image::Handle, row, text, Container},
@@ -40,6 +45,7 @@ pub enum Message {
     AddAssetsMessage(add_assets::Message),
     TextFieldMessage(components::text_field::Message),
     RemoveAsset(usize, ResourceAddress),
+    ToggleTextField,
 }
 
 impl Into<AppMessage> for Message {
@@ -75,7 +81,7 @@ pub struct CreateTransaction {
     pub(crate) from_account: Option<Account>,
     pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
-    pub(crate) text_field: components::text_field::TextField,
+    pub(crate) text_field: Option<components::text_field::TextField>,
     pub(crate) view: View,
 }
 
@@ -88,7 +94,7 @@ impl CreateTransaction {
             from_account,
             resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
-            text_field: components::text_field::TextField::new(),
+            text_field: None,
             view: View::Transaction,
         }
     }
@@ -98,7 +104,7 @@ impl CreateTransaction {
             from_account: None,
             resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
-            text_field: components::text_field::TextField::new(),
+            text_field: None,
             view: View::Transaction,
         }
     }
@@ -149,7 +155,17 @@ impl<'a> CreateTransaction {
                     .resources
                     .remove(&resource_address);
             }
-            Message::TextFieldMessage(message) => self.text_field.update(message),
+            Message::TextFieldMessage(message) => {
+                self.text_field
+                    .as_mut()
+                    .and_then(|text_field| Some(text_field.update(message)));
+            }
+            Message::ToggleTextField => {
+                self.text_field = match self.text_field {
+                    Some(_) => None,
+                    None => Some(TextField::new()),
+                }
+            }
         }
 
         Task::none()
@@ -199,8 +215,7 @@ impl<'a> CreateTransaction {
             .map(|account| account)
             .collect::<Vec<&Account>>();
 
-        // The accounts are sorted by ID
-        accounts.sort_unstable_by(|a, b| a.cmp(b));
+        accounts.sort_unstable_by(|a, b| a.id.cmp(&b.id));
 
         let header = Self::header("Transaction");
 
@@ -214,7 +229,7 @@ impl<'a> CreateTransaction {
                 .padding(5)
                 .width(Length::FillPortion(6))
                 .height(Length::Shrink)
-                .style(styles::button::choose_account)
+                .style(styles::button::choose_recipient)
                 .on_press(Message::AddRecipient.into()),
             Space::new(Length::FillPortion(2), 1)
         ];
@@ -236,7 +251,8 @@ impl<'a> CreateTransaction {
             ..Padding::ZERO
         });
 
-        let scrollable = widget::scrollable(fields).style(styles::scrollable::vertical_scrollable);
+        let scrollable =
+            widget::scrollable(fields).style(styles::scrollable::vertical_scrollable_secondary);
 
         let page_top = widget::container(scrollable)
             .height(Length::Fill)
@@ -251,6 +267,7 @@ impl<'a> CreateTransaction {
         let create_transaction = container(
             button(text("Create transaction").width(Length::Fill).center())
                 .width(Length::Fill)
+                .style(styles::button::primary)
                 .height(50),
         )
         .padding(Padding {
@@ -265,18 +282,27 @@ impl<'a> CreateTransaction {
     fn message(&'a self) -> Container<'a, AppMessage> {
         let label = Self::field_label("Message");
 
-        let text_field = self
-            .text_field
-            .view(|m| Message::TextFieldMessage(m).into())
-            .placeholder("Enter Message")
-            .padding(10)
-            .height(120);
+        let toggle = widget::Toggler::new(self.text_field.is_some())
+            .size(20)
+            .on_toggle(|_| Message::ToggleTextField.into());
 
-        let col = widget::column![label, text_field]
+        let label_and_toggler = row![label, toggle].width(Length::Fill);
+
+        let text_field = self.text_field.as_ref().and_then(|text_field_state| {
+            Some(
+                text_field_state
+                    .view(|m| Message::TextFieldMessage(m).into())
+                    .placeholder("Enter Message")
+                    .padding(10)
+                    .height(120),
+            )
+        });
+
+        let col = widget::column![label_and_toggler]
             .spacing(5)
             .align_x(Alignment::Start);
 
-        widget::container(col)
+        widget::container(col.push_maybe(text_field))
     }
 
     fn from_account_field(&'a self, accounts: Vec<&'a Account>) -> Container<'a, AppMessage> {
@@ -338,6 +364,7 @@ impl<'a> CreateTransaction {
             .align_x(iced::alignment::Horizontal::Left)
             .align_y(iced::alignment::Vertical::Center)
             .width(Length::Fill)
+            .style(styles::text::secondary)
     }
 
     fn recipient(
@@ -362,7 +389,7 @@ impl<'a> CreateTransaction {
             left: 10.,
             right: 10.,
         })
-        .style(styles::button::choose_account)
+        .style(styles::button::choose_recipient)
         .on_press_maybe(
             self.from_account
                 .as_ref()
@@ -398,7 +425,7 @@ impl<'a> CreateTransaction {
         } else {
             button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).line_height(1.))
                 .padding(0)
-                .style(styles::button::choose_account)
+                .style(styles::button::choose_recipient)
                 .on_press(Message::RemoveRecipient(recipient_index).into())
         };
 
@@ -409,7 +436,7 @@ impl<'a> CreateTransaction {
         button(choose_recipient_content)
             .height(50)
             .padding(10)
-            .style(styles::button::choose_account)
+            .style(styles::button::choose_recipient)
             .on_press(Message::SelectRecipient(recipient_index).into())
     }
 
