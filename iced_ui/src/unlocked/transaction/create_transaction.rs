@@ -223,33 +223,16 @@ impl<'a> CreateTransaction {
 
         let recipient_field = self.recipients(wallet);
 
-        let add_recipient = row![
-            Space::new(Length::FillPortion(2), 1),
-            button(text("Add recipient").center())
-                .padding(5)
-                .width(Length::FillPortion(6))
-                .height(Length::Shrink)
-                .style(styles::button::choose_recipient)
-                .on_press(Message::AddRecipient.into()),
-            Space::new(Length::FillPortion(2), 1)
-        ];
-
         let message_field = self.message();
 
-        let fields = widget::column![
-            header,
-            from_account_field,
-            recipient_field,
-            add_recipient,
-            message_field
-        ]
-        .spacing(30)
-        .height(Length::Shrink)
-        .padding(Padding {
-            left: 10.,
-            right: 15.,
-            ..Padding::ZERO
-        });
+        let fields = widget::column![header, from_account_field, recipient_field, message_field]
+            .spacing(30)
+            .height(Length::Shrink)
+            .padding(Padding {
+                left: 10.,
+                right: 15.,
+                ..Padding::ZERO
+            });
 
         let scrollable =
             widget::scrollable(fields).style(styles::scrollable::vertical_scrollable_secondary);
@@ -284,6 +267,7 @@ impl<'a> CreateTransaction {
 
         let toggle = widget::Toggler::new(self.text_field.is_some())
             .size(20)
+            .style(styles::toggler::primary)
             .on_toggle(|_| Message::ToggleTextField.into());
 
         let label_and_toggler = row![label, toggle].width(Length::Fill);
@@ -294,6 +278,7 @@ impl<'a> CreateTransaction {
                     .view(|m| Message::TextFieldMessage(m).into())
                     .placeholder("Enter Message")
                     .padding(10)
+                    .style(styles::text_editor::primary)
                     .height(120),
             )
         });
@@ -320,6 +305,7 @@ impl<'a> CreateTransaction {
         .text_line_height(2.)
         .text_size(14)
         .width(Length::Fill)
+        .menu_style(styles::menu::menu_primary)
         .style(styles::pick_list::from_account)
         .padding(10);
 
@@ -335,7 +321,7 @@ impl<'a> CreateTransaction {
     }
 
     fn recipients(&'a self, wallet: &'a Wallet<Unlocked>) -> Container<'a, AppMessage> {
-        let label = Self::field_label("TO");
+        let label = Self::field_label("To");
 
         let recipients = self
             .recipients
@@ -343,9 +329,20 @@ impl<'a> CreateTransaction {
             .enumerate()
             .map(|(recipient_index, recipient)| self.recipient(recipient_index, recipient, wallet));
 
-        let recipients = column(recipients).spacing(10);
+        let recipients = column(recipients).spacing(20);
 
-        container(column![label, recipients].spacing(5))
+        let add_recipient = row![
+            Space::new(Length::FillPortion(2), 1),
+            button(text("Add recipient").center())
+                .padding(5)
+                .width(Length::FillPortion(6))
+                .height(Length::Shrink)
+                .style(styles::button::choose_recipient)
+                .on_press(Message::AddRecipient.into()),
+            Space::new(Length::FillPortion(2), 1)
+        ];
+
+        container(column![label, recipients, Space::new(1, 30), add_recipient].spacing(5))
     }
 
     fn resource_text_field(str: &'a str) -> widget::Text<'a> {
@@ -416,7 +413,7 @@ impl<'a> CreateTransaction {
             .address
             .as_ref()
             .and_then(|address| Some(address.truncate_long()))
-            .unwrap_or("Choose account".to_owned());
+            .unwrap_or("Choose recipient".to_owned());
 
         let address = text(address).size(15).line_height(1.5).width(Length::Fill);
 

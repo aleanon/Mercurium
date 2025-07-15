@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{debug_print::debug_println, *};
 
 pub mod create;
 pub mod read;
@@ -8,7 +8,7 @@ pub mod update;
 use crate::database::{DataBase, DbError};
 use once_cell::sync::OnceCell;
 use std::ops::Deref;
-use types::{crypto::Key, AppPath, Network};
+use types::{AppPath, Network, crypto::Key};
 
 pub static MAINNET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
 pub static STOKENET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
@@ -22,6 +22,8 @@ impl AppDataDb {
         let app_data_db = Self::initialize(network, key).await?;
         app_data_db.create_tables_if_not_exist().await?;
 
+        debug_println!("AppDataDb connection up");
+
         Ok(Self::get_static(network).get_or_init(|| app_data_db))
     }
 
@@ -32,7 +34,10 @@ impl AppDataDb {
         Ok(Self { db })
     }
 
-    pub async fn get_or_init(network: Network, key: Key<DataBase>) -> Result<&'static Self, DbError> {
+    pub async fn get_or_init(
+        network: Network,
+        key: Key<DataBase>,
+    ) -> Result<&'static Self, DbError> {
         match Self::get(network) {
             Some(db) => Ok(db),
             None => Self::load(network, key).await,

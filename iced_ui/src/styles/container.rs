@@ -1,9 +1,8 @@
 use deps::iced;
-use iced::{
-    border::Radius, widget::container::Style, Background, Border, Color, Shadow, Theme, Vector,
-};
+use iced::{border::Radius, widget::container::Style, Background, Border, Color, Shadow, Vector};
 
 use crate::styles::colors::{self, dark};
+use crate::Theme;
 
 pub fn main_window(theme: &Theme) -> Style {
     // Style::default()
@@ -221,9 +220,14 @@ pub fn notification_error(theme: &Theme) -> Style {
 
 pub fn password_input(theme: &Theme) -> Style {
     Style {
-        background: None,
+        background: Some(Background::Color(dark::BACKGROUND_PRIMARY)),
         border: Border {
-            radius: Radius::from(10),
+            radius: Radius {
+                bottom_left: 0.,
+                bottom_right: 0.,
+                top_left: 5.,
+                top_right: 5.,
+            },
             color: Color::WHITE,
             width: 0.,
         },
@@ -301,15 +305,15 @@ pub fn recipient(theme: &Theme) -> Style {
     Style {
         border: iced::Border {
             color: Color::TRANSPARENT,
-            width: 1.,
+            width: 0.,
             radius: Radius::new(5),
         },
         shadow: iced::Shadow {
-            color: shadow_color,
+            color: colors::shadow_base(theme),
             offset: Vector::new(0., 0.),
             blur_radius: 3.,
         },
-        background: Some(iced::Background::Color(dark::BACKGROUND_ELEVATED)),
+        background: Some(iced::Background::Color(colors::background_elevated(theme))),
         text_color: Some(text_color),
         ..Default::default()
     }

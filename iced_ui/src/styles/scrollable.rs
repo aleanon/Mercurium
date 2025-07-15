@@ -6,10 +6,11 @@ use iced::{
         self,
         scrollable::{default, Rail, Scroller, Status, Style},
     },
-    Border, Theme,
+    Border,
 };
 
 use crate::styles::colors::dark;
+use crate::Theme;
 
 pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
     match status {

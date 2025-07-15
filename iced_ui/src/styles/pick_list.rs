@@ -1,9 +1,10 @@
 use deps::iced::{
     widget::pick_list::{Status, Style},
-    Background, Border, Theme,
+    Background, Border,
 };
 
 use crate::styles::colors::dark;
+use crate::Theme;
 
 pub fn from_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
@@ -12,11 +13,21 @@ pub fn from_account(theme: &Theme, status: Status) -> Style {
     background_color.g -= 0.005;
     background_color.b -= 0.005;
 
-    Style {
-        background: Background::Color(dark::BACKGROUND_PRIMARY),
-        border: Border::default().rounded(5.),
-        text_color: palette.background.base.text,
-        placeholder_color: palette.background.weak.text,
-        handle_color: palette.background.base.text,
+    match status {
+        Status::Active => Style {
+            background: Background::Color(dark::BACKGROUND_PRIMARY),
+            border: Border::default().rounded(5.),
+            text_color: dark::TEXT_PRIMARY,
+            placeholder_color: dark::TEXT_SECONDARY,
+            handle_color: dark::TEXT_SECONDARY,
+        },
+        Status::Hovered => Style {
+            background: Background::Color(dark::BACKGROUND_PRIMARY),
+            border: Border::default().rounded(5.),
+            text_color: dark::TEXT_PRIMARY,
+            placeholder_color: dark::TEXT_PRIMARY,
+            handle_color: dark::TEXT_PRIMARY,
+        },
+        Status::Opened { is_hovered } => from_account(theme, Status::Hovered),
     }
 }

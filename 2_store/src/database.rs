@@ -2,10 +2,15 @@ use deps::*;
 
 use std::{fmt::Debug, num::NonZeroU32, path::Path};
 
-use async_sqlite::rusqlite::{self, ffi, CachedStatement, Connection, ErrorCode, Params, Result, Row};
+use async_sqlite::rusqlite::{
+    self, CachedStatement, Connection, ErrorCode, Params, Result, Row, ffi,
+};
 use debug_print::debug_println;
 use thiserror::Error;
-use types::{crypto::{Key, KeyType}, AppPathError};
+use types::{
+    AppPathError,
+    crypto::{Key, KeyType},
+};
 
 use crate::sqlite_key::SqliteKey;
 
@@ -23,7 +28,6 @@ pub enum DbError {
     PathError(#[from] AppPathError),
 }
 
-
 impl From<rusqlite::Error> for DbError {
     fn from(value: rusqlite::Error) -> Self {
         Self::AsyncSqliteError(async_sqlite::Error::Rusqlite(value))
@@ -33,18 +37,17 @@ impl From<rusqlite::Error> for DbError {
 impl From<async_sqlite::Error> for DbError {
     fn from(value: async_sqlite::Error) -> Self {
         match value {
-            async_sqlite::Error::Rusqlite(
-                rusqlite::Error::SqliteFailure(
-                    ffi::Error{code: ErrorCode::NotADatabase, extended_code: _}, None)
-                ) => {
-                        Self::IncorrectKey
-            }
-            _ => Self::AsyncSqliteError(value)
+            async_sqlite::Error::Rusqlite(rusqlite::Error::SqliteFailure(
+                ffi::Error {
+                    code: ErrorCode::NotADatabase,
+                    extended_code: _,
+                },
+                None,
+            )) => Self::IncorrectKey,
+            _ => Self::AsyncSqliteError(value),
         }
     }
 }
-
-
 
 #[derive(Clone)]
 pub struct DataBase {
@@ -56,16 +59,11 @@ impl DataBase {
         let db = Self::new_with_async_client(path).await?;
         db.set_database_key(key).await?;
 
-        debug_println!("AsyncDb connection up");
-        
         Ok(db)
     }
 
     async fn new_with_async_client(path: &Path) -> Result<Self, async_sqlite::Error> {
-        let client = async_sqlite::ClientBuilder::new()
-            .path(path)
-            .open()
-            .await?;
+        let client = async_sqlite::ClientBuilder::new().path(path).open().await?;
 
         Ok(Self { client })
     }
@@ -147,9 +145,7 @@ impl DataBase {
         F: FnOnce(&Row<'_>) -> Result<T, rusqlite::Error> + Send + 'static,
     {
         self.client
-            .conn(move |conn| 
-                conn.prepare_cached(stmt)?
-                    .query_row(params, f))
+            .conn(move |conn| conn.prepare_cached(stmt)?.query_row(params, f))
             .await
             .map_err(|err| DbError::AsyncSqliteError(err))
     }
@@ -186,8 +182,6 @@ impl KeyType for DataBase {
     const KEY_LENGTH: usize = 32;
     const ITERATIONS: std::num::NonZeroU32 = NonZeroU32::new(200000).unwrap();
 }
-
-
 
 #[cfg(test)]
 pub mod test {
@@ -228,7 +222,7 @@ pub mod test {
                 .open()
                 .await
                 .expect("Failed to open in memory database");
-            let db = DataBase{client};
+            let db = DataBase { client };
 
             db.set_database_key(key.clone())
                 .await
@@ -249,7 +243,9 @@ pub mod test {
             .await;
         assert!(query.is_err());
 
-        let db = DataBase{client: second_client};
+        let db = DataBase {
+            client: second_client,
+        };
 
         db.set_database_key(key)
             .await

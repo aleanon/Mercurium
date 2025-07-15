@@ -3,10 +3,11 @@ use deps::iced;
 use iced::{
     border::Radius,
     widget::button::{Status, Style},
-    Background, Border, Color, Shadow, Theme, Vector,
+    Background, Border, Color, Shadow, Vector,
 };
 
-use crate::styles::colors::dark;
+use crate::styles::colors::{self, dark};
+use crate::Theme;
 
 pub fn setup_selection(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
@@ -50,15 +51,21 @@ pub fn general_selected_button(theme: &Theme, status: Status) -> Style {
 
 pub fn primary(theme: &Theme, status: Status) -> Style {
     match status {
-        Status::Active | Status::Pressed | Status::Disabled | Status::Hovered => Style {
-            background: Some(Background::Color(dark::ACCENT_PRIMARY)),
-            text_color: dark::TEXT_PRIMARY,
+        Status::Active | Status::Pressed => Style {
+            background: Some(Background::Color(colors::accent_primary_base(theme))),
+            text_color: colors::text_primary(theme),
             border: Border {
                 radius: Radius::from(5.),
                 ..Default::default()
             },
             ..Default::default()
         },
+        Status::Disabled => {
+            primary(theme, Status::Active).with_background(colors::accent_primary_weak(theme))
+        }
+        Status::Hovered => {
+            primary(theme, Status::Active).with_background(colors::accent_primary_strong(theme))
+        }
     }
 }
 
@@ -72,8 +79,8 @@ pub fn general_button(theme: &Theme, status: Status) -> Style {
     let shadow_color = palette.background.base.color;
     match status {
         Status::Active | Status::Pressed | Status::Disabled => Style {
-            background: Some(Background::Color(dark::BACKGROUND_PRIMARY)),
-            text_color: palette.primary.weak.text,
+            background: Some(Background::Color(colors::background_primary(theme))),
+            text_color: colors::text_primary(theme),
             border: Border {
                 radius: Radius::from(5),
                 width: 0.,
@@ -87,8 +94,8 @@ pub fn general_button(theme: &Theme, status: Status) -> Style {
             ..Default::default()
         },
         Status::Hovered => Style {
-            background: Some(Background::Color(palette.primary.strong.color)),
-            text_color: palette.primary.strong.text,
+            background: Some(Background::Color(colors::state_hover(theme))),
+            text_color: colors::text_primary(theme),
             ..general_button(theme, Status::Active)
         },
     }
@@ -128,7 +135,7 @@ pub fn menu_button(theme: &Theme, status: Status) -> Style {
     match status {
         Status::Active => Style {
             background: None,
-            text_color: palette.background.base.text,
+            text_color: colors::text_primary(theme),
             border: Border {
                 color: Color::TRANSPARENT,
                 radius: Radius::from(10.),
@@ -142,7 +149,7 @@ pub fn menu_button(theme: &Theme, status: Status) -> Style {
             ..Default::default()
         },
         Status::Hovered | Status::Pressed => Style {
-            text_color: palette.primary.weak.color,
+            text_color: colors::accent_primary_weak(theme),
             ..menu_button(theme, Status::Active)
         },
         Status::Disabled => Style {

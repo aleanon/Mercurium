@@ -3,10 +3,11 @@ use deps::*;
 use iced::{
     border::Radius,
     widget::text_input::{default, Status, Style},
-    Background, Border, Color, Theme,
+    Background, Border, Color,
 };
 
 use crate::styles::colors::dark;
+use crate::Theme;
 
 pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);

@@ -30,6 +30,7 @@ pub fn run() -> Result<(), deps::iced::Error> {
         .title(types::consts::APPLICATION_NAME)
         .settings(settings)
         .theme(|app| app.preferences.theme.into())
+        .style(App::style)
         .window(window_settings)
         .run()?;
 
@@ -44,6 +45,7 @@ pub fn run() -> Result<(), deps::iced::Error> {
     .settings(settings)
     .theme(|app| app.preferences.theme.into())
     .window(window_settings)
+    .style(App::style)
     .run()
     .unwrap();
 

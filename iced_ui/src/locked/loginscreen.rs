@@ -12,7 +12,7 @@ use types::crypto::Password;
 use wallet::{Locked, LoginResponse, Wallet};
 use zeroize::Zeroize;
 
-use crate::{app::AppMessage, components::password_input::password_input};
+use crate::{app::AppMessage, components::password_input::password_input, styles};
 
 #[derive(Clone)]
 pub enum Message {
@@ -136,7 +136,7 @@ impl<'a> LoginScreen {
         )
         .height(30)
         .width(100)
-        .style(widget::button::primary)
+        .style(styles::button::primary)
         .on_press(Message::Login);
 
         let col = widget::column![logo, space, info_text, password_input, login_button]

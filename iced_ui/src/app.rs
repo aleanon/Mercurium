@@ -1,4 +1,5 @@
 use deps::hot_ice::HotMessage;
+use deps::iced::Application;
 use deps::*;
 use no_mangle_if_debug::no_mangle_if_debug;
 use std::borrow::Cow;
@@ -21,8 +22,9 @@ use crate::common::Message;
 use crate::initial::restore_from_seed;
 use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
-use crate::unlocked;
+use crate::styles::colors::{self, dark};
 use crate::unlocked::app_view::AppView;
+use crate::{styles, unlocked};
 
 //Reexport for hot reloading
 pub use iced::Element;
@@ -213,30 +215,35 @@ impl App {
 
     fn toggle_theme(&mut self) {
         match self.preferences.theme {
-            Theme::CatppuccinFrappe => self.preferences.theme = Theme::CatppuccinLatte,
-            Theme::CatppuccinLatte => self.preferences.theme = Theme::CatppuccinMacchiato,
-            Theme::CatppuccinMacchiato => self.preferences.theme = Theme::CatppuccinMocha,
-            Theme::CatppuccinMocha => self.preferences.theme = Theme::Dark,
-            Theme::Dark => self.preferences.theme = Theme::Dracula,
-            Theme::Dracula => self.preferences.theme = Theme::GruvboxDark,
-            Theme::GruvboxDark => self.preferences.theme = Theme::GruvboxLight,
-            Theme::GruvboxLight => self.preferences.theme = Theme::KanagawaDragon,
-            Theme::KanagawaDragon => self.preferences.theme = Theme::KanagawaLotus,
-            Theme::KanagawaLotus => self.preferences.theme = Theme::KanagawaWave,
-            Theme::KanagawaWave => self.preferences.theme = Theme::Moonfly,
-            Theme::Moonfly => self.preferences.theme = Theme::Nightfly,
-            Theme::Nightfly => self.preferences.theme = Theme::Nord,
-            Theme::Nord => self.preferences.theme = Theme::Oxocarbon,
-            Theme::Oxocarbon => self.preferences.theme = Theme::SolarizedDark,
-            Theme::SolarizedDark => self.preferences.theme = Theme::SolarizedLight,
-            Theme::SolarizedLight => self.preferences.theme = Theme::TokyoNight,
-            Theme::TokyoNight => self.preferences.theme = Theme::TokyoNightLight,
-            Theme::TokyoNightLight => self.preferences.theme = Theme::TokyoNightStorm,
-            Theme::TokyoNightStorm => self.preferences.theme = Theme::Light,
-            Theme::Light => self.preferences.theme = Theme::Ferra,
-            Theme::Ferra => self.preferences.theme = Theme::CatppuccinFrappe,
-            Theme::Custom => self.preferences.theme = Theme::Dark.into(),
+            Theme::Dark => self.preferences.theme = Theme::Light,
+            Theme::Light => self.preferences.theme = Theme::Dark,
+            _ => self.preferences.theme = Theme::Dark,
         }
+        // match self.preferences.theme {
+        //     Theme::CatppuccinFrappe => self.preferences.theme = Theme::CatppuccinLatte,
+        //     Theme::CatppuccinLatte => self.preferences.theme = Theme::CatppuccinMacchiato,
+        //     Theme::CatppuccinMacchiato => self.preferences.theme = Theme::CatppuccinMocha,
+        //     Theme::CatppuccinMocha => self.preferences.theme = Theme::Dark,
+        //     Theme::Dark => self.preferences.theme = Theme::Dracula,
+        //     Theme::Dracula => self.preferences.theme = Theme::GruvboxDark,
+        //     Theme::GruvboxDark => self.preferences.theme = Theme::GruvboxLight,
+        //     Theme::GruvboxLight => self.preferences.theme = Theme::KanagawaDragon,
+        //     Theme::KanagawaDragon => self.preferences.theme = Theme::KanagawaLotus,
+        //     Theme::KanagawaLotus => self.preferences.theme = Theme::KanagawaWave,
+        //     Theme::KanagawaWave => self.preferences.theme = Theme::Moonfly,
+        //     Theme::Moonfly => self.preferences.theme = Theme::Nightfly,
+        //     Theme::Nightfly => self.preferences.theme = Theme::Nord,
+        //     Theme::Nord => self.preferences.theme = Theme::Oxocarbon,
+        //     Theme::Oxocarbon => self.preferences.theme = Theme::SolarizedDark,
+        //     Theme::SolarizedDark => self.preferences.theme = Theme::SolarizedLight,
+        //     Theme::SolarizedLight => self.preferences.theme = Theme::TokyoNight,
+        //     Theme::TokyoNight => self.preferences.theme = Theme::TokyoNightLight,
+        //     Theme::TokyoNightLight => self.preferences.theme = Theme::TokyoNightStorm,
+        //     Theme::TokyoNightStorm => self.preferences.theme = Theme::Light,
+        //     Theme::Light => self.preferences.theme = Theme::Ferra,
+        //     Theme::Ferra => self.preferences.theme = Theme::CatppuccinFrappe,
+        //     Theme::Custom => self.preferences.theme = Theme::Dark.into(),
+        // }
     }
 
     pub fn current_network(&self) -> Network {
@@ -254,6 +261,13 @@ impl App {
             AppState::Locked(_, wallet) => Some(wallet.wallet_data_mut()),
             AppState::Unlocked(wallet) => Some(wallet.wallet_data_mut()),
             AppState::Error(_) => None,
+        }
+    }
+
+    pub fn style(&self, _theme: &iced::Theme) -> iced::theme::Style {
+        iced::theme::Style {
+            background_color: colors::dark::BACKGROUND_SECONDARY,
+            text_color: dark::TEXT_PRIMARY,
         }
     }
 }

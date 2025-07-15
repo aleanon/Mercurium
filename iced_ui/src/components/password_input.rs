@@ -27,7 +27,7 @@ where
         .width(Length::FillPortion(9))
         .size(15)
         .secure(!view_password)
-        .style(styles::text_input::borderless);
+        .style(styles::text_input::transparent_borderless);
 
     let view_password_icon = if view_password {
         Bootstrap::EyeSlash
