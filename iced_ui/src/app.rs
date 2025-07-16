@@ -22,9 +22,8 @@ use crate::common::Message;
 use crate::initial::restore_from_seed;
 use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
-use crate::styles::colors::{self, dark};
+use crate::unlocked;
 use crate::unlocked::app_view::AppView;
-use crate::{styles, unlocked};
 
 //Reexport for hot reloading
 pub use iced::Element;
@@ -264,10 +263,12 @@ impl App {
         }
     }
 
-    pub fn style(&self, _theme: &iced::Theme) -> iced::theme::Style {
+    pub fn style(&self, theme: &iced::Theme) -> iced::theme::Style {
+        let palette = theme.extended_palette();
+
         iced::theme::Style {
-            background_color: colors::dark::BACKGROUND_SECONDARY,
-            text_color: dark::TEXT_PRIMARY,
+            background_color: palette.background.base.color,
+            text_color: palette.background.base.text,
         }
     }
 }

@@ -2,8 +2,6 @@ use std::borrow::Cow;
 
 use font_and_icons::{BOOTSTRAP_FONT_BYTES, images::WINDOW_LOGO};
 
-use iced_ui::app;
-
 pub fn run() -> Result<(), deps::iced::Error> {
     use deps::iced::{Settings, Size, application, window};
     use iced_ui::App;

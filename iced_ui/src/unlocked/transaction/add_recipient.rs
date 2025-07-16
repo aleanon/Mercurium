@@ -143,11 +143,15 @@ impl<'a> AddRecipient {
             } else {
                 None
             };
-            let button = button(button_row)
-                .padding(10)
-                .width(Length::Fill)
-                .height(Length::Shrink)
-                .on_press_maybe(message);
+            let button = container(
+                button(button_row)
+                    .style(button::text)
+                    .padding(10)
+                    .width(Length::Fill)
+                    .height(Length::Shrink)
+                    .on_press_maybe(message),
+            )
+            .style(styles::container::primary_layer_1_opaque);
 
             buttons = buttons.push(button)
         }

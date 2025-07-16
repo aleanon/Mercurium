@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{iced::theme::Palette, *};
 
 use iced::{
     border::Radius,
@@ -6,8 +6,7 @@ use iced::{
     Background, Border, Color,
 };
 
-use crate::styles::colors::dark;
-use crate::Theme;
+use crate::{styles::colors, Theme};
 
 pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
@@ -19,15 +18,17 @@ pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
 /// For a text field on top of a secondary background.
 pub fn secondary(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
-    // style.background = Background::Color(theme.extended_palette().secondary.base.color);
-    style.border = style.border.color(dark::BACKGROUND_PRIMARY);
+    style.background = Background::Color(theme.extended_palette().secondary.base.color);
     style
 }
 
 pub fn elevated(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
     let mut style = default(theme, status);
-    style.background = Background::Color(theme.extended_palette().background.base.color);
-    style.border = style.border.color(dark::BACKGROUND_SECONDARY);
+    style.background = Background::Color(palette.background.base.color);
+    style.border = style
+        .border
+        .color(colors::muted(palette.background.base.text));
     style
 }
 
@@ -37,20 +38,18 @@ pub fn general_input(theme: &Theme, status: Status) -> Style {
     style
 }
 
-pub fn asset_amount(theme: &Theme, status: Status) -> Style {
+pub fn layer_2(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     let palette = theme.extended_palette();
-    let mut background_color = palette.background.base.color;
-    background_color.r -= 0.03;
-    background_color.g -= 0.03;
-    background_color.b -= 0.03;
+    let background_color = colors::layer_2(palette.background.base.color, palette.is_dark);
+
     style.border = Border {
         width: 0.,
         color: Color::TRANSPARENT,
         radius: Radius::new(10),
     };
     style.icon = Color::TRANSPARENT;
-    style.background = Background::Color(dark::BACKGROUND_SECONDARY);
+    style.background = Background::Color(background_color);
 
     style
 }

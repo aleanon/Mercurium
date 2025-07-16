@@ -9,8 +9,7 @@ use iced::{
     Border,
 };
 
-use crate::styles::colors::dark;
-use crate::Theme;
+use crate::{styles::colors, Theme};
 
 pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
     match status {
@@ -28,9 +27,9 @@ pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
                         border: Border {
                             radius: Radius::from(10),
                             width: 3.5,
-                            color: dark::BACKGROUND_SECONDARY,
+                            color: palette.background.weakest.color,
                         },
-                        color: dark::BACKGROUND_PRIMARY,
+                        color: palette.background.strongest.color,
                     },
                     background: None,
                     border: Border::default(),
@@ -51,10 +50,10 @@ pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
 
             if is_vertical_scrollbar_hovered {
                 border_width = 1.;
-                color = dark::STATE_HOVER
+                color = palette.background.strongest.color
             } else {
                 border_width = 3.5;
-                color = dark::BACKGROUND_PRIMARY
+                color = palette.background.base.color;
             };
 
             Style {
@@ -64,7 +63,7 @@ pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
                         border: Border {
                             radius: Radius::from(10),
                             width: border_width,
-                            color: dark::BACKGROUND_SECONDARY,
+                            color: palette.background.strongest.color,
                         },
                         color,
                     },
@@ -107,9 +106,9 @@ pub fn vertical_scrollable_primary(theme: &Theme, status: Status) -> Style {
                         border: Border {
                             radius: Radius::from(10),
                             width: 3.5,
-                            color: dark::BACKGROUND_PRIMARY,
+                            color: palette.background.base.color,
                         },
-                        color: dark::BACKGROUND_SECONDARY,
+                        color: palette.background.weakest.color,
                     },
                     background: None,
                     border: Border::default(),
@@ -130,10 +129,10 @@ pub fn vertical_scrollable_primary(theme: &Theme, status: Status) -> Style {
 
             if is_vertical_scrollbar_hovered {
                 border_width = 2.;
-                color = dark::STATE_HOVER
+                color = colors::hover(palette.background.base.color, palette.is_dark)
             } else {
                 border_width = 3.5;
-                color = dark::BACKGROUND_SECONDARY
+                color = palette.background.base.color
             };
 
             Style {
@@ -143,7 +142,7 @@ pub fn vertical_scrollable_primary(theme: &Theme, status: Status) -> Style {
                         border: Border {
                             radius: Radius::from(10),
                             width: border_width,
-                            color: dark::BACKGROUND_PRIMARY,
+                            color: palette.background.weakest.color,
                         },
                         color,
                     },

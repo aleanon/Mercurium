@@ -8,22 +8,23 @@ use deps::iced::{
 use crate::{styles::colors, Theme};
 
 pub fn primary(theme: &Theme, status: Status) -> Style {
+    let palette = theme.extended_palette();
     match status {
         Status::Active => Style {
-            background: Background::Color(colors::background_card(theme)),
+            background: Background::Color(palette.background.weak.color),
             border: Border {
-                color: colors::border_subtle(theme),
+                color: palette.secondary.base.color,
                 width: 1.,
                 radius: Radius::new(5),
             },
-            icon: colors::accent_primary_weak(theme),
-            placeholder: colors::text_muted(theme),
-            selection: colors::state_selection(theme),
-            value: colors::text_primary(theme),
+            icon: palette.primary.base.color,
+            placeholder: colors::muted(palette.background.weak.text),
+            selection: colors::muted(palette.primary.weak.color),
+            value: palette.background.base.text,
         },
         Status::Hovered => Style {
             border: Border {
-                color: colors::border_default(theme),
+                color: palette.background.strong.color,
                 width: 1.,
                 radius: Radius::new(5),
             },
@@ -31,7 +32,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
         },
         Status::Focused { is_hovered } => Style {
             border: Border {
-                color: colors::state_focus(theme),
+                color: colors::muted(palette.primary.weak.color),
                 width: 1.,
                 radius: Radius::new(5),
             },

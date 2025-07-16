@@ -5,7 +5,6 @@ use iced::{
     widget::rule::{FillMode, Style},
 };
 
-use crate::styles::colors::dark;
 use crate::Theme;
 
 pub fn text_input_rule(theme: &Theme) -> Style {
@@ -17,7 +16,7 @@ pub fn text_input_rule(theme: &Theme) -> Style {
             bottom_right: 10.,
         },
         fill_mode: FillMode::Full,
-        color: dark::ACCENT_PRIMARY_BASE,
+        color: theme.extended_palette().primary.weak.color,
         snap: true,
     }
 }

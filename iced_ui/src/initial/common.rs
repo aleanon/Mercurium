@@ -16,7 +16,7 @@ pub fn nav_button<'a, Message: Clone>(text: &'a str, on_press: Message) -> Butto
     )
     .width(80)
     .on_press(on_press)
-    .style(styles::button::general_button)
+    .style(styles::button::layer_2)
 }
 
 pub fn nav_row<'a, Message: Clone + 'a>(

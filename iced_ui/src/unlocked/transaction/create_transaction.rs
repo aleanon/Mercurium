@@ -267,7 +267,6 @@ impl<'a> CreateTransaction {
 
         let toggle = widget::Toggler::new(self.text_field.is_some())
             .size(20)
-            .style(styles::toggler::primary)
             .on_toggle(|_| Message::ToggleTextField.into());
 
         let label_and_toggler = row![label, toggle].width(Length::Fill);
@@ -305,7 +304,7 @@ impl<'a> CreateTransaction {
         .text_line_height(2.)
         .text_size(14)
         .width(Length::Fill)
-        .menu_style(styles::menu::menu_primary)
+        .menu_style(styles::menu::primary)
         .style(styles::pick_list::from_account)
         .padding(10);
 
@@ -361,7 +360,7 @@ impl<'a> CreateTransaction {
             .align_x(iced::alignment::Horizontal::Left)
             .align_y(iced::alignment::Vertical::Center)
             .width(Length::Fill)
-            .style(styles::text::secondary)
+            .style(styles::text::muted)
     }
 
     fn recipient(
@@ -470,7 +469,7 @@ impl<'a> CreateTransaction {
 
             let amount = widget::text_input("Amount", &amount)
                 .width(100)
-                .style(styles::text_input::asset_amount)
+                .style(styles::text_input::layer_2)
                 .on_input(move |input| {
                     Message::UpdateResourceAmount(recipient_index, resource_address.clone(), input)
                         .into()

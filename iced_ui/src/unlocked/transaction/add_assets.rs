@@ -195,10 +195,8 @@ impl<'a> AddAssets {
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         let header = text("Add Assets")
             .width(Length::Fill)
-            .line_height(2.)
             .size(16)
-            .align_x(iced::alignment::Horizontal::Center)
-            .align_y(iced::alignment::Vertical::Center);
+            .align_x(iced::alignment::Horizontal::Center);
 
         let space = widget::Space::new(1, 20);
 
@@ -206,6 +204,8 @@ impl<'a> AddAssets {
             .line_height(1.5)
             .size(12)
             .width(250)
+            .style(styles::text_input::general_input)
+            .padding(10)
             .on_input(|input| Message::FilterInput(input).into());
         let search_field = container(search_field)
             .center_x(Length::Fill)
@@ -329,130 +329,125 @@ impl<'a> AddAssets {
         let fungibles = wallet.fungibles().get(&self.from_account);
 
         let elements: Vec<Element<'a, AppMessage>> = match fungibles {
-            Some(fungibles) => {
-                fungibles
-                    .into_iter()
-                    .filter_map(|token| {
-                        if let Some(resource) = wallet.resources().get(&token.resource_address) {
-                            if resource.name.to_ascii_lowercase().contains(&self.filter)
-                                || resource.symbol.to_ascii_lowercase().contains(&self.filter)
-                                || resource.address.as_str().contains(&self.filter)
-                            {
-                                Some((token, resource))
-                            } else {
-                                None
-                            }
+            Some(fungibles) => fungibles
+                .into_iter()
+                .filter_map(|token| {
+                    if let Some(resource) = wallet.resources().get(&token.resource_address) {
+                        if resource.name.to_ascii_lowercase().contains(&self.filter)
+                            || resource.symbol.to_ascii_lowercase().contains(&self.filter)
+                            || resource.address.as_str().contains(&self.filter)
+                        {
+                            Some((token, resource))
                         } else {
                             None
                         }
-                    })
-                    .map(|(token, resource)| {
-                        let selected = self
-                            .selected
-                            .get(&token.resource_address)
-                            .and_then(|selected| Some((true, selected.1.as_str())))
-                            .unwrap_or((self.select_all, ""));
+                    } else {
+                        None
+                    }
+                })
+                .map(|(token, resource)| {
+                    let selected = self
+                        .selected
+                        .get(&token.resource_address)
+                        .and_then(|selected| Some((true, selected.1.as_str())))
+                        .unwrap_or((self.select_all, ""));
 
-                        let icon: Element<'a, AppMessage> = wallet
-                            .resource_icons()
-                            .get(&token.resource_address)
-                            .and_then(|bytes| {
-                                Some(
-                                    widget::image(Handle::from_bytes(bytes.clone()))
-                                        .width(40)
-                                        .height(40)
-                                        .into(),
-                                )
-                            })
-                            .unwrap_or(
-                                container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))
-                                    .center_x(40)
-                                    .center_y(40)
+                    let icon: Element<'a, AppMessage> = wallet
+                        .resource_icons()
+                        .get(&token.resource_address)
+                        .and_then(|bytes| {
+                            Some(
+                                widget::image(Handle::from_bytes(bytes.clone()))
+                                    .width(40)
+                                    .height(40)
                                     .into(),
-                            );
+                            )
+                        })
+                        .unwrap_or(
+                            container(text(Bootstrap::Image).font(BOOTSTRAP_FONT).size(30))
+                                .center_x(40)
+                                .center_y(40)
+                                .into(),
+                        );
 
-                        let name = text(&resource.name).size(12);
-                        let symbol = text(&resource.symbol).size(10);
-                        let name_and_symbol = column![name, symbol].spacing(2);
+                    let name = text(&resource.name).size(12);
+                    let symbol = text(&resource.symbol).size(10);
+                    let name_and_symbol = column![name, symbol].spacing(2);
 
-                        let space = widget::Space::new(Length::Fill, 1);
+                    let space = widget::Space::new(Length::Fill, 1);
 
-                        let balance =
-                            button(text(format!("{} {}", &token.amount, resource.symbol)).size(12))
-                                .style(button::text)
-                                .on_press(
-                                    Message::InputAmount(
-                                        resource.address.clone(),
-                                        resource.symbol.clone(),
-                                        token.amount.clone(),
-                                    )
-                                    .into(),
-                                );
-
-                        // let token_address = resource.address.clone();
-                        // let token_symbol = resource.symbol.clone();
-                        let amount = TextInput::new("Amount", selected.1)
-                            .size(10)
-                            .width(80)
-                            .style(styles::text_input::asset_amount)
-                            .on_input(move |input| {
+                    let balance =
+                        button(text(format!("{} {}", &token.amount, resource.symbol)).size(12))
+                            .style(button::text)
+                            .on_press(
                                 Message::InputAmount(
-                                    token.resource_address.clone(),
-                                    resource.symbol.clone(),
-                                    input,
-                                )
-                                .into()
-                            });
-
-                        let checkbox = checkbox("", selected.0).size(12).on_toggle(move |select| {
-                            if select {
-                                Message::SelectAsset(
                                     resource.address.clone(),
                                     resource.symbol.clone(),
+                                    token.amount.clone(),
                                 )
-                                .into()
-                            } else {
-                                Message::UnselectAsset(resource.address.clone()).into()
-                            }
+                                .into(),
+                            );
+
+                    let amount = TextInput::new("Amount", selected.1)
+                        .size(10)
+                        .width(80)
+                        .style(styles::text_input::layer_2)
+                        .on_input(move |input| {
+                            Message::InputAmount(
+                                token.resource_address.clone(),
+                                resource.symbol.clone(),
+                                input,
+                            )
+                            .into()
                         });
 
-                        let asset = row![icon, name_and_symbol, space, balance, amount, checkbox]
-                            .spacing(10)
-                            .align_y(iced::Alignment::Center)
-                            .width(Length::Fill)
-                            .padding(5);
+                    let checkbox = checkbox("", selected.0).size(12).on_toggle(move |select| {
+                        if select {
+                            Message::SelectAsset(resource.address.clone(), resource.symbol.clone())
+                                .into()
+                        } else {
+                            Message::UnselectAsset(resource.address.clone()).into()
+                        }
+                    });
 
-                        let rule = widget::Rule::horizontal(1);
+                    let asset = row![icon, name_and_symbol, space, balance, amount, checkbox]
+                        .spacing(10)
+                        .align_y(iced::Alignment::Center)
+                        .width(Length::Fill)
+                        .padding(5);
 
-                        let mut column = column![asset].width(Length::Fill);
+                    let rule = widget::Rule::horizontal(1);
 
-                        if selected.0 {
-                            if let Ok(decimal) = types::RadixDecimal::from_str(selected.1) {
-                                if let Ok(token_amount) =
-                                    types::RadixDecimal::from_str(token.amount.as_str())
-                                {
-                                    if decimal > token_amount {
-                                        *within_limits = false;
-                                        let warning = text("Amount exceeds available balance")
-                                            .size(10)
-                                            .line_height(1.5)
-                                            .align_x(iced::alignment::Horizontal::Center);
+                    let mut column = column![asset].width(Length::Fill);
 
-                                        let container = container(warning)
-                                            .width(Length::Fill)
-                                            .padding(5)
-                                            .align_x(iced::alignment::Horizontal::Right);
+                    if selected.0 {
+                        if let Ok(decimal) = types::RadixDecimal::from_str(selected.1) {
+                            if let Ok(token_amount) =
+                                types::RadixDecimal::from_str(token.amount.as_str())
+                            {
+                                if decimal > token_amount {
+                                    *within_limits = false;
+                                    let warning = text("Amount exceeds available balance")
+                                        .size(10)
+                                        .line_height(1.5)
+                                        .style(styles::text::warning)
+                                        .align_x(iced::alignment::Horizontal::Center);
 
-                                        column = column.push(container);
-                                    }
+                                    let container = container(warning)
+                                        .width(Length::Fill)
+                                        .padding(5)
+                                        .align_x(iced::alignment::Horizontal::Right);
+
+                                    column = column.push(container);
                                 }
                             }
                         }
+                    }
 
-                        column.push(rule).into()
-                    })
-                    .collect()
-            }
+                    column = column.push(rule);
+                    container(column).style(styles::container::layer_1).into()
+                })
+                .collect(),
             None => {
                 // Create element for no assets found
                 vec![]

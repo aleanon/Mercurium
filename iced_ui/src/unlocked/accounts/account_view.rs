@@ -350,6 +350,6 @@ impl<'a> AccountView {
                 .height(Length::Fill)
                 .width(Length::Fill),
         )
-        .style(styles::button::general_button)
+        .style(styles::button::layer_2)
     }
 }
