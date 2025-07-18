@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AssetId([u8; Self::LENGTH]);
 
+/// The Id of either a fungible of non fungible asset, the use for this type is to have a unique identifier for assets per account
 impl AssetId {
     pub const LENGTH: usize =
         AccountAddress::CHECKSUM_DOUBLE_LENGTH + ResourceAddress::CHECKSUM_DOUBLE_LENGTH;
@@ -60,4 +61,3 @@ impl rusqlite::types::FromSql for AssetId {
         }
     }
 }
-

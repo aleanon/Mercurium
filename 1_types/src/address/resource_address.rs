@@ -9,9 +9,12 @@ use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 
 use crate::unwrap_unreachable::UnwrapUnreachable;
-use crate::{debug_info, Network};
+use crate::{Network, debug_info};
 
 use super::{Address, AddressError, AddressType};
+
+pub const XRD: &[u8; ResourceAddress::MAINNET_LENGTH] =
+    b"resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd";
 
 static MAINNET_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(ResourceAddress::MAINNET_REGEX_PATTERN).unwrap());
