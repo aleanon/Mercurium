@@ -166,9 +166,7 @@ impl<'a> NonFungible {
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
         let resource = wallet
-            .wallet_data()
-            .resource_data
-            .resources
+            .resources()
             .get(&self.non_fungible_asset.resource_address);
 
         let content = match &self.selected_nft {
@@ -294,7 +292,7 @@ impl<'a> NonFungible {
 
         container(scrollable)
             .padding(5)
-            .style(styles::container::token_container)
+            .style(styles::container::weak_layer_1_rounded_with_shadow)
     }
 
     fn nft_details(&'a self, nft_id: &'a String) -> Container<'a, AppMessage> {
@@ -410,7 +408,7 @@ impl<'a> NonFungible {
 
         container(scrollable(content).style(styles::scrollable::vertical_scrollable_secondary))
             .center_x(Length::Fill)
-            .style(styles::container::token_container)
+            .style(styles::container::weak_layer_1_rounded_with_shadow)
             .max_width(800)
     }
 }

@@ -13,7 +13,9 @@ pub fn primary(theme: &Theme) -> Style {
 
 pub fn muted(theme: &Theme) -> Style {
     Style {
-        color: Some(colors::muted(theme.extended_palette().background.base.text)),
+        color: Some(colors::muted_light(
+            theme.extended_palette().background.base.text,
+        )),
     }
 }
 

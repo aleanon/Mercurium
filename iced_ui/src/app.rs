@@ -6,11 +6,11 @@ use std::borrow::Cow;
 use std::fmt::Debug;
 
 use debug_print::debug_println;
-use font_and_icons::images::WINDOW_LOGO;
 use font_and_icons::BOOTSTRAP_FONT_BYTES;
+use font_and_icons::images::WINDOW_LOGO;
 use iced::time;
 use iced::widget::{container, text};
-use iced::{application, window, Length, Settings, Size};
+use iced::{Length, Settings, Size, application, window};
 use iced::{Subscription, Task};
 use store::AppDataDb;
 use types::AppError;
@@ -110,7 +110,7 @@ impl App {
         (app, Task::none())
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     #[cfg(debug_assertions)]
     pub fn update(&mut self, message: HotMessage) -> Task<HotMessage> {
         let message = message.into_message().unwrap();
@@ -164,7 +164,7 @@ impl App {
         task
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     #[cfg(debug_assertions)]
     pub fn view(&self) -> iced::Element<HotMessage> {
         self.inner_view().map(HotMessage::from_message)
@@ -199,6 +199,10 @@ impl App {
         Subscription::batch([
             time::every(time::Duration::from_millis(500)).map(|_| AppMessage::None)
         ])
+    }
+
+    pub fn theme(&self) -> iced::Theme {
+        self.preferences.theme.into()
     }
 
     pub fn handle_error(&mut self, err: AppError) {
@@ -251,15 +255,6 @@ impl App {
             AppState::Locked(_, wallet) => wallet.settings().network,
             AppState::Unlocked(wallet) => wallet.settings().network,
             AppState::Error(_) => Network::Mainnet,
-        }
-    }
-
-    pub fn wallet_data_mut(&mut self) -> Option<&mut WalletData> {
-        match &mut self.app_state {
-            AppState::Initial(_, _) => None,
-            AppState::Locked(_, wallet) => Some(wallet.wallet_data_mut()),
-            AppState::Unlocked(wallet) => Some(wallet.wallet_data_mut()),
-            AppState::Error(_) => None,
         }
     }
 

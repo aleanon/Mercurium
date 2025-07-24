@@ -1,10 +1,10 @@
-use deps::*;
+use deps::{iced::alignment::Horizontal, *};
 
 use std::str::FromStr;
 
 use iced::{
-    widget::{self, button, column, container, row, text},
     Element, Length, Padding, Task,
+    widget::{self, button, column, container, row, text},
 };
 use types::address::{AccountAddress, Address};
 use wallet::{Unlocked, Wallet};
@@ -99,12 +99,19 @@ impl<'a> AddRecipient {
         let text_input = widget::text_input("Enter recipient address", &self.recipient_input)
             .width(Length::Fill)
             .line_height(2.)
+            .style(styles::text_input::base_layer_1_rounded)
             .on_input(|value| Message::RecipientInput(value).into())
             .on_paste(|value| Message::RecipientInput(value).into());
 
+        let text_input = container(text_input).padding(Padding {
+            left: 15.,
+            right: 15.,
+            ..Padding::ZERO
+        });
+
         let space2 = widget::Space::new(Length::Fill, 20);
 
-        let mut buttons = column!();
+        let mut buttons = column!().align_x(Horizontal::Center).width(Length::Fill);
 
         for (i, (_, account)) in wallet
             .accounts()
@@ -131,7 +138,8 @@ impl<'a> AddRecipient {
             let name_and_address = column![account_name, account_address].spacing(2);
             let space = widget::Space::new(Length::Fill, 1);
             let radio = widget::radio(String::new(), i, selected, |_| AppMessage::None)
-                .width(Length::Shrink);
+                .width(Length::Shrink)
+                .size(20);
 
             let button_row = row![name_and_address, space, radio]
                 .align_y(iced::Alignment::Center)
@@ -143,15 +151,13 @@ impl<'a> AddRecipient {
             } else {
                 None
             };
-            let button = container(
-                button(button_row)
-                    .style(button::text)
-                    .padding(10)
-                    .width(Length::Fill)
-                    .height(Length::Shrink)
-                    .on_press_maybe(message),
-            )
-            .style(styles::container::primary_layer_1_opaque);
+
+            let button = button(button_row)
+                .style(styles::button::base_layer_2_rounded_with_shadow)
+                .padding(10)
+                .width(Length::Fill)
+                .height(Length::Shrink)
+                .on_press_maybe(message);
 
             buttons = buttons.push(button)
         }
@@ -161,13 +167,10 @@ impl<'a> AddRecipient {
             .width(Length::Fill)
             .height(Length::Shrink);
 
-        let buttons = widget::scrollable(buttons.padding(Padding {
-            right: 15.,
-            ..Padding::ZERO
-        }))
-        .style(styles::scrollable::vertical_scrollable_secondary)
-        .width(Length::Fill)
-        .height(Length::Shrink);
+        let buttons = widget::scrollable(buttons.padding(15))
+            .style(styles::scrollable::vertical_scrollable_secondary)
+            .width(Length::Fill)
+            .height(Length::Shrink);
 
         let col = column![header, space, text_input, space2, buttons].width(500);
 

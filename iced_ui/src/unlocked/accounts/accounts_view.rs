@@ -106,7 +106,7 @@ impl<'a> AccountsView {
             ]
             .align_y(iced::Alignment::End),
         )
-        .style(styles::button::layer_2)
+        .style(styles::button::base_layer_2_rounded_with_shadow)
         .on_press(app_view::Message::SpawnOverlay(SpawnOverlay::AddAccount).into());
 
         let header = row![title, widget::Space::new(Length::Fill, 1), new_account]
@@ -240,7 +240,7 @@ impl<'a> AccountsView {
         let button = widget::button(columns)
             .height(100)
             .width(Length::Fill)
-            .style(styles::button::layer_2)
+            .style(styles::button::base_layer_2_rounded_with_shadow)
             .padding(15)
             .on_press(Message::SelectAccount(account.address.clone()).into());
 

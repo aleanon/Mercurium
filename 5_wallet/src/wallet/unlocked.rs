@@ -4,38 +4,43 @@ use store::DataBase;
 use std::collections::{BTreeSet, HashMap};
 
 use bytes::Bytes;
-use types::{address::{AccountAddress, ResourceAddress}, assets::{FungibleAsset, NonFungibleAsset}, crypto::{Key, Password}, Account, Resource};
+use types::{
+    Account, Resource,
+    address::{AccountAddress, ResourceAddress},
+    assets::{FungibleAsset, NonFungibleAsset},
+    crypto::{Key, Password},
+};
 
-use crate::wallet::WalletState;
+use crate::{
+    Settings,
+    wallet::{WalletState, resource_data::ResourceData},
+};
 
-use super::{locked::Locked, wallet_data::WalletData, Wallet};
+use super::{Wallet, locked::Locked, wallet_data::WalletData};
 
 #[derive(Clone)]
 pub struct Unlocked {
-    pub(crate)key: Key<DataBase>
+    pub(crate) key: Key<DataBase>,
 }
 
 impl Unlocked {
     pub fn new(key: Key<DataBase>) -> Self {
-        Self {key}
+        Self { key }
     }
 }
 
-
-impl WalletState for Unlocked{}
+impl WalletState for Unlocked {}
 
 impl Wallet<Unlocked> {
-
     pub fn logout(self) -> Wallet<Locked> {
-        Wallet {state: Locked::new(false), wallet_data: self.wallet_data}
+        Wallet {
+            state: Locked::new(false),
+            wallet_data: self.wallet_data,
+        }
     }
 
-    pub fn wallet_data_mut(&mut self) -> &mut WalletData {
-        &mut self.wallet_data
-    } 
-
-    pub fn wallet_data(&self) -> &WalletData {
-        &self.wallet_data
+    pub fn settings_mut(&mut self) -> &mut Settings {
+        &mut self.wallet_data.settings
     }
 
     pub fn resources(&self) -> &HashMap<ResourceAddress, Resource> {
@@ -62,9 +67,5 @@ impl Wallet<Unlocked> {
     //     &mut self.wallet_data.resource_data.accounts
     // }
 
-    pub fn create_new_account(&mut self, account_name: String, password: Password) {
-        
-    }
+    pub fn create_new_account(&mut self, account_name: String, password: Password) {}
 }
-
-

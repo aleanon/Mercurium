@@ -1,7 +1,7 @@
 use deps::{
     iced::{
         alignment::Horizontal,
-        widget::{column, Button, Column, Rule, Space},
+        widget::{Button, Column, Rule, Space, column},
     },
     *,
 };
@@ -14,14 +14,14 @@ use crate::{
     styles,
     unlocked::app_view,
 };
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, button, container, image::Handle, row, text, Container},
     Alignment, Element, Length, Padding, Task,
+    widget::{self, Container, button, container, image::Handle, row, text},
 };
 use types::{
-    address::{AccountAddress, Address, ResourceAddress},
     Account, Decimal,
+    address::{AccountAddress, Address, ResourceAddress},
 };
 use wallet::{Unlocked, Wallet};
 
@@ -267,6 +267,7 @@ impl<'a> CreateTransaction {
 
         let toggle = widget::Toggler::new(self.text_field.is_some())
             .size(20)
+            .style(styles::toggler::base_layer_1)
             .on_toggle(|_| Message::ToggleTextField.into());
 
         let label_and_toggler = row![label, toggle].width(Length::Fill);
@@ -282,11 +283,15 @@ impl<'a> CreateTransaction {
             )
         });
 
-        let col = widget::column![label_and_toggler]
+        let col = widget::column![label_and_toggler, text_field]
             .spacing(5)
             .align_x(Alignment::Start);
 
-        widget::container(col.push_maybe(text_field))
+        // if let Some(text_field) = text_field {
+        //     col = col.push(text_field);
+        // }
+
+        widget::container(col)
     }
 
     fn from_account_field(&'a self, accounts: Vec<&'a Account>) -> Container<'a, AppMessage> {
@@ -336,7 +341,7 @@ impl<'a> CreateTransaction {
                 .padding(5)
                 .width(Length::FillPortion(6))
                 .height(Length::Shrink)
-                .style(styles::button::choose_recipient)
+                .style(styles::button::base_layer_2_rounded_with_shadow)
                 .on_press(Message::AddRecipient.into()),
             Space::new(Length::FillPortion(2), 1)
         ];
@@ -385,7 +390,7 @@ impl<'a> CreateTransaction {
             left: 10.,
             right: 10.,
         })
-        .style(styles::button::choose_recipient)
+        .style(styles::button::base_layer_2_rounded_with_shadow)
         .on_press_maybe(
             self.from_account
                 .as_ref()
@@ -400,7 +405,7 @@ impl<'a> CreateTransaction {
 
         container(recipient)
             .padding(10)
-            .style(styles::container::recipient)
+            .style(styles::container::weak_layer_2_rounded_with_shadow)
             .into()
     }
 
@@ -421,7 +426,7 @@ impl<'a> CreateTransaction {
         } else {
             button(text(Bootstrap::XLg).font(BOOTSTRAP_FONT).line_height(1.))
                 .padding(0)
-                .style(styles::button::choose_recipient)
+                .style(styles::button::base_layer_2_rounded_with_shadow)
                 .on_press(Message::RemoveRecipient(recipient_index).into())
         };
 
@@ -432,7 +437,7 @@ impl<'a> CreateTransaction {
         button(choose_recipient_content)
             .height(50)
             .padding(10)
-            .style(styles::button::choose_recipient)
+            .style(styles::button::base_layer_2_rounded_with_shadow)
             .on_press(Message::SelectRecipient(recipient_index).into())
     }
 
@@ -469,7 +474,7 @@ impl<'a> CreateTransaction {
 
             let amount = widget::text_input("Amount", &amount)
                 .width(100)
-                .style(styles::text_input::layer_2)
+                .style(styles::text_input::base_layer_1_rounded)
                 .on_input(move |input| {
                     Message::UpdateResourceAmount(recipient_index, resource_address.clone(), input)
                         .into()
@@ -504,6 +509,8 @@ impl<'a> CreateTransaction {
             assets.push(widget::Rule::horizontal(1).into());
         }
 
-        widget::column(assets).spacing(1).width(Length::Fill)
+        widget::Column::from_vec(assets)
+            .spacing(1)
+            .width(Length::Fill)
     }
 }

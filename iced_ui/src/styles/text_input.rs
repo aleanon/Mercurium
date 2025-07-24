@@ -28,7 +28,7 @@ pub fn elevated(theme: &Theme, status: Status) -> Style {
     style.background = Background::Color(palette.background.base.color);
     style.border = style
         .border
-        .color(colors::muted(palette.background.base.text));
+        .color(colors::muted_light(palette.background.base.text));
     style
 }
 
@@ -38,7 +38,23 @@ pub fn general_input(theme: &Theme, status: Status) -> Style {
     style
 }
 
-pub fn layer_2(theme: &Theme, status: Status) -> Style {
+pub fn base_layer_1_rounded(theme: &Theme, status: Status) -> Style {
+    let mut style = default(theme, status);
+    let palette = theme.extended_palette();
+    let background_color = colors::layer_1(palette.background.base.color, palette.is_dark);
+
+    style.border = Border {
+        width: 0.,
+        color: Color::TRANSPARENT,
+        radius: Radius::new(5),
+    };
+    style.icon = Color::TRANSPARENT;
+    style.background = Background::Color(background_color);
+
+    style
+}
+
+pub fn base_layer_2_rounded(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     let palette = theme.extended_palette();
     let background_color = colors::layer_2(palette.background.base.color, palette.is_dark);
@@ -46,7 +62,7 @@ pub fn layer_2(theme: &Theme, status: Status) -> Style {
     style.border = Border {
         width: 0.,
         color: Color::TRANSPARENT,
-        radius: Radius::new(10),
+        radius: Radius::new(5),
     };
     style.icon = Color::TRANSPARENT;
     style.background = Background::Color(background_color);

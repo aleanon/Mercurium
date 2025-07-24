@@ -26,10 +26,6 @@ impl WalletData {
         }
     }
 
-    pub fn set_network(&mut self, network: Network) {
-        self.settings.network = network;
-    }
-
     pub async fn save_resource_icons_to_disk(
         &self,
         icons: HashMap<ResourceAddress, Vec<u8>>,
@@ -46,7 +42,7 @@ impl WalletData {
         self.resource_data.save_resource_data_to_disk(db).await
     }
 
-    pub fn create_new_account(
+    pub(crate) fn create_new_account(
         &mut self,
         account_name: String,
         password: Password,

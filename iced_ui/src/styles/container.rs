@@ -15,6 +15,31 @@ pub fn primary_layer_1_opaque(theme: &Theme) -> Style {
     style
 }
 
+pub fn base_layer_1(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+    Style {
+        background: Some(Background::Color(colors::layer_1(
+            palette.background.base.color,
+            palette.is_dark,
+        ))),
+        ..Default::default()
+    }
+}
+
+pub fn base_layer_1_rounded_with_shadow(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+    let background_color = colors::layer_1(palette.background.base.color, palette.is_dark);
+    Style {
+        background: Some(Background::Color(background_color)),
+        shadow: Shadow {
+            color: colors::shadow(background_color, palette.is_dark),
+            offset: Vector::new(0.0, 0.0),
+            blur_radius: 3.0,
+        },
+        ..Default::default()
+    }
+}
+
 pub fn main_window(theme: &Theme) -> Style {
     // Style::default()
     // style.background = Some(Background::Color(Color::from_rgb8(50, 50, 50)));
@@ -59,21 +84,32 @@ pub fn center_panel(theme: &Theme) -> Style {
     // Style::default().background(dark::BACKGROUND_SECONDARY)
 }
 
-pub fn token_container(theme: &Theme) -> Style {
+pub fn weak_layer_1_rounded_with_shadow(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
-    let mut background_color = palette.background.weakest.color;
-    background_color.r -= 0.005;
-    background_color.g -= 0.005;
-    background_color.b -= 0.005;
-
-    let shadow_color = palette.background.base.color;
+    let background_color = colors::layer_1(palette.background.weak.color, palette.is_dark);
 
     Style {
         background: Some(Background::Color(background_color)),
         border: Border::default().rounded(5),
         shadow: Shadow {
-            color: shadow_color,
-            blur_radius: 5.,
+            color: colors::shadow(background_color, palette.is_dark),
+            blur_radius: 3.,
+            offset: Vector::new(0., 0.),
+        },
+        ..Default::default()
+    }
+}
+
+pub fn weak_layer_2_rounded_with_shadow(theme: &Theme) -> Style {
+    let palette = theme.extended_palette();
+    let background_color = colors::layer_2(palette.background.weak.color, palette.is_dark);
+
+    Style {
+        background: Some(Background::Color(background_color)),
+        border: Border::default().rounded(5),
+        shadow: Shadow {
+            color: colors::shadow(background_color, palette.is_dark),
+            blur_radius: 3.,
             offset: Vector::new(0., 0.),
         },
         ..Default::default()
@@ -130,23 +166,23 @@ pub fn account_overview(theme: &Theme) -> Style {
     }
 }
 
-pub fn asset_list_item(theme: &Theme) -> Style {
-    let background = theme.extended_palette().background.base;
-    let mut background_color = background.color;
-    background_color.a -= 0.01;
+// pub fn asset_list_item(theme: &Theme) -> Style {
+//     let background = theme.extended_palette().background.base;
+//     let mut background_color = background.color;
+//     background_color.a -= 0.01;
 
-    Style {
-        background: Some(iced::Background::Color(background_color)),
-        border: Border {
-            radius: Radius::from(0),
-            color: Color::TRANSPARENT,
-            width: 0.,
-        },
-        shadow: Shadow::default(),
-        text_color: None,
-        ..Default::default()
-    }
-}
+//     Style {
+//         background: Some(iced::Background::Color(background_color)),
+//         border: Border {
+//             radius: Radius::from(0),
+//             color: Color::TRANSPARENT,
+//             width: 0.,
+//         },
+//         shadow: Shadow::default(),
+//         text_color: None,
+//         ..Default::default()
+//     }
+// }
 
 pub fn overlay_container(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
@@ -160,21 +196,6 @@ pub fn overlay_container(theme: &Theme) -> Style {
 }
 
 pub fn overlay_inner(theme: &Theme) -> Style {
-    // Style {
-    //     background: Some(Background::Color(colors::dark::BACKGROUND_PRIMARY)),
-    //     border: Border {
-    //         radius: Radius::from(10.),
-    //         color: dark::BORDER_SUBTLE,
-    //         width: 1.,
-    //     },
-    //     shadow: Shadow {
-    //         color: Color::TRANSPARENT,
-    //         offset: Vector::new(0., 0.),
-    //         blur_radius: 10.,
-    //     },
-    //     snap: false,
-    //     text_color: Some(dark::TEXT_PRIMARY),
-    // }
     let mut style = center_panel(theme);
     style.border.radius = Radius::from(10.);
     style.border.width = 1.;
@@ -273,101 +294,6 @@ pub fn tag(theme: &Theme) -> Style {
             offset: Vector::new(0., 0.),
             blur_radius: 3.,
         },
-        ..Default::default()
-    }
-}
-
-pub fn recipient(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
-    let background_base = palette.background.base;
-    let background_color = colors::layer_1(palette.background.base.color, palette.is_dark);
-
-    let shadow_color = if palette.is_dark {
-        background_color
-    } else {
-        Color::BLACK
-    };
-    let text_color = background_base.text;
-
-    Style {
-        border: iced::Border {
-            color: Color::TRANSPARENT,
-            width: 0.,
-            radius: Radius::new(5),
-        },
-        shadow: iced::Shadow {
-            color: shadow_color,
-            offset: Vector::new(0., 0.),
-            blur_radius: 3.,
-        },
-        background: Some(iced::Background::Color(background_color)),
-        text_color: Some(text_color),
-        ..Default::default()
-    }
-}
-
-pub fn recipients(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
-    let background_color = palette.background.weakest.color;
-
-    Style {
-        background: Some(iced::Background::Color(background_color)),
-        ..Default::default()
-    }
-}
-
-pub fn layer_1(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
-    let background_color = colors::layer_1(palette.background.base.color, palette.is_dark);
-
-    let shadow_color = if palette.is_dark {
-        background_color
-    } else {
-        Color::BLACK
-    };
-    let text_color = palette.background.base.text;
-
-    Style {
-        border: iced::Border {
-            color: Color::TRANSPARENT,
-            width: 0.,
-            radius: Radius::new(5),
-        },
-        shadow: iced::Shadow {
-            color: shadow_color,
-            offset: Vector::new(0., 0.),
-            blur_radius: 3.,
-        },
-        background: Some(iced::Background::Color(background_color)),
-        text_color: Some(text_color),
-        ..Default::default()
-    }
-}
-
-pub fn layer_2(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
-    let background_color = colors::layer_2(palette.background.base.color, palette.is_dark);
-
-    let shadow_color = if palette.is_dark {
-        background_color
-    } else {
-        Color::BLACK
-    };
-    let text_color = palette.background.base.text;
-
-    Style {
-        border: iced::Border {
-            color: Color::TRANSPARENT,
-            width: 0.,
-            radius: Radius::new(0),
-        },
-        shadow: iced::Shadow {
-            color: Color::TRANSPARENT,
-            offset: Vector::new(0., 0.),
-            blur_radius: 0.,
-        },
-        background: Some(iced::Background::Color(background_color)),
-        text_color: Some(text_color),
         ..Default::default()
     }
 }

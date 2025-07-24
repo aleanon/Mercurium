@@ -15,6 +15,12 @@ crate-type = ["rlib", "cdylib"]
 # opt-level = 3
 features = ["iced/debug"]
 
+[profile.reload]
+features = ["iced/debug"]
+
+[profile.hot-ice-bin]
+features = ["iced/debug"]
+
 # [profile.dev.package."*"]
 # opt-level = 3
 # codegen-units = 1

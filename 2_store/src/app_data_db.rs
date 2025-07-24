@@ -5,10 +5,13 @@ pub mod read;
 pub mod statements;
 pub mod update;
 
-use crate::database::{DataBase, DbError};
+use crate::{
+    app_data_db::statements::CREATE_ALL_MAIN_DB_TABLES_BATCH,
+    database::{DataBase, DbError, SyncDataBase},
+};
 use once_cell::sync::OnceCell;
-use std::ops::Deref;
-use types::{AppPath, Network, crypto::Key};
+use std::ops::{Deref, DerefMut};
+use types::{AppPath, Network, crypto::Key, repository::Repository};
 
 pub static MAINNET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
 pub static STOKENET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();

@@ -1,19 +1,17 @@
 use deps::{
-    iced::widget::{horizontal_space, Rule},
+    iced::widget::{Rule, horizontal_space},
     *,
 };
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, column, container, image::Handle, row, text, Container},
     Element, Length, Padding,
+    widget::{self, Container, column, container, image::Handle, row, text},
 };
 use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppMessage, styles};
 use types::{address::Address, assets::FungibleAsset};
-
-const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
 
 #[derive(Debug, Clone)]
 pub enum Icon {
@@ -34,12 +32,7 @@ impl<'a> FungibleView {
     }
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> iced::Element<'a, AppMessage> {
-        let Some(resource) = wallet
-            .wallet_data()
-            .resource_data
-            .resources
-            .get(&self.fungible.resource_address)
-        else {
+        let Some(resource) = wallet.resources().get(&self.fungible.resource_address) else {
             return container(text("Token not found"))
                 .center_x(Length::Fill)
                 .center_y(Length::Fill)
@@ -141,7 +134,7 @@ impl<'a> FungibleView {
 
         let content = container(col)
             .padding(15)
-            .style(styles::container::token_container);
+            .style(styles::container::weak_layer_1_rounded_with_shadow);
 
         let scrollable =
             widget::scrollable(content).style(styles::scrollable::vertical_scrollable_primary);

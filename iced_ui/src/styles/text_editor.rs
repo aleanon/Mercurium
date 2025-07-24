@@ -18,8 +18,8 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
                 radius: Radius::new(5),
             },
             icon: palette.primary.base.color,
-            placeholder: colors::muted(palette.background.weak.text),
-            selection: colors::muted(palette.primary.weak.color),
+            placeholder: colors::muted_light(palette.background.weak.text),
+            selection: colors::muted_light(palette.primary.weak.color),
             value: palette.background.base.text,
         },
         Status::Hovered => Style {
@@ -32,7 +32,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
         },
         Status::Focused { is_hovered } => Style {
             border: Border {
-                color: colors::muted(palette.primary.weak.color),
+                color: colors::muted_light(palette.primary.weak.color),
                 width: 1.,
                 radius: Radius::new(5),
             },

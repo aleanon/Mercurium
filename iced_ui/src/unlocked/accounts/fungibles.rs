@@ -3,10 +3,10 @@ use std::{collections::btree_set, iter};
 use deps::*;
 
 use debug_print::debug_println;
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, column, container, image::Handle, row, text, Button},
     Element, Length, Padding, Task,
+    widget::{self, Button, column, container, image::Handle, row, text},
 };
 use store::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
@@ -107,24 +107,27 @@ impl<'a> Fungibles {
         match &self.selected {
             Some(fungible_view) => fungible_view.view(wallet),
             None => {
-                let elements = wallet
-                    .wallet_data()
-                    .resource_data
-                    .fungibles
+                let fungibles = wallet.fungibles();
+                let elements = fungibles
                     .get(&self.account_addr)
                     .into_iter()
-                    .flatten()
-                    .map(|fungible| {
-                        let button = Self::fungible_list_button(fungible, wallet)
-                            .on_press(Message::SelectFungible(fungible.clone()).into());
+                    .flat_map(|set| {
+                        set.iter().enumerate().map(move |(i, fungible)| {
+                            let button = Self::fungible_list_button(fungible, wallet)
+                                .on_press(Message::SelectFungible(fungible.clone()).into());
 
-                        let button_container =
-                            container(button).style(styles::container::asset_list_item);
+                            let button_container =
+                                container(button).style(styles::container::base_layer_1);
 
-                        let rule = widget::Rule::horizontal(2);
+                            let mut column = column![button_container];
 
-                        column![button_container, rule].into()
-                    });
+                            if i != 0 {
+                                column = column.push(widget::Rule::horizontal(2));
+                            }
+                            column.into()
+                        })
+                    })
+                    .rev();
 
                 let column = column(elements)
                     .align_x(iced::Alignment::Center)
@@ -171,10 +174,11 @@ impl<'a> Fungibles {
             None => ("NoName", None),
         };
 
-        let mut name_and_symbol = column![text(name).size(16)]
+        let symbol_widget = symbol.and_then(|s| Some(text(s).size(14)));
+
+        let name_and_symbol = column![text(name).size(16), symbol_widget]
             .spacing(3)
             .align_x(iced::Alignment::Start);
-        name_and_symbol = name_and_symbol.push_maybe(symbol.and_then(|s| Some(text(s).size(14))));
 
         let list_button_content = row![
             icon,
@@ -191,6 +195,6 @@ impl<'a> Fungibles {
         .spacing(15)
         .align_y(iced::Alignment::Center);
 
-        widget::button(list_button_content).style(styles::button::asset_list_button)
+        widget::button(list_button_content).style(styles::button::base_layer_1)
     }
 }

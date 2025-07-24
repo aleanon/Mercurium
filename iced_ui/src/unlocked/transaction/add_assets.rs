@@ -391,7 +391,7 @@ impl<'a> AddAssets {
                     let amount = TextInput::new("Amount", selected.1)
                         .size(10)
                         .width(80)
-                        .style(styles::text_input::layer_2)
+                        .style(styles::text_input::base_layer_2_rounded)
                         .on_input(move |input| {
                             Message::InputAmount(
                                 token.resource_address.clone(),
@@ -445,7 +445,9 @@ impl<'a> AddAssets {
                     }
 
                     column = column.push(rule);
-                    container(column).style(styles::container::layer_1).into()
+                    container(column)
+                        .style(styles::container::base_layer_1)
+                        .into()
                 })
                 .collect(),
             None => {

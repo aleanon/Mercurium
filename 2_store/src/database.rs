@@ -1,6 +1,6 @@
 use deps::*;
 
-use std::{fmt::Debug, num::NonZeroU32, path::Path};
+use std::{fmt::Debug, num::NonZeroU32, ops::Deref, path::Path};
 
 use async_sqlite::rusqlite::{
     self, CachedStatement, Connection, ErrorCode, Params, Result, Row, ffi,
@@ -254,5 +254,65 @@ pub mod test {
         db.conn(|conn| conn.execute(non_fungible_assets::CREATE_TABLE_NON_FUNGIBLE_ASSETS, []))
             .await
             .expect("Unable to create table, fungibles");
+    }
+}
+
+pub struct SyncDataBase {
+    pub(crate) client: rusqlite::Connection,
+}
+
+impl SyncDataBase {
+    pub(crate) fn load(path: &Path, key: Key<DataBase>) -> Result<Self, DbError> {
+        let client = rusqlite::Connection::open(path)?;
+        client.pragma_update(None, "key", SqliteKey::from_key(&key))?;
+
+        Ok(Self { client })
+    }
+
+    pub(crate) fn transaction<F>(
+        &mut self,
+        stmt: &'static str,
+        execute_stmt: F,
+    ) -> Result<(), DbError>
+    where
+        F: FnOnce(&mut CachedStatement) -> Result<(), rusqlite::Error>,
+    {
+        let tx = self.client.transaction()?;
+
+        execute_stmt(&mut tx.prepare_cached(stmt)?)?;
+
+        Ok(tx.commit()?)
+    }
+
+    pub(crate) fn query_row<T, P, F>(
+        &self,
+        stmt: &'static str,
+        params: P,
+        f: F,
+    ) -> Result<T, DbError>
+    where
+        P: Params,
+        F: FnOnce(&Row<'_>) -> Result<T, rusqlite::Error>,
+    {
+        Ok(self.client.prepare_cached(stmt)?.query_row(params, f)?)
+    }
+
+    pub(crate) fn query_map<T, U, P, F>(
+        &self,
+        stmt: &'static str,
+        params: P,
+        func: F,
+    ) -> Result<T, DbError>
+    where
+        T: FromIterator<U>,
+        P: Params,
+        F: FnMut(&Row<'_>) -> Result<U, rusqlite::Error>,
+    {
+        Ok(self
+            .client
+            .prepare_cached(stmt)?
+            .query_map(params, func)?
+            .flatten()
+            .collect())
     }
 }

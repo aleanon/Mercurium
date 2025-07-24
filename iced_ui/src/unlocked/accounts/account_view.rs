@@ -154,12 +154,7 @@ impl<'a> AccountView {
 
     pub fn view(&'a self, wallet: &'a Wallet<Unlocked>) -> Element<'a, AppMessage> {
         // let mut accounts = appdata.db.get_accounts_map().unwrap_or(BTreeMap::new());
-        let Some(account) = wallet
-            .wallet_data()
-            .resource_data
-            .accounts
-            .get(&self.address)
-        else {
+        let Some(account) = wallet.accounts().get(&self.address) else {
             return column!().into();
         };
         // let account = accounts.remove(&self.address).unwrap_or(Account::none());
@@ -204,13 +199,9 @@ impl<'a> AccountView {
         );
         //TODO: On press spawn modal with qr code with accound address and the address written out with a copy button
 
-        let nav_button_row = row![history_button, transfer_button, receive_button]
-            // .width(Length::Shrink)
-            // .height(Length::Shrink)
-            .spacing(20);
+        let nav_button_row = row![history_button, transfer_button, receive_button].spacing(20);
 
         let nav_button_cont = container(nav_button_row).center_x(Length::Fill);
-        // .height(Length::Shrink);
 
         let mut fung_button = Self::select_asset_button("Tokens")
             .on_press(Message::FungiblesView(self.address.clone()).into());
@@ -220,15 +211,14 @@ impl<'a> AccountView {
 
         let assets = match &self.view {
             AssetView::Tokens(fungibles_view) => {
-                fung_button = fung_button.style(styles::button::general_selected_button);
+                fung_button = fung_button.style(styles::button::base_layer_2_selected);
 
                 fungibles_view.view(wallet)
             }
             AssetView::NonFungibles(non_fungibles) => {
-                nft_button = nft_button.style(styles::button::general_selected_button);
+                nft_button = nft_button.style(styles::button::base_layer_2_selected);
 
                 non_fungibles.view(wallet)
-                // self.view_non_fungibles(wallet)
             }
         };
 
@@ -242,92 +232,6 @@ impl<'a> AccountView {
             .align_x(iced::Alignment::Center);
 
         container(col)
-            .height(Length::Fill)
-            .width(Length::Fill)
-            .into()
-    }
-
-    // fn account_header() -> Container<'a, Message> {}
-
-    pub fn view_non_fungibles(
-        &self,
-        wallet: &'a Wallet<Unlocked>,
-    ) -> iced::Element<'a, AppMessage> {
-        let non_fungibles = wallet.non_fungibles().get(&self.address);
-
-        let column = {
-            //Each non-fungible is turned into an element
-
-            let mut elements: Vec<Element<'a, AppMessage>> = Vec::new();
-
-            if let Some(non_fungibles) = non_fungibles {
-                for non_fungible in non_fungibles {
-                    let icon: iced::Element<'a, AppMessage> =
-                        match wallet.resource_icons().get(&non_fungible.resource_address) {
-                            Some(bytes) => widget::image(Handle::from_bytes(bytes.clone()))
-                                .width(40)
-                                .height(40)
-                                .into(),
-                            None => widget::Space::new(40, 40).into(),
-                        };
-
-                    let name = wallet
-                        .resources()
-                        .get(&non_fungible.resource_address)
-                        .and_then(|no_fungible| Some(no_fungible.name.as_str()))
-                        .unwrap_or("NoName");
-
-                    let symbol = text(name)
-                        .size(12)
-                        .height(15)
-                        .align_x(iced::alignment::Horizontal::Left)
-                        .align_y(iced::alignment::Vertical::Center)
-                        .width(Length::Fill);
-
-                    let nr_of_nfts = text(non_fungible.nfids.nr_of_nfts())
-                        .size(10)
-                        .height(15)
-                        .align_x(iced::alignment::Horizontal::Right)
-                        .align_y(iced::alignment::Vertical::Center)
-                        .width(Length::Shrink);
-
-                    let col = column![symbol, nr_of_nfts]
-                        .align_x(iced::Alignment::Center)
-                        .width(Length::Fill)
-                        .height(Length::Shrink);
-
-                    let row = row![icon, col]
-                        .height(Length::Fill)
-                        .width(Length::Fill)
-                        .padding(5)
-                        .spacing(5)
-                        .align_y(iced::Alignment::Center);
-
-                    let button = widget::button(row)
-                        .width(Length::Fill)
-                        .height(50)
-                        .on_press(AppMessage::None)
-                        .style(button::text);
-
-                    let container = container(button).style(styles::container::asset_list_item);
-
-                    elements.push(container.into())
-                }
-            } else {
-                elements.push(text("No non_fungibles found").into())
-            }
-
-            column(elements)
-                .align_x(iced::Alignment::Center)
-                .padding(Padding {
-                    right: 15.,
-                    ..Padding::ZERO
-                })
-                .width(Length::Fill)
-        };
-
-        widget::scrollable(column)
-            // .direction(scrollable::Direction::Vertical(Properties::default()))
             .height(Length::Fill)
             .width(Length::Fill)
             .into()
@@ -350,6 +254,6 @@ impl<'a> AccountView {
                 .height(Length::Fill)
                 .width(Length::Fill),
         )
-        .style(styles::button::layer_2)
+        .style(styles::button::base_layer_2_rounded_with_shadow)
     }
 }

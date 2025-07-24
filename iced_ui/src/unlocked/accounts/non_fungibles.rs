@@ -1,9 +1,9 @@
 use deps::*;
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, column, container, image::Handle, row, text, Button},
     Element, Length, Padding, Task,
+    widget::{self, Button, column, container, image::Handle, row, text},
 };
 use wallet::{Unlocked, Wallet};
 
@@ -99,28 +99,24 @@ impl<'a> NonFungibles {
         match &self.selected {
             Some(fungible_view) => fungible_view.view(wallet),
             None => {
-                let mut elements: Vec<Element<'a, AppMessage>> = Vec::new();
-
-                if let Some(non_fungibles) = wallet
-                    .wallet_data()
-                    .resource_data
-                    .non_fungibles
+                let elements = wallet
+                    .non_fungibles()
                     .get(&self.account_addr)
-                {
-                    for non_fungible in non_fungibles {
+                    .into_iter()
+                    .flatten()
+                    .map(|non_fungible| {
                         let button = Self::non_fungible_list_button(non_fungible, wallet)
-                            .on_press(Message::SelectNonFungible(non_fungible.clone()).into());
+                            .on_press_with(|| {
+                                Message::SelectNonFungible(non_fungible.clone()).into()
+                            });
 
                         let button_container =
-                            container(button).style(styles::container::asset_list_item);
+                            container(button).style(styles::container::base_layer_1);
 
                         let rule = widget::Rule::horizontal(2);
 
-                        elements.push(column![button_container, rule].into())
-                    }
-                } else {
-                    // Push no widget to "elements"
-                }
+                        column![button_container, rule].into()
+                    });
 
                 let column = column(elements)
                     .align_x(iced::Alignment::Center)
@@ -167,10 +163,11 @@ impl<'a> NonFungibles {
             None => ("NoName", None),
         };
 
-        let mut name_and_symbol = column![text(name).size(16)]
+        let symbol_widget = symbol.and_then(|s| Some(text(s).size(14)));
+
+        let name_and_symbol = column![text(name).size(16), symbol_widget]
             .spacing(3)
             .align_x(iced::Alignment::Start);
-        name_and_symbol = name_and_symbol.push_maybe(symbol.and_then(|s| Some(text(s).size(14))));
 
         let list_button_content = row![
             icon,
@@ -192,6 +189,6 @@ impl<'a> NonFungibles {
         .spacing(15)
         .align_y(iced::Alignment::Center);
 
-        widget::button(list_button_content).style(styles::button::asset_list_button)
+        widget::button(list_button_content).style(styles::button::base_layer_1)
     }
 }

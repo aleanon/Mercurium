@@ -10,7 +10,7 @@ pub fn from_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let background_color = colors::layer_2(palette.background.base.color, palette.is_dark);
 
-    let placeholder_color = colors::muted(palette.background.base.text);
+    let placeholder_color = colors::muted_light(palette.background.base.text);
     let text_color = palette.background.base.text;
 
     match status {

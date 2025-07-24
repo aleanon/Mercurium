@@ -113,24 +113,23 @@ impl<'a> AppView {
     fn new_transaction(&mut self, from_account: Option<Account>, wallet: &'a mut Wallet<Unlocked>) {
         match from_account {
             Some(ref account) => {
-                let asset_amounts = wallet
-                    .wallet_data()
-                    .resource_data
-                    .fungibles
-                    .get(&account.address)
-                    .and_then(|fungibles| {
-                        Some(
-                            fungibles
-                                .into_iter()
-                                .filter_map(|fungible| {
-                                    Some((
-                                        fungible.resource_address.clone(),
-                                        RadixDecimal::from_str(&fungible.amount).ok()?.into(),
-                                    ))
-                                })
-                                .collect::<HashMap<ResourceAddress, Decimal>>(),
-                        )
-                    });
+                let asset_amounts =
+                    wallet
+                        .fungibles()
+                        .get(&account.address)
+                        .and_then(|fungibles| {
+                            Some(
+                                fungibles
+                                    .into_iter()
+                                    .filter_map(|fungible| {
+                                        Some((
+                                            fungible.resource_address.clone(),
+                                            RadixDecimal::from_str(&fungible.amount).ok()?.into(),
+                                        ))
+                                    })
+                                    .collect::<HashMap<ResourceAddress, Decimal>>(),
+                            )
+                        });
 
                 self.active_tab =
                     ActiveTab::Transfer(CreateTransaction::new(from_account, asset_amounts));
