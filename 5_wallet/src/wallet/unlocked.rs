@@ -1,22 +1,20 @@
-use deps::*;
+use deps::{tokio::task::JoinHandle, *};
+use handles::credentials::get_db_encryption_salt;
 use store::DataBase;
 
 use std::collections::{BTreeSet, HashMap};
 
 use bytes::Bytes;
 use types::{
-    Account, Resource,
+    Account, AppError, Resource,
     address::{AccountAddress, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::{Key, Password},
 };
 
-use crate::{
-    Settings,
-    wallet::{WalletState, resource_data::ResourceData},
-};
+use crate::{Settings, wallet::WalletState};
 
-use super::{Wallet, locked::Locked, wallet_data::WalletData};
+use super::{Wallet, locked::Locked};
 
 #[derive(Clone)]
 pub struct Unlocked {
@@ -67,5 +65,15 @@ impl Wallet<Unlocked> {
     //     &mut self.wallet_data.resource_data.accounts
     // }
 
-    pub fn create_new_account(&mut self, account_name: String, password: Password) {}
+    pub fn create_new_account(
+        &mut self,
+        account_name: String,
+        password: Password,
+    ) -> Result<JoinHandle<Result<Account, AppError>>, AppError> {
+        let salt = get_db_encryption_salt()?;
+        let key = Key::new(password.as_str(), &salt);
+        Ok(self
+            .wallet_data
+            .create_new_account(account_name, password, key))
+    }
 }
