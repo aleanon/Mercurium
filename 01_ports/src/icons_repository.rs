@@ -6,11 +6,14 @@ where
 {
     type Key: ZeroizeOnDrop;
     type Path;
+    type Icon;
     type Error: std::error::Error;
 
     fn initialize(path: Self::Path, key: Self::Key) -> Result<Self, Self::Error>;
 
-    fn connect(path: Self::Path, key: Self::Key) -> Result<Self, Self::Error>;
+    fn load(path: Self::Path, key: Self::Key) -> Result<Self, Self::Error>;
+
+    fn save_icon(&self, icon: Self::Icon) -> Result<(), Self::Error>;
 
     fn delete(path: Self::Path, key: Self::Key) -> Result<(), Self::Error>;
 }
