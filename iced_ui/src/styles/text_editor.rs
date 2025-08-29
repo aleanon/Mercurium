@@ -1,11 +1,10 @@
 use deps::iced::{
-    advanced::graphics::core::widget,
-    border::Radius,
-    widget::text_editor::{self, Catalog, Status, Style},
     Background, Border,
+    border::Radius,
+    widget::text_editor::{self, Status, Style},
 };
 
-use crate::{styles::colors, Theme};
+use crate::{Theme, styles::colors};
 
 pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
@@ -17,7 +16,6 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
                 width: 1.,
                 radius: Radius::new(5),
             },
-            icon: palette.primary.base.color,
             placeholder: colors::muted_light(palette.background.weak.text),
             selection: colors::muted_light(palette.primary.weak.color),
             value: palette.background.base.text,
@@ -30,7 +28,10 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
             },
             ..primary(theme, Status::Active)
         },
-        Status::Focused { is_hovered } => Style {
+        Status::Focused {
+            #[allow(unused)]
+            is_hovered,
+        } => Style {
             border: Border {
                 color: colors::muted_light(palette.primary.weak.color),
                 width: 1.,
@@ -40,8 +41,4 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
         },
         Status::Disabled => text_editor::default(theme, Status::Disabled),
     }
-    // let mut style = text_editor::default(theme, status);
-    // style.background = Background::Color(colors::background_card(theme));
-    // style.border = style.border.rounded(5);
-    // style
 }

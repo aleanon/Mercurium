@@ -1,12 +1,12 @@
-use deps::{iced::theme::Palette, *};
+use deps::*;
 
 use iced::{
-    border::Radius,
-    widget::text_input::{default, Status, Style},
     Background, Border, Color,
+    border::Radius,
+    widget::text_input::{Status, Style, default},
 };
 
-use crate::{styles::colors, Theme};
+use crate::{Theme, styles::colors};
 
 pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);

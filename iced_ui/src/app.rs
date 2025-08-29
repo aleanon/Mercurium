@@ -13,7 +13,7 @@ use iced::widget::{container, text};
 use iced::{Length, Settings, Size, application, window};
 use iced::{Subscription, Task};
 use store::AppDataDb;
-use types::AppError;
+use types::{AppError, UnsafeRefMut};
 use types::{Network, Notification, Theme};
 use wallet::wallet::Wallet;
 use wallet::{Locked, Unlocked, WalletData};

@@ -164,9 +164,9 @@ where
         self.underlay.as_widget().size()
     }
 
-    fn layout(&self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
         self.underlay
-            .as_widget()
+            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, limits)
     }
 
@@ -278,22 +278,25 @@ where
     }
 
     fn operate<'b>(
-        &'b self,
+        &'b mut self,
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn Operation<()>,
     ) {
-        if let Some(overlay) = &self.overlay {
+        if let Some(overlay) = &mut self.overlay {
             overlay.as_widget().diff(&mut state.children[1]);
 
             overlay
-                .as_widget()
+                .as_widget_mut()
                 .operate(&mut state.children[1], layout, renderer, operation);
         } else {
-            self.underlay
-                .as_widget()
-                .operate(&mut state.children[0], layout, renderer, operation);
+            self.underlay.as_widget_mut().operate(
+                &mut state.children[0],
+                layout,
+                renderer,
+                operation,
+            );
         }
     }
 }
