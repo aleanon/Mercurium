@@ -122,7 +122,7 @@ impl<'a> Fungibles {
                             let mut column = column![button_container];
 
                             if i != 0 {
-                                column = column.push(widget::Rule::horizontal(2));
+                                column = column.push(widget::rule::horizontal(2));
                             }
                             column.into()
                         })
@@ -183,7 +183,7 @@ impl<'a> Fungibles {
         let list_button_content = row![
             icon,
             name_and_symbol,
-            widget::Space::new(Length::Fill, 1),
+            widget::space::horizontal(),
             text(format!("{} {}", &fungible.amount, symbol.unwrap_or(""))).size(18)
         ]
         .padding(Padding {

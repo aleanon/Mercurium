@@ -1,7 +1,7 @@
 use deps::*;
 
 use crate::unwrap_unreachable::UnwrapUnreachable;
-use crate::{debug_info, Network};
+use crate::{Network, debug_info};
 
 use super::{Address, AddressError, AddressType};
 use async_sqlite::rusqlite;

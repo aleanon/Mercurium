@@ -113,7 +113,7 @@ impl<'a> NonFungibles {
                         let button_container =
                             container(button).style(styles::container::base_layer_1);
 
-                        let rule = widget::Rule::horizontal(2);
+                        let rule = widget::rule::horizontal(2);
 
                         column![button_container, rule].into()
                     });
@@ -172,7 +172,7 @@ impl<'a> NonFungibles {
         let list_button_content = row![
             icon,
             name_and_symbol,
-            widget::Space::new(Length::Fill, 1),
+            widget::space::horizontal(),
             text(format!(
                 "{} {}",
                 &fungible.nfids.len(),

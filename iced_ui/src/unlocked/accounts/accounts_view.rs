@@ -7,14 +7,14 @@ use crate::{
     styles,
     unlocked::{app_view, overlays::overlay::SpawnOverlay},
 };
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, button, column, container, row, scrollable, text},
     Element, Length, Padding, Task,
+    widget::{self, button, column, container, row, scrollable, text},
 };
 use types::{
-    address::{AccountAddress, Address},
     Account,
+    address::{AccountAddress, Address},
 };
 use wallet::{Unlocked, Wallet};
 
@@ -109,7 +109,7 @@ impl<'a> AccountsView {
         .style(styles::button::base_layer_2_rounded_with_shadow)
         .on_press(app_view::Message::SpawnOverlay(SpawnOverlay::AddAccount).into());
 
-        let header = row![title, widget::Space::new(Length::Fill, 1), new_account]
+        let header = row![title, widget::space().width(Length::Fill), new_account]
             .align_y(iced::Alignment::End)
             .padding(20);
 
@@ -169,7 +169,7 @@ impl<'a> AccountsView {
             .align_y(iced::alignment::Vertical::Center)
             .size(20);
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space().width(Length::Fill);
 
         let account_address_widget = widget::text(account.address.truncate_long())
             .size(18)
@@ -229,11 +229,9 @@ impl<'a> AccountsView {
         let mut icons = row(icons).spacing(5);
 
         if not_showing > 0 {
-            icons = icons.push(widget::Space::new(5, 1));
+            icons = icons.push(widget::space().width(5));
             icons = icons.push(text!("+ {}", not_showing))
         }
-
-        let space = iced::widget::Space::new(Length::Fill, Length::Fill);
 
         let columns = column![name_address_row, icons].spacing(20);
 

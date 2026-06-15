@@ -221,7 +221,7 @@ impl AppPathInner {
     }
 }
 
-// // The use of this type required the PATH static to be set at program startup and never Uninitialized.
+// The use of this type required the PATH static to be set at program startup and never Uninitialized.
 pub struct AppPath;
 
 impl AppPath {

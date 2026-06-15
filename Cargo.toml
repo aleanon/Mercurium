@@ -3,18 +3,22 @@ cargo-features = ["profile-rustflags"]
 
 [workspace]
 members = [
+    "01_ports_and_adapters/app_path",
+    "01_ports_and_adapters/data_stores",
+    "01_ports_and_adapters/ledger_connector",
+    "01_ports_and_adapters/secrets_store",
     "0_deps",
-    "01_ports",
-    "02_adapters",
     "1_types",
     "2_store",
     "3_handles",
     "4_font_and_icons",
-    "5_wallet",
+    "5_wallet", "gpui",
     "iced_ui",
     "mercurium",
 ]
+
 workspace.resolver = "3"
+package.version = "0.0.1"
 package.edition = "2024"
 
 
@@ -24,6 +28,7 @@ strip = "symbols"
 opt-level = 3
 lto = "fat"
 codegen-units = 1
+
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -49,26 +54,27 @@ hot-lib-reloader = { version = "0.7.0" }
 thiserror = "2.0"
 
 #used from the deps crate
-iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", default-features = false, features = [
+iced = { version = "0.14.0", default-features = false, features = [
     "wgpu",
     "tokio",
     "image",
     "qr_code",
     "advanced",
     "debug",
+    "wayland",
 ] }
-hot_ice = { git = "https://github.com/aleanon/hot_ice.git", branch = "main" }
+hot_ice = { git = "https://github.com/aleanon/hot_ice.git", branch = "main", features = ["tokio"] }
 scrypto = { version = "1.3.0" }
-tokio = { version = "*", features = ["full"] }
-serde_json = { version = "*" }
+tokio = { version = "1.50", features = ["full"] }
+serde_json = { version = "1.0" }
 async-sqlite = { version = "0.5.0", features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
-reqwest = { version = "*", features = ["blocking", "json"] }
-openssl-sys = { version = "*", features = ["vendored"] }
-flate2 = "*"
-bytes = "*"
-image = "*"
+reqwest = { version = "0.13", features = ["blocking", "json"] }
+openssl-sys = { version = "0.9", features = ["vendored"] }
+flate2 = "1.1"
+bytes = "1.11"
+image = "0.25"
 fast_image_resize = { version = "5.1.3", features = ["image"] }
 tiny-bip39 = "*"
 slip10_ed25519 = "*"
@@ -83,9 +89,11 @@ const_format = "*"
 radix-gateway-sdk = { git = "https://github.com/aleanon/radix-gateway-sdk-fork.git" }
 asynciter = "*"
 futures = "*"
-bincode = "*"
+bincode = "2.0.1"
 no-mangle-if-debug = "0.1"
 simple_logger = "*"
+async-trait = "*"
+encrypt = { version = "0.1.0", git = "https://github.com/aleanon/encrypt.git", branch = "main" }
 
 # Windows specific imports
 winapi = { version = "*", features = ["winuser"] }

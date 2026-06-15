@@ -1,6 +1,6 @@
 use deps::*;
 
-use iced::{widget::column, Element};
+use iced::{Element, widget::column};
 
 use crate::{app::App, app::AppMessage};
 
@@ -36,4 +36,3 @@ impl<'a> RestoreFromBackup {
         // column![from_backup, from_seed].into()
     }
 }
-

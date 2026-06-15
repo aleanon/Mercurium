@@ -1,14 +1,6 @@
-use deps::*;
+use std::path::{Path, PathBuf};
 
-use std::{
-    cell::OnceCell,
-    path::{Path, PathBuf},
-};
-
-use once_cell::sync::Lazy;
 use thiserror::Error;
-
-use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 #[derive(Error, Debug)]
 pub enum AppPathError {
@@ -32,7 +24,7 @@ pub(crate) struct AppPathInner {
 }
 
 impl AppPathInner {
-    pub const APP_NAME: &'static str = crate::consts::APPLICATION_NAME;
+    pub const APP_NAME: &'static str = types::consts::APPLICATION_NAME;
     const CONFIG_DIRECTORY: &'static str = "config";
     const APP_SETTINGS_FILE_NAME: &'static str = "settings";
     const APP_SETTINGS_EXTENSION: &'static str = "json";
@@ -76,7 +68,7 @@ impl AppPathInner {
         stokenet_icon_cache_path.push(Self::ICONCASHE_STOKENET_FILE_NAME);
         stokenet_icon_cache_path.set_extension(Self::DB_EXTENSION);
 
-        Ok(Self {
+        Self {
             app_directory: root_directory.into_boxed_path(),
             config_directory: config_directory.into_boxed_path(),
             app_settings_path: app_settings_path.into_boxed_path(),
@@ -86,7 +78,7 @@ impl AppPathInner {
             icons_directory: icons_directory.into_boxed_path(),
             mainnet_icon_cache_path: mainnet_icon_cache_path.into_boxed_path(),
             stokenet_icon_cache_path: stokenet_icon_cache_path.into_boxed_path(),
-        })
+        }
     }
 
     pub fn create_directories_if_not_exists(&self) -> Result<&Self, AppPathError> {

@@ -5,13 +5,10 @@ pub mod read;
 pub mod statements;
 pub mod update;
 
-use crate::{
-    app_data_db::statements::CREATE_ALL_MAIN_DB_TABLES_BATCH,
-    database::{DataBase, DbError, SyncDataBase},
-};
+use crate::database::{DataBase, DbError};
 use once_cell::sync::OnceCell;
-use std::ops::{Deref, DerefMut};
-use types::{AppPath, Network, crypto::Key, repository::Repository};
+use std::ops::Deref;
+use types::{AppPath, Network, crypto::Key};
 
 pub static MAINNET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
 pub static STOKENET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
@@ -20,6 +17,7 @@ pub static STOKENET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
 pub struct AppDataDb {
     db: DataBase,
 }
+
 impl AppDataDb {
     pub async fn load(network: Network, key: Key<DataBase>) -> Result<&'static Self, DbError> {
         let app_data_db = Self::initialize(network, key).await?;

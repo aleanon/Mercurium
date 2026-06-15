@@ -1,7 +1,7 @@
 use deps::{
     iced::{
         alignment::Horizontal,
-        widget::{Button, Column, Rule, Space, column},
+        widget::{Button, Column, column},
     },
     *,
 };
@@ -79,7 +79,7 @@ pub enum View {
 #[derive(Debug)]
 pub struct CreateTransaction {
     pub(crate) from_account: Option<Account>,
-    pub(crate) resource_amounts: HashMap<ResourceAddress, Decimal>,
+    pub(crate) _resource_amounts: HashMap<ResourceAddress, Decimal>,
     pub(crate) recipients: Vec<Recipient>,
     pub(crate) text_field: Option<components::text_field::TextField>,
     pub(crate) view: View,
@@ -92,7 +92,7 @@ impl CreateTransaction {
     ) -> Self {
         Self {
             from_account,
-            resource_amounts: account_resources.unwrap_or(HashMap::new()),
+            _resource_amounts: account_resources.unwrap_or(HashMap::new()),
             recipients: vec![Recipient::new(None)],
             text_field: None,
             view: View::Transaction,
@@ -102,7 +102,7 @@ impl CreateTransaction {
     pub fn from_recipient(address: AccountAddress) -> Self {
         Self {
             from_account: None,
-            resource_amounts: HashMap::new(),
+            _resource_amounts: HashMap::new(),
             recipients: vec![Recipient::new(Some(address))],
             text_field: None,
             view: View::Transaction,
@@ -336,17 +336,25 @@ impl<'a> CreateTransaction {
         let recipients = column(recipients).spacing(20);
 
         let add_recipient = row![
-            Space::new(Length::FillPortion(2), 1),
+            widget::space().width(Length::FillPortion(2)),
             button(text("Add recipient").center())
                 .padding(5)
                 .width(Length::FillPortion(6))
                 .height(Length::Shrink)
                 .style(styles::button::base_layer_2_rounded_with_shadow)
                 .on_press(Message::AddRecipient.into()),
-            Space::new(Length::FillPortion(2), 1)
+            widget::space().width(Length::FillPortion(2))
         ];
 
-        container(column![label, recipients, Space::new(1, 30), add_recipient].spacing(5))
+        container(
+            column![
+                label,
+                recipients,
+                widget::space::horizontal().height(30),
+                add_recipient
+            ]
+            .spacing(5),
+        )
     }
 
     fn resource_text_field(str: &'a str) -> widget::Text<'a> {
@@ -470,7 +478,7 @@ impl<'a> CreateTransaction {
 
             let symbol = Self::resource_text_field(&symbol);
 
-            let space = widget::Space::new(Length::Fill, 1);
+            let space = widget::space::horizontal();
 
             let amount = widget::text_input("Amount", &amount)
                 .width(100)
@@ -501,12 +509,12 @@ impl<'a> CreateTransaction {
                 .height(Length::Shrink)
                 .width(Length::Fill);
 
-            assets.push(Rule::horizontal(1).into());
+            assets.push(widget::rule::horizontal(1).into());
             assets.push(resource_row.into());
         }
 
         if assets.len() > 0 {
-            assets.push(widget::Rule::horizontal(1).into());
+            assets.push(widget::rule::horizontal(1).into());
         }
 
         widget::Column::from_vec(assets)

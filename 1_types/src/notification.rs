@@ -25,7 +25,7 @@ impl Notification {
             | Self::Danger(message) => Some(message),
         }
     }
-    
+
     pub fn message(&self) -> &str {
         match self {
             Self::None => "",
@@ -36,7 +36,6 @@ impl Notification {
         }
     }
 }
-
 
 impl Display for Notification {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

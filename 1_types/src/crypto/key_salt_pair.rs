@@ -7,22 +7,22 @@ use zeroize::ZeroizeOnDrop;
 use super::{CryptoError, Key, KeyType, Salt};
 
 #[derive(Debug, Clone, ZeroizeOnDrop)]
-pub struct KeySaltPair<T> 
-    where 
-        T: KeyType,
+pub struct KeySaltPair<T>
+where
+    T: KeyType,
 {
     key: Key<T>,
     salt: Salt,
 }
 
-impl<T> KeySaltPair<T> 
-    where
-        T: KeyType,
+impl<T> KeySaltPair<T>
+where
+    T: KeyType,
 {
     pub fn new(source: &str) -> Result<Self, CryptoError> {
         let salt = Salt::new()?;
         let key = Key::new(source, &salt);
-        Ok(Self { key, salt})
+        Ok(Self { key, salt })
     }
 
     pub fn from_salt(source: &str, salt: Salt) -> Self {
@@ -40,7 +40,7 @@ impl<T> KeySaltPair<T>
         &self.salt
     }
 
-    /// Takes the [Key] and [Salt], dropping the empty [KeyAndSalt] 
+    /// Takes the [Key] and [Salt], dropping the empty [KeyAndSalt]
     pub fn into_inner(mut self) -> (Key<T>, Salt) {
         (mem::take(&mut self.key), mem::take(&mut self.salt))
     }
@@ -65,6 +65,3 @@ impl<T> KeySaltPair<T>
         mem::take(&mut self.key)
     }
 }
-
-
-

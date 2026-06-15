@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::crypto::derivation_path_indexes::{BIP32_NETWORK_ID_MAINNET, BIP32_NETWORK_ID_STOKENET};
 
-
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Network {
     #[default]

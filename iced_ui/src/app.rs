@@ -1,20 +1,19 @@
-use deps::hot_ice::HotMessage;
-use deps::iced::Application;
-use deps::*;
-use no_mangle_if_debug::no_mangle_if_debug;
-use std::borrow::Cow;
-use std::fmt::Debug;
+#[cfg(feature = "reload")]
+use deps::hot_ice;
 
-use debug_print::debug_println;
-use font_and_icons::BOOTSTRAP_FONT_BYTES;
-use font_and_icons::images::WINDOW_LOGO;
-use iced::time;
-use iced::widget::{container, text};
-use iced::{Length, Settings, Size, application, window};
-use iced::{Subscription, Task};
+use deps::{
+    debug_print::debug_println,
+    hot_ice::hot_fn,
+    iced::{
+        self, Length, Task, Theme,
+        widget::{container, text},
+    },
+};
+
+use std::fmt::Debug;
 use store::AppDataDb;
-use types::{AppError, UnsafeRefMut};
-use types::{Network, Notification, Theme};
+use types::AppError;
+use types::{Network, Notification, Theme as AppTheme};
 use wallet::wallet::Wallet;
 use wallet::{Locked, Unlocked, WalletData};
 
@@ -24,9 +23,6 @@ use crate::initial::setup::{self, Setup};
 use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
 use crate::unlocked::app_view::AppView;
-
-//Reexport for hot reloading
-pub use iced::Element;
 
 #[derive(Clone)]
 pub enum AppMessage {
@@ -47,7 +43,7 @@ impl Debug for AppMessage {
 
 #[derive(Default)]
 pub struct Preferences {
-    pub theme: Theme,
+    pub theme: AppTheme,
 }
 // #[derive(Debug)]
 pub enum AppState {
@@ -66,19 +62,8 @@ pub struct App {
 }
 
 impl App {
-    #[cfg(debug_assertions)]
-    pub fn new() -> (Self, Task<HotMessage>) {
-        let (app, task) = Self::inner_new();
-        (app, task.map(HotMessage::from_message))
-    }
-
-    #[cfg(not(debug_assertions))]
+    #[hot_fn(feature = "reload")]
     pub fn new() -> (Self, Task<AppMessage>) {
-        let (app, task) = Self::inner_new();
-        (app, task)
-    }
-
-    pub fn inner_new() -> (Self, Task<AppMessage>) {
         let settings = wallet::Settings::load_from_disk_or_default();
 
         let app_state =
@@ -110,19 +95,8 @@ impl App {
         (app, Task::none())
     }
 
-    #[unsafe(no_mangle)]
-    #[cfg(debug_assertions)]
-    pub fn update(&mut self, message: HotMessage) -> Task<HotMessage> {
-        let message = message.into_message().unwrap();
-        self.inner_update(message).map(HotMessage::from_message)
-    }
-
-    #[cfg(not(debug_assertions))]
+    #[hot_fn(feature = "reload")]
     pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
-        self.inner_update(message)
-    }
-
-    pub fn inner_update(&mut self, message: AppMessage) -> Task<AppMessage> {
         let mut task = Task::none();
         match message {
             AppMessage::Setup(message) => match message {
@@ -164,19 +138,8 @@ impl App {
         task
     }
 
-    #[unsafe(no_mangle)]
-    #[cfg(debug_assertions)]
-    pub fn view(&self) -> iced::Element<HotMessage> {
-        self.inner_view().map(HotMessage::from_message)
-    }
-
-    #[cfg(not(debug_assertions))]
-    pub fn view(&self) -> iced::Element<AppMessage> {
-        self.inner_view()
-    }
-
-    #[no_mangle_if_debug]
-    pub fn inner_view(&self) -> iced::Element<AppMessage> {
+    #[hot_fn(feature = "reload")]
+    pub fn view(&self) -> iced::Element<'_, AppMessage> {
         match &self.app_state {
             AppState::Initial(setup, wallet) => setup.view(self, wallet).map(|message| {
                 if let setup::Message::Error(err) = message {
@@ -194,15 +157,14 @@ impl App {
         }
     }
 
-    #[cfg(debug_assertions)]
-    pub fn subscription(&self) -> Subscription<AppMessage> {
-        Subscription::batch([
-            time::every(time::Duration::from_millis(500)).map(|_| AppMessage::None)
-        ])
+    #[hot_fn(feature = "reload")]
+    pub fn theme(&self) -> Option<Theme> {
+        Some(self.preferences.theme.into())
     }
 
-    pub fn theme(&self) -> iced::Theme {
-        self.preferences.theme.into()
+    #[hot_fn(feature = "reload")]
+    pub fn title(&self) -> String {
+        types::consts::APPLICATION_NAME.to_string()
     }
 
     pub fn handle_error(&mut self, err: AppError) {
@@ -218,9 +180,9 @@ impl App {
 
     fn toggle_theme(&mut self) {
         match self.preferences.theme {
-            Theme::Dark => self.preferences.theme = Theme::Light,
-            Theme::Light => self.preferences.theme = Theme::Dark,
-            _ => self.preferences.theme = Theme::Dark,
+            AppTheme::Dark => self.preferences.theme = AppTheme::Light,
+            AppTheme::Light => self.preferences.theme = AppTheme::Dark,
+            _ => self.preferences.theme = AppTheme::Dark,
         }
         // match self.preferences.theme {
         //     Theme::CatppuccinFrappe => self.preferences.theme = Theme::CatppuccinLatte,
@@ -258,6 +220,7 @@ impl App {
         }
     }
 
+    #[hot_fn(feature = "reload")]
     pub fn style(&self, theme: &iced::Theme) -> iced::theme::Style {
         let palette = theme.extended_palette();
 

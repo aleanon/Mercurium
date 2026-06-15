@@ -41,7 +41,7 @@ where
 pub(crate) fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(
     mnemonic: &Mnemonic,
     password: Option<&str>,
-    mut start_id: usize,
+    mut start_id: i64,
     account_index: u32,
     number_of_accounts: u32,
     network: Network,
@@ -67,7 +67,7 @@ pub(crate) fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(
 pub(crate) fn create_account_from_mnemonic(
     mnemonic: &Mnemonic,
     password: Option<&str>,
-    id: usize,
+    id: i64,
     account_index: u32,
     account_name: String,
     network: Network,

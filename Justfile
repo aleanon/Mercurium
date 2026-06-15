@@ -2,15 +2,19 @@
 default:
     @just --list
 
-run-reloading *ARGS="":
+run-reloading:
     @echo "Building binary and dylib..."
     cargo runcc -c .cargo/runcc-build.yaml
     @echo "Watching for changes and launching program..."
     cargo runcc -c .cargo/runcc-run.yaml
 
 watch:
-    @echo "Watching for changes..."
-    cargo watch -w iced_ui -d 0.01 -x "rustc --package iced_ui --crate-type cdylib --profile reload --features reload -- -C link-arg=-Wl,--whole-archive"
+    CARGO_PROFILE_DEV_OPT_LEVEL=0 \
+    CARGO_PROFILE_DEV_CODEGEN_UNITS=1 \
+    CARGO_PROFILE_DEV_DEBUG=false \
+    CARGO_PROFILE_DEV_LTO=false \
+    CARGO_TARGET_DIR=target/reload \
+    cargo watch -w iced_ui -d 0.01 -x "rustc --package iced_ui --crate-type cdylib --profile dev --features reload"
 
 run:
     @echo "Launching program..."

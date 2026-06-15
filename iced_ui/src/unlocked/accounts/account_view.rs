@@ -5,18 +5,16 @@ use crate::unlocked::app_view;
 use crate::unlocked::overlays::overlay::SpawnOverlay;
 use crate::{common, styles};
 
-use iced::widget::button;
-use iced::widget::image::Handle;
 use iced::Task;
+use iced::widget::button;
 use iced::{
-    alignment,
-    widget::{self, column, container, row, text, Button},
-    Element, Length, Padding,
+    Element, Length, alignment,
+    widget::{self, Button, column, container, row, text},
 };
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
-use types::address::{AccountAddress, Address};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use types::Account;
+use types::address::{AccountAddress, Address};
 use wallet::Unlocked;
 use wallet::Wallet;
 
@@ -177,16 +175,16 @@ impl<'a> AccountView {
 
         let name_address_row = widget::row![
             account_name,
-            widget::Space::new(Length::Fill, 1),
+            widget::space().width(Length::Fill),
             account_address_button
         ]
         .align_y(iced::Alignment::End);
 
         let name_address = container(name_address_row).width(Length::FillPortion(6));
         let top_row = widget::row![
-            widget::Space::new(Length::FillPortion(2), 1),
+            widget::space().width(Length::FillPortion(2)),
             name_address,
-            widget::Space::new(Length::FillPortion(2), 1)
+            widget::space().width(Length::FillPortion(2))
         ];
 
         let history_button = Self::nav_button("History");

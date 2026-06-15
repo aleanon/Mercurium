@@ -20,6 +20,6 @@ pub fn get_extension(format: &ImageFormat) -> &str {
         // According to: https://aomediacodec.github.io/av1-avif/#mime-registration
         ImageFormat::Avif => "avif",
         ImageFormat::Qoi => "qoi",
-        _ => "none"
+        _ => "none",
     }
 }

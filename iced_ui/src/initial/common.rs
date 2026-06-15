@@ -1,8 +1,8 @@
 use deps::*;
 
 use iced::{
-    widget::{self, text::LineHeight, Button, Row},
     Length,
+    widget::{self, Button, Row, text::LineHeight},
 };
 
 use crate::{app::AppMessage, styles};
@@ -23,7 +23,7 @@ pub fn nav_row<'a, Message: Clone + 'a>(
     back: Button<'a, Message>,
     next: Button<'a, Message>,
 ) -> Row<'a, Message> {
-    let space = widget::Space::with_width(Length::Fill);
+    let space = widget::space().width(Length::Fill);
     widget::row![back, space, next].align_y(iced::Alignment::Start)
 }
 

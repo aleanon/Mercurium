@@ -2,7 +2,7 @@ use deps::*;
 
 use std::{fmt::Debug, num::NonZeroU32};
 
-use async_sqlite::rusqlite::{self, types::FromSql, ToSql};
+use async_sqlite::rusqlite::{self, ToSql, types::FromSql};
 use ring::pbkdf2::{self, PBKDF2_HMAC_SHA512};
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};

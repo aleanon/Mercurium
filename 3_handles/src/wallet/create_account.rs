@@ -4,9 +4,10 @@ use std::str::FromStr;
 
 use bip39::Mnemonic;
 use types::{
+    Account, Network, UnwrapUnreachable,
     address::AccountAddress,
     crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair},
-    debug_info, Account, Network, UnwrapUnreachable,
+    debug_info,
 };
 
 // pub fn create_multiple_accounts_from_mnemonic<T: FromIterator<Account>>(

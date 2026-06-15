@@ -14,7 +14,6 @@ static SYSTEM_RANDOM: OnceCell<SystemRandom> = OnceCell::new();
 pub struct Salt([u8; Self::LENGTH]);
 
 impl Salt {
-
     pub const LENGTH: usize = 32;
 
     pub fn new() -> Result<Self, CryptoError> {

@@ -1,11 +1,23 @@
 use deps::{debug_print::debug_println, *};
 
-use std::{collections::{BTreeMap, HashMap}, fmt::Debug, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt::Debug,
+    sync::Arc,
+};
 
 use debug_print::debug_eprintln;
-use types::{address::ResourceAddress, collections::AccountsUpdate, crypto::{bip39::Mnemonic, Password}, Account, AccountSummary, Network};
+use types::{
+    Account, AccountSummary, Network,
+    address::ResourceAddress,
+    collections::AccountsUpdate,
+    crypto::{Password, bip39::Mnemonic},
+};
 
-use crate::{wallet::create_multiple_accounts_from_mnemonic, wallet_encryption_keys::WalletEncryptionKeys, SetupError};
+use crate::{
+    SetupError, wallet::create_multiple_accounts_from_mnemonic,
+    wallet_encryption_keys::WalletEncryptionKeys,
+};
 
 use super::task_runner::Task;
 
@@ -40,30 +52,56 @@ impl TaskManager {
         Ok(self.wallet_keys_and_salt.get_result().await?)
     }
 
-    pub async fn get_accounts_with_summary(&self) -> Result<Vec<(Account, AccountSummary)>, SetupError> {
+    pub async fn get_accounts_with_summary(
+        &self,
+    ) -> Result<Vec<(Account, AccountSummary)>, SetupError> {
         Ok(self.accounts.get_result().await?)
     }
 
-    pub async fn get_icons_data(&self) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
+    pub async fn get_icons_data(
+        &self,
+    ) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
         Ok(self.icons_data.get_result().await?)
     }
 
     pub async fn run_task_create_encryption_keys(&self, task_id: u16, password: Password) {
-        self.wallet_keys_and_salt.run_task(task_id,  move||Self::create_encryption_keys(password)).await;
+        self.wallet_keys_and_salt
+            .run_task(task_id, move || Self::create_encryption_keys(password))
+            .await;
     }
 
-    pub async fn run_task_create_and_update_accounts(&self, task_id: u16, mnemonic: Mnemonic, seed_password: Option<Password>, network: Network) {
+    pub async fn run_task_create_and_update_accounts(
+        &self,
+        task_id: u16,
+        mnemonic: Mnemonic,
+        seed_password: Option<Password>,
+        network: Network,
+    ) {
         let accounts = Self::create_accounts(mnemonic, seed_password, network).await;
 
-        self.accounts_update.run_task(task_id, move || Self::update_accounts(accounts, network)).await;
-        let accounts_update = self.accounts_update.get_result().await.unwrap_or(AccountsUpdate::new(network));
+        self.accounts_update
+            .run_task(task_id, move || Self::update_accounts(accounts, network))
+            .await;
+        let accounts_update = self
+            .accounts_update
+            .get_result()
+            .await
+            .unwrap_or(AccountsUpdate::new(network));
         let icon_urls = accounts_update.icon_urls.clone();
 
-        self.accounts.run_task(task_id,move || Self::accounts_with_summaries(accounts_update)).await;
-        self.icons_data.run_task(task_id, move || Self::download_resource_icons(icon_urls)).await;
+        self.accounts
+            .run_task(task_id, move || {
+                Self::accounts_with_summaries(accounts_update)
+            })
+            .await;
+        self.icons_data
+            .run_task(task_id, move || Self::download_resource_icons(icon_urls))
+            .await;
     }
 
-    async fn create_encryption_keys(password: Password) -> Result<WalletEncryptionKeys, SetupError> {
+    async fn create_encryption_keys(
+        password: Password,
+    ) -> Result<WalletEncryptionKeys, SetupError> {
         let mut error = SetupError::MissingDerivedKeys;
         for e in 0u8..=2 {
             match WalletEncryptionKeys::new(&password) {
@@ -81,13 +119,13 @@ impl TaskManager {
     }
 
     async fn create_accounts(
-        mnemonic: Mnemonic, 
-        seed_password: Option<Password>, 
-        network: Network
+        mnemonic: Mnemonic,
+        seed_password: Option<Password>,
+        network: Network,
     ) -> Vec<Account> {
         let password_as_str = seed_password
-                .as_ref()
-                .and_then(|password| Some(password.as_str()));
+            .as_ref()
+            .and_then(|password| Some(password.as_str()));
 
         create_multiple_accounts_from_mnemonic::<Vec<_>>(
             &mnemonic,
@@ -99,7 +137,10 @@ impl TaskManager {
         )
     }
 
-    async fn update_accounts(accounts: Vec<Account>, network: Network) -> Result<AccountsUpdate, SetupError> {
+    async fn update_accounts(
+        accounts: Vec<Account>,
+        network: Network,
+    ) -> Result<AccountsUpdate, SetupError> {
         Ok(handles::radix_dlt::updates::update_accounts(
             network,
             Arc::new(HashMap::new()),
@@ -108,11 +149,16 @@ impl TaskManager {
         .await)
     }
 
-    async fn accounts_with_summaries(accounts_update: AccountsUpdate) -> Result<Vec<(Account, AccountSummary)>, SetupError> {
-        let accounts = accounts_update.account_updates.iter()
+    async fn accounts_with_summaries(
+        accounts_update: AccountsUpdate,
+    ) -> Result<Vec<(Account, AccountSummary)>, SetupError> {
+        let accounts = accounts_update
+            .account_updates
+            .iter()
             .map(|account_update| {
-
-                let summary = if account_update.fungibles.len() == 0 && account_update.non_fungibles.len() == 0 {
+                let summary = if account_update.fungibles.len() == 0
+                    && account_update.non_fungibles.len() == 0
+                {
                     AccountSummary::NoLedgerPresense
                 } else {
                     AccountSummary::Summary {
@@ -127,11 +173,12 @@ impl TaskManager {
         Ok(accounts)
     }
 
-    async fn download_resource_icons(icon_urls: BTreeMap<ResourceAddress, String>) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
+    async fn download_resource_icons(
+        icon_urls: BTreeMap<ResourceAddress, String>,
+    ) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
         debug_println!("Downloading icons");
         let result = handles::image::download::download_and_resize_icons(icon_urls).await;
         debug_println!("Icons downloaded");
         Ok(result)
     }
 }
-

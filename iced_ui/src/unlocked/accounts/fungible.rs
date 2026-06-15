@@ -1,5 +1,5 @@
 use deps::{
-    iced::widget::{Rule, horizontal_space},
+    iced::widget::{rule, space::horizontal},
     *,
 };
 
@@ -10,7 +10,10 @@ use iced::{
 };
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppMessage, styles};
+use crate::{
+    app::AppMessage,
+    styles::{self},
+};
 use types::{address::Address, assets::FungibleAsset};
 
 #[derive(Debug, Clone)]
@@ -76,7 +79,7 @@ impl<'a> FungibleView {
             .size(12)
             .width(Length::Fill);
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space().width(Length::Fill);
 
         let address = row![
             text("Address").size(12),
@@ -88,7 +91,7 @@ impl<'a> FungibleView {
             ..Padding::from(0)
         });
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space().width(Length::Fill);
 
         let current_supply = row![
             text("Current Supply").size(12),
@@ -98,7 +101,7 @@ impl<'a> FungibleView {
 
         let divisibility = row![
             text("Divisibility").size(12),
-            widget::horizontal_space(),
+            widget::space().width(Length::Fill),
             text(resource.divisibility.unwrap_or(1)).size(12),
         ];
 
@@ -114,13 +117,13 @@ impl<'a> FungibleView {
             )
         }
 
-        let tags = column![row![text("Tags").size(12), horizontal_space()], tags].spacing(10);
+        let tags = column![row![text("Tags").size(12), horizontal()], tags].spacing(10);
 
         let col = widget::column![
             image_name_amount,
-            Rule::horizontal(2),
+            rule::horizontal(2),
             description,
-            Rule::horizontal(2),
+            rule::horizontal(2),
             address,
             current_supply,
             divisibility,

@@ -4,17 +4,17 @@ use std::fmt::Debug;
 
 use bip39::{Mnemonic, Seed};
 use ed25519_dalek_fiat::{PublicKey, SecretKey};
-use scrypto::{
-    address::AddressBech32Encoder, crypto::Ed25519PublicKey,
-    types::ComponentAddress,
-};
+use scrypto::{address::AddressBech32Encoder, crypto::Ed25519PublicKey, types::ComponentAddress};
 use slip10_ed25519::derive_ed25519_private_key;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
-use super::{bip32_entity::Bip32Entity, bip32_key_kind::Bip32KeyKind, derivation_path_indexes::{BIP32_COIN_TYPE_RADIX, BIP32_LEAD_WORD}};
-
+use super::{
+    bip32_entity::Bip32Entity,
+    bip32_key_kind::Bip32KeyKind,
+    derivation_path_indexes::{BIP32_COIN_TYPE_RADIX, BIP32_LEAD_WORD},
+};
 
 ///A key-pair from the dalek_ed25519_fiat crate.
 #[derive(ZeroizeOnDrop)]
@@ -29,7 +29,6 @@ pub struct Ed25519KeyPair {
     #[zeroize(skip)]
     key_kind: Bip32KeyKind,
 }
-
 
 impl Ed25519KeyPair {
     pub fn new(
@@ -80,7 +79,7 @@ impl Ed25519KeyPair {
     }
 
     pub fn bech32_address(&self) -> String {
-        let network_definition= self.network.definition(); 
+        let network_definition = self.network.definition();
 
         let virtual_account_address =
             ComponentAddress::preallocated_account_from_public_key(&self.radixdlt_public_key());
@@ -101,10 +100,7 @@ impl Debug for Ed25519KeyPair {
         write!(
             f,
             "Ed25519KeyPair {{ secret_key: *, public_key: {:?}, network: {:?}, entity: {:?}, key_kind: {:?} }}",
-            self.public_key,
-            self.network,
-            self.entity,
-            self.key_kind
+            self.public_key, self.network, self.entity, self.key_kind
         )
     }
 }

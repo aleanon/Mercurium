@@ -13,7 +13,7 @@ pub use address_validator::*;
 pub use resource_address::*;
 pub use transaction_address::*;
 
-use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 pub enum AddressType {
     Account,

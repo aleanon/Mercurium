@@ -6,7 +6,7 @@ use deps::*;
 
 use super::style::Catalog;
 use iced::{
-    Alignment, Border, Color, Element, Event, Rectangle, Shadow, Size, Vector,
+    Alignment, Border, Color, Element, Event, Shadow, Size, Vector,
     advanced::{
         Clipboard, Layout, Overlay, Shell,
         layout::{Limits, Node},

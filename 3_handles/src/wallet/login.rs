@@ -3,7 +3,10 @@ use deps::*;
 use debug_print::debug_println;
 use futures::TryFutureExt;
 use store::{AppDataDb, DbError, IconsDb};
-use types::{crypto::{Key, Password}, AppError, Network};
+use types::{
+    AppError, Network,
+    crypto::{Key, Password},
+};
 
 pub async fn perform_login_check(network: Network, password: &Password) -> Result<(), AppError> {
     let salt = crate::credentials::get_db_encryption_salt()?;
@@ -26,7 +29,9 @@ pub async fn perform_login_check(network: Network, password: &Password) -> Resul
 
     if password_hash == target_hash {
         debug_println!("Correct password");
-        IconsDb::load(network, key).map_err(|err| AppError::Fatal(err.to_string())).await?;
+        IconsDb::load(network, key)
+            .map_err(|err| AppError::Fatal(err.to_string()))
+            .await?;
         return Ok(());
     } else {
         return Err(AppError::NonFatal(types::Notification::Info(

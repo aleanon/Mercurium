@@ -3,8 +3,8 @@ use deps::*;
 use std::collections::{BTreeMap, HashMap};
 
 use super::{
-    statements::{nft_images, resource_images},
     DbError, IconsDb,
+    statements::{nft_images, resource_images},
 };
 
 use async_sqlite::rusqlite::params;

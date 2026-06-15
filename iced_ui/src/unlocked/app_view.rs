@@ -1,15 +1,15 @@
 use deps::*;
 
-use font_and_icons::{images::MENU_LOGO, Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap, images::MENU_LOGO};
 use iced::{
-    widget::{self, button, image::Handle, row, text, Row, Text},
     Element, Length, Task,
+    widget::{self, Row, Text, button, image::Handle, row, text},
 };
 use std::{collections::HashMap, str::FromStr};
-use types::{address::ResourceAddress, Account, Decimal, RadixDecimal};
+use types::{Account, Decimal, RadixDecimal, address::ResourceAddress};
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppMessage, styles, App};
+use crate::{App, app::AppMessage, styles};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},
@@ -170,19 +170,19 @@ impl<'a> AppView {
 
         let appview = widget::container(panels).style(styles::container::main_window);
 
-        let overlay = self
-            .overlay
-            .as_ref()
-            .and_then(|overlay| Some(overlay.view(wallet)));
+        // let overlay = self
+        //     .overlay
+        //     .as_ref()
+        //     .and_then(|overlay| Some(overlay.view(wallet)));
 
-        widgets::Modal::new(appview, overlay)
-            .on_esc(Message::CloseOverlay.into())
-            .backdrop(Message::CloseOverlay.into())
-            .into()
-        // appview.into()
+        // widgets::Modal::new(appview, overlay)
+        //     .on_esc(Message::CloseOverlay.into())
+        //     .backdrop(Message::CloseOverlay.into())
+        //     .into()
+        appview.into()
     }
 
-    fn menu(&self, wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
+    fn menu(&self, _wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
         let logo = widget::image(Handle::from_bytes(MENU_LOGO))
             .width(100)
             .height(50);
@@ -267,7 +267,7 @@ impl<'a> AppView {
     fn notification_widget(content: &'a str) -> Row<'a, AppMessage> {
         let text = text(content).size(12).line_height(2.);
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space::horizontal();
 
         let close = widget::container(widget::Button::new("X"))
             .padding(5)

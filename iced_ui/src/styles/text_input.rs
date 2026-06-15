@@ -16,13 +16,13 @@ pub fn seed_word_input(theme: &Theme, status: Status) -> Style {
 }
 
 /// For a text field on top of a secondary background.
-pub fn secondary(theme: &Theme, status: Status) -> Style {
+pub fn _secondary(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     style.background = Background::Color(theme.extended_palette().secondary.base.color);
     style
 }
 
-pub fn elevated(theme: &Theme, status: Status) -> Style {
+pub fn _elevated(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let mut style = default(theme, status);
     style.background = Background::Color(palette.background.base.color);
@@ -70,7 +70,7 @@ pub fn base_layer_2_rounded(theme: &Theme, status: Status) -> Style {
     style
 }
 
-pub fn borderless(theme: &Theme, status: Status) -> Style {
+pub fn _borderless(theme: &Theme, status: Status) -> Style {
     let mut style = default(theme, status);
     style.border = Border {
         width: 0.,

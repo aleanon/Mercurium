@@ -3,17 +3,17 @@ use std::collections::HashMap;
 use deps::{
     debug_print::debug_println,
     iced::{
-        alignment::{self, Horizontal},
-        widget::{button, column, scrollable, Rule, Space},
         Task,
+        alignment::{self, Horizontal},
+        widget::{Rule, Space, button, column, scrollable},
     },
     *,
 };
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, container, image::Handle, row, text, Container},
     Element, Length, Padding,
+    widget::{self, Container, container, image::Handle, row, text},
 };
 use store::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
@@ -24,9 +24,9 @@ use crate::{
     unlocked::accounts::{self, account_view, non_fungibles},
 };
 use types::{
-    address::Address,
-    assets::{NonFungibleAsset, NFT},
     Resource,
+    address::Address,
+    assets::{NFT, NonFungibleAsset},
 };
 
 const FUNGIBLE_VIEW_WIDTH: Length = Length::Fixed(300.);
@@ -227,7 +227,7 @@ impl<'a> NonFungible {
         .size(12)
         .width(Length::Fill);
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space::horizontal();
 
         let address = row![
             text("Address:").size(12),
@@ -239,7 +239,7 @@ impl<'a> NonFungible {
             ..Padding::from(0)
         });
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space::horizontal();
 
         let current_supply = row![
             text("Current Supply:").size(12),
@@ -252,8 +252,8 @@ impl<'a> NonFungible {
             .size(12),
         ];
 
-        let rule = widget::Rule::horizontal(2);
-        let rule2 = widget::Rule::horizontal(2);
+        let rule = widget::rule::horizontal(2);
+        let rule2 = widget::rule::horizontal(2);
 
         let col = widget::column![
             image_name_amount,
@@ -345,8 +345,8 @@ impl<'a> NonFungible {
 
         let nft_name = row![
             text("Name").size(12),
-            Space::new(10, 1),
-            Space::new(Length::Fill, 1),
+            widget::space().width(10),
+            widget::space::horizontal(),
             text(name).size(13)
         ];
 
@@ -364,8 +364,8 @@ impl<'a> NonFungible {
 
         let nft_id = row![
             text("ID").size(12),
-            Space::new(10, 1),
-            Space::new(Length::Fill, 1),
+            widget::space().width(10),
+            widget::space::horizontal(),
             button(row![nft_id, text(Bootstrap::Copy).font(BOOTSTRAP_FONT).size(13)].spacing(5))
                 .style(button::text)
                 .on_press(common::Message::CopyToClipBoard(nft.id.clone()).into())
@@ -384,8 +384,8 @@ impl<'a> NonFungible {
 
             let data = row![
                 text(nft_data.key.as_str()).size(12),
-                Space::new(10, 1),
-                Space::new(Length::Fill, 1),
+                widget::space().width(10),
+                widget::space::horizontal(),
                 text(nft_data.value.as_str()).size(13)
             ];
             metadata = metadata.push(data);
@@ -394,12 +394,12 @@ impl<'a> NonFungible {
         let content = column![
             header,
             image,
-            Rule::horizontal(1),
+            widget::rule::horizontal(1),
             description,
-            Rule::horizontal(1),
+            widget::rule::horizontal(1),
             nft_id,
             nft_name,
-            Rule::horizontal(1),
+            widget::rule::horizontal(1),
             metadata
         ]
         .spacing(10)
@@ -468,7 +468,7 @@ fn nft_card<'a>(nft: &'a NFT, icon: &'a Icon) -> Container<'a, AppMessage> {
 fn nft_data_row<'a>(key: &'a str, value: &'a str) -> Element<'a, AppMessage> {
     row![
         text(key).size(10),
-        widget::Space::new(Length::Fill, 1),
+        widget::space::horizontal(),
         text(value).size(10),
     ]
     .into()

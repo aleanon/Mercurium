@@ -3,13 +3,13 @@ use deps::*;
 use std::{collections::HashMap, str::FromStr};
 
 use iced::{
-    widget::{
-        self, button, checkbox, column, container, image::Handle, row, text, Container, TextInput,
-    },
     Element, Length, Padding, Task,
+    widget::{
+        self, Container, TextInput, button, checkbox, column, container, image::Handle, row, text,
+    },
 };
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use types::{
     address::{AccountAddress, Address, ResourceAddress},
     assets::FungibleAsset,
@@ -198,7 +198,7 @@ impl<'a> AddAssets {
             .size(16)
             .align_x(iced::alignment::Horizontal::Center);
 
-        let space = widget::Space::new(1, 20);
+        let space = widget::space().height(20);
 
         let search_field = TextInput::new("Search token", &self.filter)
             .line_height(1.5)
@@ -211,7 +211,7 @@ impl<'a> AddAssets {
             .center_x(Length::Fill)
             .height(Length::Shrink);
 
-        let space2 = widget::Space::new(1, 10);
+        let space2 = widget::space().height(10);
 
         let tokens_button = button(
             text("Tokens")
@@ -288,7 +288,7 @@ impl<'a> AddAssets {
         let headers: Element<'a, AppMessage> = {
             let token_name = text("Token").size(12);
 
-            let space = widget::Space::new(Length::Fill, 1);
+            let space = widget::space::horizontal();
 
             let balance = text("Available balance").size(12);
 
@@ -301,7 +301,7 @@ impl<'a> AddAssets {
             .center_x(85)
             .center_y(Length::Fill);
 
-            let selected = checkbox("", self.select_all).size(12).on_toggle(|select| {
+            let selected = checkbox(self.select_all).size(12).on_toggle(|select| {
                 if select {
                     Message::SelectAllTokens.into()
                 } else {
@@ -374,7 +374,7 @@ impl<'a> AddAssets {
                     let symbol = text(&resource.symbol).size(10);
                     let name_and_symbol = column![name, symbol].spacing(2);
 
-                    let space = widget::Space::new(Length::Fill, 1);
+                    let space = widget::space::horizontal();
 
                     let balance =
                         button(text(format!("{} {}", &token.amount, resource.symbol)).size(12))
@@ -401,7 +401,7 @@ impl<'a> AddAssets {
                             .into()
                         });
 
-                    let checkbox = checkbox("", selected.0).size(12).on_toggle(move |select| {
+                    let checkbox = checkbox(selected.0).size(12).on_toggle(move |select| {
                         if select {
                             Message::SelectAsset(resource.address.clone(), resource.symbol.clone())
                                 .into()
@@ -416,7 +416,7 @@ impl<'a> AddAssets {
                         .width(Length::Fill)
                         .padding(5);
 
-                    let rule = widget::Rule::horizontal(1);
+                    let rule = widget::rule::horizontal(1);
 
                     let mut column = column![asset].width(Length::Fill);
 
@@ -477,7 +477,7 @@ impl<'a> AddAssets {
         let headers: Element<'a, AppMessage> = {
             let token_name = text("Token").size(12);
 
-            let space = widget::Space::new(Length::Fill, 1);
+            let space = widget::space::horizontal();
 
             let balance = text("Available balance").size(12);
 
@@ -490,7 +490,7 @@ impl<'a> AddAssets {
             .center_x(85)
             .center_y(Length::Fill);
 
-            let selected = checkbox("", self.select_all).size(12).on_toggle(|select| {
+            let selected = checkbox(self.select_all).size(12).on_toggle(|select| {
                 if select {
                     Message::SelectAllTokens.into()
                 } else {

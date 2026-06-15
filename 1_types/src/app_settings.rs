@@ -2,7 +2,7 @@ use deps::*;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{theme::Theme, Network};
+use crate::{Network, theme::Theme};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {

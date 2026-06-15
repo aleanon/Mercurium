@@ -1,9 +1,9 @@
 [package]
 name = "app_path"
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 
 [dependencies]
-deps = { path = "../../deps" }
-types = { path = "../../types" }
+deps = { path = "../../0_deps" }
+types = { path = "../../1_types" }
 thiserror = { workspace = true }

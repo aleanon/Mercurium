@@ -1,7 +1,6 @@
-use deps::iced::Color;
-use deps::iced::{border::Radius, overlay::menu::Style, Background, Border};
+use deps::iced::{Background, Border, border::Radius, overlay::menu::Style};
+use deps::iced::{Color, Shadow};
 
-use crate::styles::colors;
 use crate::Theme;
 
 pub fn primary(theme: &Theme) -> Style {
@@ -17,6 +16,9 @@ pub fn primary(theme: &Theme) -> Style {
                 top_left: 0.,
                 top_right: 0.,
             },
+        },
+        shadow: Shadow {
+            ..Default::default()
         },
         selected_background: Background::Color(palette.primary.weak.color),
         selected_text_color: palette.primary.weak.text,

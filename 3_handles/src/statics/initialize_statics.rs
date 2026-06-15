@@ -3,14 +3,14 @@ use deps::*;
 use std::str::FromStr;
 
 use types::{
-    address::{AccountAddress, ResourceAddress},
     AppError, AppPathInner, Network,
+    address::{AccountAddress, ResourceAddress},
 };
 
 pub fn initialize_statics(network: Network) -> Result<(), AppError> {
     match AppPathInner::new() {
         Err(err) => return Err(AppError::Fatal(err.to_string())),
-        Ok(_) => {},
+        Ok(_) => {}
     };
 
     radix_gateway_sdk::Client::new(network.into(), None, None)

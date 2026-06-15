@@ -8,12 +8,11 @@ use std::{
 };
 
 use iced::{
-    widget::{
-        self,
-        text::{self, Fragment, IntoFragment},
-        Text,
-    },
     Font,
+    widget::{
+        self, Text,
+        text::{self, Fragment, IntoFragment},
+    },
 };
 
 pub const BOOTSTRAP_FONT: Font = Font::with_name("bootstrap-icons");

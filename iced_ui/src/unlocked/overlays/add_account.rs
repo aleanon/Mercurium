@@ -1,6 +1,9 @@
 use std::iter::Take;
 
-use deps::*;
+use deps::{
+    iced::{advanced::widget::operation::focusable::focus, widget::Id},
+    *,
+};
 
 use iced::{
     Element, Length, Task,
@@ -57,9 +60,9 @@ impl<'a> AddAccount {
             view: View::InputAccountName,
         };
 
-        let task = text_input::focus(text_input::Id::new(INPUT_ACCOUNT_NAME));
+        // let task = focus(Id::from(INPUT_ACCOUNT_NAME));
 
-        (add_account_view, task)
+        (add_account_view, Task::none())
     }
 
     pub fn update(&mut self, message: Message, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
@@ -89,7 +92,6 @@ impl<'a> AddAccount {
     fn back(&mut self) -> Task<AppMessage> {
         if let View::InputPassword = self.view {
             self.view = View::InputAccountName;
-            return text_input::focus(text_input::Id::new(INPUT_ACCOUNT_NAME));
         }
         Task::none()
     }
@@ -100,7 +102,6 @@ impl<'a> AddAccount {
                 if self.account_name.len() > 0 {
                     self.notification.clear();
                     self.view = View::InputPassword;
-                    return text_input::focus(text_input::Id::new(INPUT_PASSWORD));
                 } else {
                     self.notification = "Account name cannot be empty".to_string();
                 }
@@ -144,7 +145,7 @@ impl<'a> AddAccount {
             .align_x(iced::alignment::Horizontal::Center)
             .align_y(iced::alignment::Vertical::Center);
 
-        let top_space = Space::with_height(Length::Fill);
+        let top_space = widget::space::vertical();
 
         let account_name_input = {
             let label = text("Account name");
@@ -152,7 +153,7 @@ impl<'a> AddAccount {
                 .style(styles::text_input::general_input)
                 .on_submit(Message::Continue.into())
                 .on_input(|input| Message::InputAccountName(input).into())
-                .id(text_input::Id::new(INPUT_ACCOUNT_NAME))
+                .id(Id::from(INPUT_ACCOUNT_NAME))
                 .padding(10);
 
             let notification = text(&self.notification).size(11);
@@ -160,7 +161,7 @@ impl<'a> AddAccount {
             column!(label, account_name_input, notification).spacing(10)
         };
 
-        let bottom_space = Space::with_height(Length::Fill);
+        let bottom_space = widget::space::vertical();
         let continue_button = button("continue").on_press_maybe(if !self.account_name.is_empty() {
             Some(Message::Continue.into())
         } else {
@@ -186,7 +187,7 @@ impl<'a> AddAccount {
                 .style(styles::text_input::general_input)
                 .on_input(|input| Message::InputPassword(input).into())
                 .on_submit(Message::Submit.into())
-                .id(text_input::Id::new(INPUT_PASSWORD))
+                .id(Id::from(INPUT_PASSWORD))
                 .secure(true)
                 .padding(10);
 
@@ -195,7 +196,7 @@ impl<'a> AddAccount {
             column![label, password_input, notification].spacing(10)
         };
 
-        let space = Space::with_height(Length::Fill);
+        let space = widget::space::vertical();
         let back_button = button("Back").on_press(Message::Back.into());
         let submit_button = button("Submit").on_press_maybe(if self.password.is_empty() {
             None
@@ -204,10 +205,10 @@ impl<'a> AddAccount {
         });
 
         let buttons_row = row!(
-            Space::with_width(Length::Fill),
+            widget::space::horizontal(),
             back_button,
             submit_button,
-            Space::with_width(Length::Fill)
+            widget::space::horizontal(),
         )
         .spacing(30);
 

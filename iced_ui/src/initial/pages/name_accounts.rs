@@ -1,18 +1,14 @@
-use deps::{
-    iced::widget::{container, Space},
-    *,
-};
+use deps::{iced::widget::container, *};
 
 use iced::{
-    widget::{
-        self, column, row,
-        scrollable::{Direction, Scrollbar},
-        Scrollable, Text, TextInput,
-    },
     Element, Length, Task,
+    widget::{
+        self, Scrollable, Text, TextInput, column, row,
+        scrollable::{Direction, Scrollbar},
+    },
 };
-use types::{address::Address, Account};
-use wallet::{wallet::Wallet, Setup};
+use types::{Account, address::Address};
+use wallet::{Setup, wallet::Wallet};
 
 use crate::{
     initial::common::{nav_button, nav_row},
@@ -70,7 +66,7 @@ impl<'a> NameAccounts {
                 .width(Length::Fill)
                 .style(styles::text_input::transparent_borderless);
 
-            let space = Space::new(Length::Fill, 1);
+            let space = widget::space().width(Length::Fill);
 
             let account_row = row![account_truncated, space, input_field]
                 .align_y(iced::Alignment::Center)

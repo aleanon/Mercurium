@@ -1,4 +1,4 @@
-use deps::*;
+use deps::{iced::theme::Base, *};
 
 use std::rc::Rc;
 
@@ -23,7 +23,7 @@ impl Default for Appearance {
 /// The appearance of a [`Modal`](crate::native::Modal).
 pub trait Catalog {
     ///Style for the trait to use.
-    type Style: Default + Clone;
+    type Style: Clone;
     /// The normal appearance of a [`Modal`](crate::native::Modal).
     fn active(&self, style: &Self::Style) -> Appearance;
 }

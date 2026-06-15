@@ -64,7 +64,7 @@ pub struct Transaction {
     pub id: TransactionId, //primary key
     pub transaction_address: TransactionAddress,
     pub timestamp: TimeStamp,
-    pub state_version: u64,
+    pub state_version: i64,
     pub balance_changes: Vec<BalanceChange>,
     pub message: Option<String>,
 }
@@ -72,7 +72,7 @@ pub struct Transaction {
 impl Transaction {
     pub fn new(
         timestamp: TimeStamp,
-        state_version: u64,
+        state_version: i64,
         balance_changes: Vec<BalanceChange>,
         account_address: &AccountAddress,
         transaction_address: TransactionAddress,

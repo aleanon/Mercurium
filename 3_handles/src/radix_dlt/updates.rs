@@ -42,7 +42,7 @@ pub async fn update_accounts(
     resources: Arc<HashMap<ResourceAddress, Resource>>,
     accounts: Vec<Account>,
 ) -> AccountsUpdate {
-    // `resources` is inside an Arc to make sure it is valid for the duration of this task
+    // `resources` is inside an Arc to make sure it is valid for the duration of this task.
     // From this point we know that the resources will be valid until all tasks within this function are finished,
     // therefore we pass around a non reference counted unsafe reference to resources to sub tasks
     let resources = unsafe { UnsafeRef::new(&*resources) };

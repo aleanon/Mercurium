@@ -6,7 +6,7 @@ use bytes::Bytes;
 use debug_print::debug_println;
 use store::{AppDataDb, DbError, IconsDb};
 use types::address::ResourceAddress;
-use types::{collections::AppdataFromDisk, AppError, Network};
+use types::{AppError, Network, collections::AppdataFromDisk};
 
 use crate::image::resize::resize_standard_dimensions_from_bytes;
 
@@ -45,16 +45,11 @@ pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk,
     })
 }
 
-pub async fn resource_icons(
-    db: &IconsDb
-) -> HashMap<ResourceAddress, Bytes> {
-    let icons_data = db
-        .get_all_resource_icons()
-        .await
-        .unwrap_or_else(|err| {
-            debug_println!("Failed to retrieve resource icons: {}", err);
-            HashMap::new()
-        });
+pub async fn resource_icons(db: &IconsDb) -> HashMap<ResourceAddress, Bytes> {
+    let icons_data = db.get_all_resource_icons().await.unwrap_or_else(|err| {
+        debug_println!("Failed to retrieve resource icons: {}", err);
+        HashMap::new()
+    });
 
     let icons = icons_data
         .into_iter()

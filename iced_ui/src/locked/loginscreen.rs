@@ -116,7 +116,7 @@ impl<'a> LoginScreen {
 
         let info_text = widget::text("Enter password to continue").size(15);
 
-        let space = widget::vertical_space().height(15);
+        let space = widget::space().height(15);
 
         let password_input = password_input(
             "Enter Password",

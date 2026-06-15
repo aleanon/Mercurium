@@ -1,16 +1,19 @@
 use deps::iced::{
-    self,
+    self, Point, Theme,
     advanced::text::highlighter::PlainText,
-    keyboard::{key::Named, Key, Modifiers},
-    widget::{
-        text_editor::{self, Action, Binding, Content, Edit, KeyPress, Motion},
-        TextEditor,
+    keyboard::{
+        Key,
+        key::{Code, Physical},
     },
-    Point, Theme,
+    widget::{
+        TextEditor,
+        text_editor::{Action, Binding, Content, Edit, KeyPress, Motion},
+    },
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    PerformAction(Action),
     Edit(Edit),
     Drag(Point),
     Click(Point),
@@ -36,6 +39,7 @@ impl TextField {
 
     pub fn update(&mut self, message: Message) {
         match message {
+            Message::PerformAction(action) => self.content.perform(action),
             Message::Edit(edit) => self.content.perform(Action::Edit(edit)),
             Message::SelectWord => self.content.perform(Action::SelectWord),
             Message::SelectLine => self.content.perform(Action::SelectLine),
@@ -55,44 +59,27 @@ impl TextField {
     {
         TextEditor::new(&self.content)
             .key_binding(Self::key_bindings)
-            .on_action(move |action| match action {
-                Action::Edit(edit) => map(Message::Edit(edit)),
-                Action::Click(point) => map(Message::Click(point)),
-                Action::Drag(point) => map(Message::Drag(point)),
-                Action::Move(motion) => map(Message::Move(motion)),
-                Action::Scroll { lines } => map(Message::Scroll(lines)),
-                Action::SelectWord => map(Message::SelectWord),
-                Action::SelectLine => map(Message::SelectLine),
-                Action::SelectAll => map(Message::SelectAll),
-                Action::Select(motion) => map(Message::Select(motion)),
-            })
+            .on_action(move |action| map(Message::PerformAction(action)))
     }
 
     fn key_bindings<M: Clone + 'static>(key_press: KeyPress) -> Option<Binding<M>> {
         // Needs fixing, custom bindings don't work
-        match key_press {
-            KeyPress {
-                key: Key::Named(Named::Backspace),
-                modifiers: Modifiers::COMMAND,
-                text: None,
-                status:
-                    text_editor::Status::Focused {
-                        is_hovered: true | false,
-                    },
-            } => Some(Binding::Sequence(vec![
-                Binding::Select(Motion::WordLeft),
-                Binding::Backspace,
-            ])),
-            KeyPress {
-                key: Key::Character(ref c),
-                modifiers: Modifiers::COMMAND,
-                text: None,
-                status:
-                    text_editor::Status::Focused {
-                        is_hovered: true | false,
-                    },
-            } if c.as_str() == "l" => Some(Binding::SelectLine),
-            _ => Binding::from_key_press(key_press),
-        }
+        match key_press.physical_key {
+            Physical::Code(Code::Backspace) if key_press.modifiers.command() => {
+                return Some(Binding::Sequence(vec![
+                    Binding::Select(Motion::WordLeft),
+                    Binding::Backspace,
+                ]));
+            }
+            _ => {}
+        };
+
+        match key_press.key.as_ref() {
+            Key::Character("l") if key_press.modifiers.command() => {
+                return Some(Binding::SelectLine);
+            }
+            _ => {}
+        };
+        Binding::from_key_press(key_press)
     }
 }

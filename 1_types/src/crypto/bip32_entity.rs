@@ -1,6 +1,5 @@
 use super::derivation_path_indexes::{BIP32_ENTITY_ACCOUNT, BIP32_ENTITY_IDENTITY};
 
-
 #[derive(Debug)]
 pub enum Bip32Entity {
     Account,

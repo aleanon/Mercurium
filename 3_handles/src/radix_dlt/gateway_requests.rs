@@ -4,6 +4,7 @@ use std::future::IntoFuture;
 
 use futures::future::join_all;
 use radix_gateway_sdk::{
+    Client,
     generated::{
         model::{
             LedgerStateSelector, ResourceAggregationLevel, StateEntityDetailsOptIns,
@@ -13,7 +14,6 @@ use radix_gateway_sdk::{
         },
         request::StreamTransactionsRequired,
     },
-    Client,
 };
 use types::{Network, UnsafeRef};
 
@@ -119,7 +119,7 @@ pub async fn get_non_fungible_data(
     non_fungible_ids: &[String],
 ) -> Result<StateNonFungibleDataResponse, radix_gateway_sdk::Error> {
     let tasks = non_fungible_ids.chunks(100).map(|chunk| {
-        let resource_address = unsafe{UnsafeRef::new(resource_address)};
+        let resource_address = unsafe { UnsafeRef::new(resource_address) };
         let chunk = chunk.to_owned();
 
         tokio::task::spawn(async move {
@@ -197,8 +197,8 @@ mod tests {
     use std::str::FromStr;
 
     use types::{
-        address::{AccountAddress, Address, ResourceAddress},
         Network,
+        address::{AccountAddress, Address, ResourceAddress},
     };
 
     use super::*;

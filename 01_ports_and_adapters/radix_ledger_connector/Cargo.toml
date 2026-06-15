@@ -1,6 +1,0 @@
-[package]
-name = "radix_ledger_connector"
-version = "0.1.0"
-edition.workspace = true
-
-[dependencies]

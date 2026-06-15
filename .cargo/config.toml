@@ -6,8 +6,8 @@ linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 
-[build.dev]
-codegen-backend = "cranelift"
+# [build.dev]
+# codegen-backend = "cranelift"
 # rustflags = ["-Z", "threads=8"]
 
 [profile.dev]
@@ -17,31 +17,31 @@ codegen-units = 1
 debug-assertions = true
 # rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
-[build.reload]
-codegen-backend = "cranelift"
+# [build.reload]
+# codegen-backend = "cranelift"
 
-[profile.reload]
-rustflags = [
-    "-C",
-    "link-arg=-fuse-ld=mold",
-    "-C",
-    "prefer-dynamic",
-    "-C",
-    "link-args=-Wl,--whole-archive",
-    "-C",
-    "link-args=-Wl,--no-as-needed",
-]
-inherits = "dev"
-opt-level = 0
-lto = false
-codegen-units = 1
-debug-assertions = true
-debug = false
-features = ["reload"]
+# [profile.reload]
+# rustflags = [
+#     "-C",
+#     "link-arg=-fuse-ld=mold",
+#     "-C",
+#     "prefer-dynamic",
+#     "-C",
+#     "link-args=-Wl,--whole-archive",
+#     "-C",
+#     "link-args=-Wl,--no-as-needed",
+# ]
+# inherits = "dev"
+# opt-level = 0
+# lto = false
+# codegen-units = 1
+# debug-assertions = true
+# debug = false
+# features = ["reload"]
 
-[profile.reload.package."*"]
-opt-level = 3
-codegen-units = 1
+# [profile.reload.package."*"]
+# opt-level = 3
+# codegen-units = 1
 
 [profile.hot-ice-bin]
 inherits = "dev"

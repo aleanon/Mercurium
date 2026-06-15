@@ -3,8 +3,8 @@ use deps::*;
 use bip39::Mnemonic;
 use store::{AppDataDb, DataBase};
 use types::{
-    crypto::{EncryptedMnemonic, HashedPassword, Key, KeySaltPair, Salt},
     Account, AppError, Network,
+    crypto::{EncryptedMnemonic, HashedPassword, Key, KeySaltPair, Salt},
 };
 
 // /// Encrypts the mnemonic and stores it using the OS credentials system.

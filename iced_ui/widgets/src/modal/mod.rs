@@ -4,7 +4,7 @@
 mod modal_overlay;
 mod style;
 
-use deps::*;
+use deps::{iced::theme::Base, *};
 
 use modal_overlay::ModalOverlay;
 
@@ -17,7 +17,7 @@ use iced::{
         renderer,
         widget::{Operation, Tree},
     },
-    alignment, event,
+    alignment,
     mouse::{self, Cursor},
 };
 
@@ -82,13 +82,16 @@ where
     pub fn new(
         underlay: impl Into<Element<'a, Message, Theme, Renderer>>,
         overlay: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
+    ) -> Self
+    where
+        Theme: Base,
+    {
         Modal {
             underlay: underlay.into(),
             overlay: overlay.map(Into::into),
             backdrop: None,
             esc: None,
-            style: <Theme as Catalog>::Style::default(),
+            style: <Theme as Base>::default(iced::theme::Mode::None),
             horizontal_alignment: alignment::Horizontal::Center,
             vertical_alignment: alignment::Vertical::Center,
         }

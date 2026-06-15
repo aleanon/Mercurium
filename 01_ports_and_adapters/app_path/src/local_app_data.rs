@@ -1,13 +1,20 @@
-use std::cell::OnceCell;
+#[cfg(unix)]
+use std::path::PathBuf;
+use std::sync::OnceLock;
 
+use types::Network;
+
+#[cfg(unix)]
+use crate::app_path_inner::AppPathError;
 use crate::{app_path_inner::AppPathInner, port::AppPath};
 
-static APP_PATH_INNER: OnceCell<AppPathInner> = OnceCell::new();
+static APP_PATH_INNER: OnceLock<LocalAppData> = OnceLock::new();
 
-pub struct LocalAppData(&'static AppPathInner);
+#[derive(Debug)]
+pub struct LocalAppData(AppPathInner);
 
 impl LocalAppData {
-    fn init() -> Self {
+    fn init() -> &'static Self {
         let root_directory =
             get_local_app_data_directory().expect("Failed to get local app data directory");
 
@@ -17,20 +24,21 @@ impl LocalAppData {
             .expect("Unable to create app directory");
 
         APP_PATH_INNER
-            .set(app_path_inner)
+            .set(LocalAppData(app_path_inner))
             .expect("attempted to create App path inner twice");
 
-        Self(APP_PATH_INNER.get().unwrap())
+        APP_PATH_INNER.get().unwrap()
     }
 }
 
 impl AppPath for LocalAppData {
-    type Network = types::Network;
-
-    fn new() -> Self {
+    fn get() -> &'static Self
+    where
+        Self: Sized,
+    {
         match APP_PATH_INNER.get() {
-            Some(app_path_inner) => Self(app_path_inner),
-            None => Self::init(),
+            Some(app_path) => app_path,
+            None => LocalAppData::init(),
         }
     }
 
@@ -46,10 +54,10 @@ impl AppPath for LocalAppData {
         &self.0.db_directory
     }
 
-    fn db_path(&self, network: Self::Network) -> &Box<std::path::Path> {
+    fn db_path(&self, network: Network) -> &Box<std::path::Path> {
         match network {
-            Self::Network::Mainnet => &self.0.mainnet_db_path,
-            Self::Network::Stokenet => &self.0.stokenet_db_path,
+            Network::Mainnet => &self.0.mainnet_db_path,
+            Network::Stokenet => &self.0.stokenet_db_path,
         }
     }
 
@@ -57,10 +65,10 @@ impl AppPath for LocalAppData {
         &self.0.icons_directory
     }
 
-    fn icon_cache(&self, network: Self::Network) -> &Box<std::path::Path> {
+    fn icon_cache(&self, network: Network) -> &Box<std::path::Path> {
         match network {
-            Self::Network::Mainnet => &self.0.mainnet_icon_cache_path,
-            Self::Network::Stokenet => &self.0.stokenet_icon_cache_path,
+            Network::Mainnet => &self.0.mainnet_icon_cache_path,
+            Network::Stokenet => &self.0.stokenet_icon_cache_path,
         }
     }
 
@@ -75,7 +83,7 @@ pub fn get_local_app_data_directory() -> Result<PathBuf, AppPathError> {
 
     match std::env::var_os("XDG_DATA_HOME") {
         Some(path) => {
-            let mut app_directory = std::path::PathBuf::from(path);
+            let app_directory = std::path::PathBuf::from(path);
             Ok(app_directory)
         }
         None => {

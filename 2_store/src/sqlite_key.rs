@@ -1,7 +1,7 @@
-use deps::*;
 use deps::zeroize;
+use deps::*;
 
-use types::{crypto::Key, debug_info, UnwrapUnreachable};
+use types::{UnwrapUnreachable, crypto::Key, debug_info};
 use zeroize::ZeroizeOnDrop;
 
 use crate::DataBase;
@@ -41,13 +41,11 @@ impl SqliteKey {
             _ => unreachable!(),
         }
     }
-
 }
 
-
 impl async_sqlite::rusqlite::ToSql for SqliteKey {
-    fn to_sql(
-        &self,
+    fn to_sql<'a>(
+        &'a self,
     ) -> Result<async_sqlite::rusqlite::types::ToSqlOutput, async_sqlite::rusqlite::Error> {
         Ok(async_sqlite::rusqlite::types::ToSqlOutput::Borrowed(
             async_sqlite::rusqlite::types::ValueRef::Text(&self.0),

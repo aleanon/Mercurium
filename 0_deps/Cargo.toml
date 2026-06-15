@@ -4,7 +4,7 @@
 
 [package]
 name = "deps"
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 
 
@@ -78,6 +78,8 @@ futures = { workspace = true }
 bincode = { workspace = true }
 no-mangle-if-debug = { workspace = true }
 simple_logger = { workspace = true }
+encrypt = { workspace = true }
+
 # secrecy = { workspace = true }
 
 # Optional

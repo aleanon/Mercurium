@@ -18,4 +18,3 @@ pub const UPSERT_NFT_IMAGE: &'static str = "INSERT INTO
     DO UPDATE SET
         image_data = excluded.image_data
 ";
-

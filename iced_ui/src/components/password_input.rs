@@ -1,10 +1,10 @@
 use deps::*;
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
+    Length,
     alignment::Vertical,
     widget::{self, button, column, container, row, text, text_input},
-    Length,
 };
 
 use crate::styles;
@@ -46,7 +46,7 @@ where
         .padding(2.)
         .spacing(5);
 
-    let rule = widget::Rule::horizontal(1).style(styles::rule::text_input_rule);
+    let rule = widget::rule::horizontal(1).style(styles::rule::text_input_rule);
 
     let content = column![input_and_button, rule];
 

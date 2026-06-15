@@ -1,10 +1,10 @@
 use deps::*;
 
 use iced::{
-    widget::{self, column, container, row},
     Element, Length, Task,
+    widget::{self, column, container, row},
 };
-use types::{address::Address, Account, AccountSummary};
+use types::{Account, AccountSummary, address::Address};
 use wallet::{Setup, Wallet};
 
 use crate::{
@@ -89,16 +89,16 @@ impl<'a> ChooseAccounts {
             let account_address = widget::text(account.address.truncate_long());
             let account_summary = widget::text(account_summary.to_string());
 
-            let checkbox = widget::checkbox("", *is_selected)
+            let checkbox = widget::checkbox(*is_selected)
                 .on_toggle(move |_| Message::ToggleAccountSelection(index));
 
             accounts = accounts.push(
                 container(
                     row![
                         account_address.width(Length::FillPortion(10)),
-                        widget::Space::new(Length::Fill, 1),
+                        widget::space().width(Length::Fill),
                         account_summary.width(Length::FillPortion(4)),
-                        widget::Space::new(Length::FillPortion(2), 1),
+                        widget::space().width(Length::FillPortion(2)),
                         checkbox.width(Length::FillPortion(1))
                     ]
                     .width(Length::Fill),
