@@ -31,3 +31,17 @@ impl AccountsUpdate {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_is_empty_with_the_given_network() {
+        let update = AccountsUpdate::new(Network::Stokenet);
+        assert_eq!(update.network, Network::Stokenet);
+        assert!(update.account_updates.is_empty());
+        assert!(update.new_resources.is_empty());
+        assert!(update.icon_urls.is_empty());
+    }
+}

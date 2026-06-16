@@ -155,3 +155,41 @@ impl Display for Theme {
         f.write_str(self.as_str())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_is_dark() {
+        assert_eq!(Theme::default().as_str(), "Dark");
+    }
+
+    #[test]
+    fn as_str_and_display_agree() {
+        assert_eq!(Theme::SolarizedLight.as_str(), "Solarized Light");
+        assert_eq!(format!("{}", Theme::Nord), "Nord");
+    }
+
+    #[test]
+    fn roundtrips_through_iced_theme() {
+        for theme in [Theme::Light, Theme::Dark, Theme::Dracula, Theme::Nord, Theme::Ferra] {
+            let back: Theme = iced::Theme::from(theme).into();
+            assert_eq!(back.as_str(), theme.as_str());
+        }
+    }
+
+    #[test]
+    fn custom_falls_back_to_dark_in_iced() {
+        let iced_theme: iced::Theme = Theme::Custom.into();
+        let back: Theme = iced_theme.into();
+        assert_eq!(back.as_str(), "Dark");
+    }
+
+    #[test]
+    fn serde_roundtrip() {
+        let json = deps::serde_json::to_string(&Theme::GruvboxDark).unwrap();
+        let back: Theme = deps::serde_json::from_str(&json).unwrap();
+        assert_eq!(back.as_str(), "Gruvbox Dark");
+    }
+}
