@@ -210,6 +210,22 @@ impl App {
                 }
                 return;
             }
+            Action::ImportBackup(password) => {
+                let mut path = types::AppPath::get().config_directory();
+                path.push("profile_backup.bin");
+                match wallet::profile_backup::load_from_file(&path, &password) {
+                    Ok(profile) => {
+                        self.profile = profile;
+                        let _ = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
+                            &data_stores::JsonProfileStore,
+                            &self.profile,
+                        );
+                        self.notification = Notification::Info("Backup restored".to_string());
+                    }
+                    Err(err) => self.notification = Notification::Warn(err.to_string()),
+                }
+                return;
+            }
         }
         if let Err(err) = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
             &data_stores::JsonProfileStore,

@@ -29,6 +29,7 @@ pub enum Action {
     SetAppLockEnabled(bool),
     SetDeveloperMode(bool),
     ExportBackup(String),
+    ImportBackup(String),
 }
 
 #[derive(Debug)]
@@ -95,12 +96,20 @@ impl<'a> SettingsView {
             .padding(10)
             .style(styles::text_input::base_layer_1_rounded)
             .on_input(|input| Message::InputBackupPassword(input).into());
-        let export_button = button(text("Export encrypted backup").center().width(Length::Fill))
+        let has_password = !self.backup_password.is_empty();
+        let export_button = button(text("Export").center().width(Length::Fill))
             .width(Length::Fill)
             .padding(10)
             .style(styles::button::primary)
-            .on_press_maybe((!self.backup_password.is_empty()).then(|| {
+            .on_press_maybe(has_password.then(|| {
                 AppMessage::Settings(Action::ExportBackup(self.backup_password.clone()))
+            }));
+        let import_button = button(text("Restore").center().width(Length::Fill))
+            .width(Length::Fill)
+            .padding(10)
+            .style(styles::button::base_layer_2_rounded_with_shadow)
+            .on_press_maybe(has_password.then(|| {
+                AppMessage::Settings(Action::ImportBackup(self.backup_password.clone()))
             }));
         let backup = Self::section(
             "Backup",
@@ -109,7 +118,7 @@ impl<'a> SettingsView {
                     .size(11)
                     .style(styles::text::muted),
                 password_input,
-                export_button,
+                row![export_button, import_button].spacing(10),
             ]
             .spacing(8)
             .into(),
