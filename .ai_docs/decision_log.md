@@ -15,6 +15,19 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
   and open a PR. The plan and this decision log are kept in `.ai_docs/`.
 - **Consequence:** History is readable per-point; the plan and rationale are versioned alongside code.
 
+## 2026-06-16 — Dissolving `handles`: module destinations (incl. `image`)
+- **Context:** Planning the removal of the `3_handles` grab-bag crate (see
+  [refactor_handles_plan.md](./refactor_handles_plan.md)); `image` placement was an open question.
+- **Decision:** `radix_dlt` → `ledger_connector` adapter; `credentials` → `secrets_store`;
+  `store/get` → `data_stores`; `wallet/*` → `5_wallet`. **`image` → a dedicated `icon_provider`
+  port + adapter** (icon *acquisition* = a distinct external system from the gateway and the DB;
+  persistence stays in `data_stores::icon_data_store`; `resize`/`image_extension` become internal
+  helpers). **`app_settings` → its own `settings_store`** (JSON file store, separate from SQLite).
+  **`update_all_accounts` stays in the ledger adapter for now** (orchestration move deferred).
+- **Consequence:** `handles` is emptied and removed; `ledger_connector`'s back-dependency on
+  `handles` is eliminated. Migration order: secrets_store → ledger_connector → icon_provider →
+  data_stores(+settings) → 5_wallet → composition root → delete handles.
+
 ## 2026-06-16 — Radix Connect wire format reconciled to official toolkit (not guessed)
 - **Context:** CAP-21 message framing and the relay API are interop-critical and easy to get
   subtly wrong.
