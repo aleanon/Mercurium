@@ -236,3 +236,134 @@ mod tests {
     //     );
     // }
 }
+
+use chrono::{DateTime, Datelike, Timelike, Utc};
+use radix_gateway_sdk::generated::model::CommittedTransactionInfo;
+use types::address::{Address, TransactionAddress};
+use types::{BalanceChange, TimeStamp, Transaction, TransactionId};
+
+/// Maps a committed gateway transaction into a domain [`Transaction`] for the given account,
+/// extracting that account's fungible balance changes. Returns `None` if the transaction lacks a
+/// confirmed time or a (well-formed) intent hash.
+pub fn parse_transaction(
+    info: &CommittedTransactionInfo,
+    account: &AccountAddress,
+) -> Option<Transaction> {
+    let intent_hash = info.intent_hash.as_ref()?;
+    let tx_address = TransactionAddress::from_str(intent_hash).ok()?;
+    let confirmed_at = info.confirmed_at.as_ref()?;
+    let timestamp = timestamp_from_datetime(confirmed_at);
+    let tx_id = TransactionId::new(account, &tx_address);
+
+    let balance_changes = info
+        .balance_changes
+        .as_ref()
+        .map(|changes| {
+            changes
+                .fungible_balance_changes
+                .iter()
+                .filter(|change| change.entity_address == account.as_str())
+                .filter_map(|change| {
+                    let resource = ResourceAddress::from_str(&change.resource_address).ok()?;
+                    Some(BalanceChange::new(
+                        tx_id.clone(),
+                        account.clone(),
+                        resource,
+                        None,
+                        Some(change.balance_change.clone()),
+                    ))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let message = info
+        .message
+        .as_ref()
+        .and_then(|value| value.as_str().map(String::from));
+
+    Some(Transaction::new(
+        timestamp,
+        info.state_version,
+        balance_changes,
+        account,
+        tx_address,
+        message,
+    ))
+}
+
+fn timestamp_from_datetime(datetime: &DateTime<Utc>) -> TimeStamp {
+    TimeStamp::new(
+        datetime.year() as u16,
+        datetime.month() as u8,
+        datetime.day() as u8,
+        datetime.hour() as u8,
+        datetime.minute() as u8,
+        datetime.second() as u8,
+    )
+}
+
+#[cfg(test)]
+mod transaction_parse_tests {
+    use super::*;
+
+    const ACCOUNT: &str = "account_rdx128ykx9agh0maq8nw6h6pzmltmaexts0xf24sledqp44x5cdec0uqjj";
+    const XRD: &str = "resource_rdx1t4h4396mukhpzdrr5sfvegjsxl8q7a34q2vkt4quxcxahna8fucuz4";
+
+    fn valid_txid() -> String {
+        // txid_ + rdx1 + 58 chars matching the [a-z0-9] address regex.
+        format!("txid_rdx1{}", "a".repeat(58))
+    }
+
+    fn info_json(intent_hash: Option<String>, confirmed: bool) -> String {
+        let intent = intent_hash
+            .map(|h| format!("\"intent_hash\": \"{h}\","))
+            .unwrap_or_default();
+        let confirmed_at = if confirmed {
+            "\"confirmed_at\": \"2024-03-07T14:40:35Z\","
+        } else {
+            ""
+        };
+        format!(
+            r#"{{
+                "epoch": 1000,
+                "round": 1,
+                "round_timestamp": "2024-03-07T14:40:35Z",
+                "state_version": 5000,
+                "transaction_status": "CommittedSuccess",
+                {confirmed_at}
+                {intent}
+                "message": "hello",
+                "balance_changes": {{
+                    "fungible_balance_changes": [
+                        {{ "balance_change": "-10", "entity_address": "{ACCOUNT}", "resource_address": "{XRD}" }}
+                    ],
+                    "fungible_fee_balance_changes": [],
+                    "non_fungible_balance_changes": []
+                }}
+            }}"#
+        )
+    }
+
+    fn parse(json: &str) -> Option<Transaction> {
+        let info: CommittedTransactionInfo = serde_json::from_str(json).unwrap();
+        let account = AccountAddress::from_str(ACCOUNT).unwrap();
+        parse_transaction(&info, &account)
+    }
+
+    #[test]
+    fn parses_a_committed_transaction() {
+        let tx = parse(&info_json(Some(valid_txid()), true)).expect("parses");
+        assert_eq!(tx.state_version, 5000);
+        assert_eq!(tx.message.as_deref(), Some("hello"));
+        assert_eq!(tx.timestamp.year(), 2024);
+        assert_eq!(tx.balance_changes.len(), 1);
+        assert_eq!(tx.balance_changes[0].amount.as_deref(), Some("-10"));
+    }
+
+    #[test]
+    fn returns_none_without_intent_hash_or_confirmation() {
+        assert!(parse(&info_json(None, true)).is_none());
+        assert!(parse(&info_json(Some(valid_txid()), false)).is_none());
+    }
+}

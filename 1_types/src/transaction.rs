@@ -336,7 +336,7 @@ impl BalanceChangeId {
         let mut id = [0u8; Self::LENGTH];
 
         id[..TransactionId::CHECKSUM_LEN].copy_from_slice(tx_checksum);
-        id[TransactionId::CHECKSUM_LEN..AccountAddress::CHECKSUM_LENGTH]
+        id[TransactionId::CHECKSUM_LEN..Self::LAST_CHECKSUM_START]
             .copy_from_slice(account_checksum);
         id[Self::LAST_CHECKSUM_START..].copy_from_slice(resource_checksum);
 
