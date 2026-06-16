@@ -350,6 +350,7 @@ impl<'a> CreateTransaction {
 
         let create_transaction = container(
             column![
+                self.review_summary(),
                 password_input,
                 button(text("Create transaction").width(Length::Fill).center())
                     .width(Length::Fill)
@@ -366,6 +367,69 @@ impl<'a> CreateTransaction {
         });
 
         column![page_top, create_transaction].into()
+    }
+
+    /// A compact, human-readable review of what this transaction will send, shown above the
+    /// password field so the user can confirm the details before signing. Renders nothing until
+    /// at least one recipient has an address and an asset amount, mirroring the gate in
+    /// [`build_transfer_request`].
+    fn review_summary(&'a self) -> Element<'a, AppMessage> {
+        let mut lines: Vec<Element<'a, AppMessage>> = Vec::new();
+
+        if let Some(from) = &self.from_account {
+            lines.push(
+                row![
+                    text("From").size(11).width(Length::Fixed(60.)).style(styles::text::muted),
+                    text(format!("{} ({})", from.name, from.address.truncate())).size(12),
+                ]
+                .spacing(8)
+                .into(),
+            );
+        }
+
+        for recipient in &self.recipients {
+            let Some(to) = &recipient.address else { continue };
+            let assets: Vec<_> = recipient
+                .resources
+                .values()
+                .filter(|(_symbol, amount)| !amount.is_empty())
+                .collect();
+            if assets.is_empty() {
+                continue;
+            }
+            lines.push(
+                row![
+                    text("To").size(11).width(Length::Fixed(60.)).style(styles::text::muted),
+                    text(to.truncate()).size(12),
+                ]
+                .spacing(8)
+                .into(),
+            );
+            for (symbol, amount) in assets {
+                lines.push(
+                    row![
+                        text("").width(Length::Fixed(60.)),
+                        text(format!("{} {}", amount, symbol)).size(12),
+                    ]
+                    .spacing(8)
+                    .into(),
+                );
+            }
+        }
+
+        // Nothing complete enough to review yet.
+        if lines.len() <= 1 {
+            return widget::column![].into();
+        }
+
+        let body = column![text("Review").size(13).style(styles::text::muted)]
+            .extend(lines)
+            .spacing(6);
+        container(body)
+            .padding(12)
+            .width(Length::Fill)
+            .style(styles::container::weak_layer_2_rounded_with_shadow)
+            .into()
     }
 
     fn message(&'a self) -> Container<'a, AppMessage> {
