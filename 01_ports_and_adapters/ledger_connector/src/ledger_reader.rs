@@ -16,6 +16,8 @@ type AccountsUpdate = types::collections::AccountsUpdate;
 type Account = types::Account;
 type Resource = types::Resource;
 type ResourceAddress = types::address::ResourceAddress;
+type AccountAddress = types::address::AccountAddress;
+type Transaction = types::Transaction;
 
 #[derive(Debug)]
 pub enum LedgerReaderError {
@@ -46,6 +48,13 @@ pub trait LedgerReader {
         accounts: Vec<Account>,
         known_resources: HashMap<ResourceAddress, Resource>,
     ) -> Result<AccountsUpdate, LedgerReaderError>;
+
+    /// Fetches recent committed transactions for an account (newest gateway page).
+    async fn transaction_history(
+        &self,
+        account: AccountAddress,
+        from_state_version: Option<i64>,
+    ) -> Result<Vec<Transaction>, LedgerReaderError>;
 }
 
 #[async_trait]
@@ -68,5 +77,15 @@ impl LedgerReader for RadixGateway {
             accounts,
         )
         .await)
+    }
+
+    async fn transaction_history(
+        &self,
+        account: AccountAddress,
+        from_state_version: Option<i64>,
+    ) -> Result<Vec<Transaction>, LedgerReaderError> {
+        crate::radix_dlt::updates::fetch_transactions(self.network, &account, from_state_version)
+            .await
+            .map_err(|e| LedgerReaderError::Update(e.to_string()))
     }
 }

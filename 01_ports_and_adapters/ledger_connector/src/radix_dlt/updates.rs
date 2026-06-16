@@ -26,6 +26,29 @@ pub enum UpdateError {
     EmptyResponse,
 }
 
+/// Fetches recent committed transactions for an account from the gateway and parses them into
+/// domain [`Transaction`](types::Transaction)s (uses the tested `parse_transaction`). Single page
+/// for now; cursor pagination over the full history is a follow-up.
+pub async fn fetch_transactions(
+    network: Network,
+    account: &AccountAddress,
+    from_state_version: Option<i64>,
+) -> Result<Vec<types::Transaction>, UpdateError> {
+    let response = gateway_requests::get_transactions_for_entity_from_ledger_state_version(
+        network,
+        account.as_str().to_string(),
+        None,
+        from_state_version,
+    )
+    .await?;
+
+    Ok(response
+        .items
+        .iter()
+        .filter_map(|info| parse_responses::parse_transaction(info, account))
+        .collect())
+}
+
 pub async fn update_all_accounts(network: Network) -> Result<AccountsUpdate, AppError> {
     let db =
         AppDataDb::get(network).ok_or(AppError::Fatal("Database not initialized".to_string()))?;
