@@ -111,3 +111,40 @@ pub fn resize_small_dimensions_from_bytes(image: &Vec<u8>) -> Option<Vec<u8>> {
     //         .write_to(&mut encoded_small, image::ImageFormat::Png)
     //         .ok()?;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use deps::image::{DynamicImage, ImageFormat};
+    use std::io::Cursor;
+
+    #[test]
+    fn resize_standard_dimensions_produces_output() {
+        let image = DynamicImage::new_rgb8(64, 64);
+        let resized = resize_standard_dimensions(&image);
+        assert!(resized.is_some());
+        assert!(!resized.unwrap().is_empty());
+    }
+
+    #[test]
+    fn resize_small_dimensions_produces_output() {
+        let image = DynamicImage::new_rgb8(64, 64);
+        assert!(resize_small_dimensions(&image).is_some());
+    }
+
+    #[test]
+    fn resize_from_bytes_decodes_then_resizes() {
+        let image = DynamicImage::new_rgb8(48, 48);
+        let mut png_bytes = Vec::new();
+        image
+            .write_to(&mut Cursor::new(&mut png_bytes), ImageFormat::Png)
+            .unwrap();
+        assert!(resize_standard_dimensions_from_bytes(&png_bytes).is_some());
+    }
+
+    #[test]
+    fn resize_from_invalid_bytes_returns_none() {
+        let not_an_image = vec![0u8, 1, 2, 3, 4, 5];
+        assert!(resize_standard_dimensions_from_bytes(&not_an_image).is_none());
+    }
+}
