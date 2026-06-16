@@ -26,27 +26,42 @@ pub enum UpdateError {
     EmptyResponse,
 }
 
-/// Fetches recent committed transactions for an account from the gateway and parses them into
-/// domain [`Transaction`](types::Transaction)s (uses the tested `parse_transaction`). Single page
-/// for now; cursor pagination over the full history is a follow-up.
+/// Fetches committed transactions for an account from the gateway and parses them into domain
+/// [`Transaction`](types::Transaction)s (uses the tested `parse_transaction`). Follows the gateway
+/// cursor up to `MAX_PAGES` pages.
 pub async fn fetch_transactions(
     network: Network,
     account: &AccountAddress,
     from_state_version: Option<i64>,
 ) -> Result<Vec<types::Transaction>, UpdateError> {
-    let response = gateway_requests::get_transactions_for_entity_from_ledger_state_version(
-        network,
-        account.as_str().to_string(),
-        None,
-        from_state_version,
-    )
-    .await?;
+    const MAX_PAGES: usize = 10;
 
-    Ok(response
-        .items
-        .iter()
-        .filter_map(|info| parse_responses::parse_transaction(info, account))
-        .collect())
+    let mut transactions = Vec::new();
+    let mut cursor: Option<String> = None;
+
+    for _ in 0..MAX_PAGES {
+        let response = gateway_requests::get_transactions_for_entity_from_ledger_state_version(
+            network,
+            account.as_str().to_string(),
+            cursor.clone(),
+            from_state_version,
+        )
+        .await?;
+
+        transactions.extend(
+            response
+                .items
+                .iter()
+                .filter_map(|info| parse_responses::parse_transaction(info, account)),
+        );
+
+        match response.result_set_cursor_mixin.next_cursor {
+            Some(next) => cursor = Some(next),
+            None => break,
+        }
+    }
+
+    Ok(transactions)
 }
 
 pub async fn update_all_accounts(network: Network) -> Result<AccountsUpdate, AppError> {

@@ -13,6 +13,7 @@ use crate::{App, app::AppMessage, styles};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},
+    history::{self, HistoryView},
     overlays::{
         add_account::AddAccount,
         overlay::{self, Overlay, SpawnOverlay},
@@ -32,6 +33,7 @@ pub enum Message {
     CloseOverlay,
     OverlayMessage(overlay::Message),
     PersonasViewMessage(personas::Message),
+    HistoryViewMessage(history::Message),
 }
 
 impl Into<AppMessage> for Message {
@@ -45,6 +47,7 @@ pub enum ActiveTab {
     Accounts(accounts::AccountsView),
     Transfer(CreateTransaction),
     Personas(PersonasView),
+    History(HistoryView),
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +55,7 @@ pub enum TabId {
     Accounts,
     Transfer,
     Personas,
+    History,
 }
 
 #[derive(Debug)]
@@ -105,6 +109,11 @@ impl<'a> AppView {
                     return view.update(personas_message, wallet);
                 }
             }
+            Message::HistoryViewMessage(history_message) => {
+                if let ActiveTab::History(view) = &mut self.active_tab {
+                    return view.update(history_message, wallet);
+                }
+            }
         }
 
         Task::none()
@@ -117,6 +126,7 @@ impl<'a> AppView {
                 self.active_tab = ActiveTab::Transfer(CreateTransaction::new(None, None))
             }
             TabId::Personas => self.active_tab = ActiveTab::Personas(PersonasView::new()),
+            TabId::History => self.active_tab = ActiveTab::History(HistoryView::new()),
         }
     }
 
@@ -160,6 +170,9 @@ impl<'a> AppView {
             }
             ActiveTab::Personas(ref personas_view) => {
                 widget::container(personas_view.view(wallet))
+            }
+            ActiveTab::History(ref history_view) => {
+                widget::container(history_view.view(wallet))
             }
         }
         .padding(10)
@@ -233,6 +246,13 @@ impl<'a> AppView {
             Message::SelectTab(TabId::Personas).into(),
         );
 
+        let history_icon = text(Bootstrap::ClockHistory).font(BOOTSTRAP_FONT);
+        let mut history_button = Self::menu_button(
+            history_icon,
+            "History",
+            Message::SelectTab(TabId::History).into(),
+        );
+
         match self.active_tab {
             ActiveTab::Accounts(_) => {
                 accounts_button = accounts_button.style(styles::button::selected_menu_button)
@@ -243,6 +263,9 @@ impl<'a> AppView {
             ActiveTab::Personas(_) => {
                 personas_button = personas_button.style(styles::button::selected_menu_button)
             }
+            ActiveTab::History(_) => {
+                history_button = history_button.style(styles::button::selected_menu_button)
+            }
         }
 
         let buttons = widget::column![
@@ -250,7 +273,8 @@ impl<'a> AppView {
             toggle_theme_button,
             accounts_button,
             transaction_button,
-            personas_button
+            personas_button,
+            history_button
         ]
         .width(Length::Fill)
         .height(Length::Shrink)
