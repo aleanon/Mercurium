@@ -11,6 +11,7 @@ use radix_gateway_sdk::{
             StateEntityDetailsResponse, StateEntityFungiblesPageResponse,
             StateEntityNonFungibleIdsPageResponse, StateEntityNonFungiblesPageResponse,
             StateNonFungibleDataResponse, StreamTransactionsResponse, TransactionDetailsOptIns,
+            TransactionStatusResponse, TransactionSubmitResponse,
         },
         request::StreamTransactionsRequired,
     },
@@ -18,6 +19,44 @@ use radix_gateway_sdk::{
 use types::{Network, UnsafeRef};
 
 pub const ENTITY_DETAILS_MAX_ADDRESSES: usize = 20;
+
+/// Fetches the current epoch from the gateway. Required to build a transaction header
+/// (the validity window is expressed in epochs).
+pub async fn get_current_epoch(network: Network) -> Result<u64, radix_gateway_sdk::Error> {
+    let response = Client::new(network.into(), None, None)?
+        .get_inner_client()
+        .gateway_status()
+        .into_future()
+        .await?;
+
+    Ok(response.ledger_state_mixin.ledger_state.epoch.max(0) as u64)
+}
+
+/// Submits a notarized transaction (SBOR-encoded, hex) to the network. The returned
+/// response indicates whether the transaction was a duplicate of an already-pending one.
+pub async fn submit_transaction(
+    network: Network,
+    notarized_transaction_hex: &str,
+) -> Result<TransactionSubmitResponse, radix_gateway_sdk::Error> {
+    Client::new(network.into(), None, None)?
+        .get_inner_client()
+        .transaction_submit(notarized_transaction_hex)
+        .into_future()
+        .await
+}
+
+/// Returns the current status of a submitted transaction, identified by its bech32m
+/// transaction-intent hash (`txid_...`). Poll this until the status is committed or rejected.
+pub async fn get_transaction_status(
+    network: Network,
+    intent_hash: &str,
+) -> Result<TransactionStatusResponse, radix_gateway_sdk::Error> {
+    Client::new(network.into(), None, None)?
+        .get_inner_client()
+        .transaction_status(intent_hash)
+        .into_future()
+        .await
+}
 
 /// Takes a maximum of 20 addresses, otherwise it will panic
 pub async fn get_entity_details(
