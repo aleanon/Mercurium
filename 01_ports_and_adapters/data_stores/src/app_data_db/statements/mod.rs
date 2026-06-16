@@ -99,4 +99,44 @@ mod test {
         println!("{:?}", result);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn transaction_and_balance_change_write_path_is_valid_sql() {
+        use deps::async_sqlite::{ClientBuilder, rusqlite::params};
+
+        let client = ClientBuilder::new().open_blocking().unwrap();
+        client
+            .conn_blocking(|conn| {
+                conn.execute(super::transaction::CREATE_TABLE_TRANSACTIONS, [])?;
+                conn.execute(super::balance_changes::CREATE_TABLE_BALANCE_CHANGES, [])?;
+
+                // Insert a transaction, then a balance change referencing it (FK).
+                conn.prepare_cached(super::transaction::UPSERT_TRANSACTION)?
+                    .execute(params![vec![1u8], vec![2u8], vec![3u8], 10i64, Some("msg")])?;
+                conn.prepare_cached(super::balance_changes::INSERT_BALANCE_CHANGE)?
+                    .execute(params![
+                        vec![9u8],
+                        vec![1u8],
+                        vec![2u8],
+                        Option::<Vec<u8>>::None,
+                        Some("5"),
+                        vec![1u8]
+                    ])?;
+
+                // Upsert the same transaction (ON CONFLICT update) and replace its balance change.
+                conn.prepare_cached(super::transaction::UPSERT_TRANSACTION)?
+                    .execute(params![vec![1u8], vec![2u8], vec![3u8], 11i64, Some("msg2")])?;
+                conn.prepare_cached(super::balance_changes::INSERT_BALANCE_CHANGE)?
+                    .execute(params![
+                        vec![9u8],
+                        vec![1u8],
+                        vec![2u8],
+                        Option::<Vec<u8>>::None,
+                        Some("6"),
+                        vec![1u8]
+                    ])?;
+                Ok(())
+            })
+            .expect("the transaction/balance-change statements match the schema");
+    }
 }

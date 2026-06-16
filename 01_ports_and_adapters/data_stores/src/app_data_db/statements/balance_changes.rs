@@ -9,7 +9,7 @@ pub const CREATE_TABLE_BALANCE_CHANGES: &'static str = "CREATE TABLE IF NOT EXIS
         FOREIGN KEY(tx_id) REFERENCES transactions(id)
     )
 ";
-pub const INSERT_BALANCE_CHANGE: &'static str = "INSERT INTO
+pub const INSERT_BALANCE_CHANGE: &'static str = "INSERT OR REPLACE INTO
     balance_changes (
         id,
         account,

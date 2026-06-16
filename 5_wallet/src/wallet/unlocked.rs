@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use types::{
-    Account, AppError, Notification, Persona, Resource,
+    Account, AppError, Notification, Persona, Resource, Transaction,
     address::{AccountAddress, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::{Key, Password},
@@ -56,6 +56,20 @@ impl Wallet<Unlocked> {
 
     pub fn personas(&self) -> &HashMap<String, Persona> {
         &self.wallet_data.resource_data.personas
+    }
+
+    /// Reads the persisted transaction history for an account (newest first by timestamp).
+    /// Populated by the gateway sync (`upsert_transactions`); returns empty if none stored yet.
+    pub async fn transactions_for_account(
+        &self,
+        account_address: AccountAddress,
+    ) -> Result<BTreeSet<Transaction>, AppError> {
+        let network = self.wallet_data.settings.network;
+        let db = AppDataDb::get(network)
+            .ok_or_else(|| AppError::Fatal("Database not found".to_string()))?;
+        db.get_transactions_for_account::<BTreeSet<Transaction>>(account_address)
+            .await
+            .map_err(|err| AppError::NonFatal(Notification::Info(err.to_string())))
     }
 
     /// Spawns derivation + persistence of a new persona, returning a handle to await (mirrors

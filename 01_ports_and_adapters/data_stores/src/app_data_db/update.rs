@@ -103,6 +103,44 @@ impl AppDataDb {
         .await
     }
 
+    /// Persists transactions and their balance changes in a single DB transaction. Upserts the
+    /// transaction rows and inserts-or-replaces the associated balance changes (keyed to the
+    /// transaction id by the foreign key).
+    pub async fn upsert_transactions<I>(&self, transactions: I) -> Result<(), DbError>
+    where
+        I: IntoIterator<Item = Transaction> + Send + 'static,
+    {
+        self.conn_mut(move |conn| {
+            let db_tx = conn.transaction()?;
+            {
+                let mut upsert_tx = db_tx.prepare_cached(transaction::UPSERT_TRANSACTION)?;
+                let mut insert_bc = db_tx.prepare_cached(balance_changes::INSERT_BALANCE_CHANGE)?;
+
+                for tx in transactions {
+                    upsert_tx.execute(params![
+                        tx.id,
+                        tx.transaction_address,
+                        tx.timestamp,
+                        tx.state_version,
+                        tx.message,
+                    ])?;
+                    for change in &tx.balance_changes {
+                        insert_bc.execute(params![
+                            change.id,
+                            change.account,
+                            change.resource,
+                            change.nfts,
+                            change.amount,
+                            tx.id,
+                        ])?;
+                    }
+                }
+            }
+            db_tx.commit()
+        })
+        .await
+    }
+
     pub async fn upsert_resources<Resources: IntoIterator<Item = Resource> + Send + 'static>(
         &self,
         resources: Resources,

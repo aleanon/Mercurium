@@ -14,10 +14,13 @@ pub const UPSERT_TRANSACTION: &'static str = "INSERT INTO
         transaction_address,
         timestamp,
         state_version,
-        status
+        message
     )
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT (id)
-    DO UPDATE SET 
-        status = excluded.status
+    DO UPDATE SET
+        transaction_address = excluded.transaction_address,
+        timestamp = excluded.timestamp,
+        state_version = excluded.state_version,
+        message = excluded.message
 ";
