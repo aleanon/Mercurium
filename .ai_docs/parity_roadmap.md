@@ -24,12 +24,13 @@ binary build.** Built this pass (each its own commit, all unit-tested):
 | **C.11/C.12** Factor-source signing abstraction (`SigningFactor`, `DeviceFactor`) + Ledger seam (`LedgerFactor`) | ✅ done + tested | `5_wallet/src/factors/mod.rs` |
 | **C.13** Security Shields / MFA data model (`SecurityStructure`, `RoleOfFactors`, satisfiability) | ✅ done + tested | `1_types/src/profile.rs` |
 
+| **A.2** Transaction write path — fixed the buggy `UPSERT_TRANSACTION`, added `upsert_transactions` (+balance changes) and a `transactions_for_account` read accessor | ◑ partial + tested | `data_stores` + `5_wallet/src/wallet/unlocked.rs` |
+
 **Remaining for full Stages A–C** (integration, GUI, or external infra — not new logic):
 
-- **A.2 transaction history** — *blocked on a bug + missing pieces*: `UPSERT_TRANSACTION` writes a
-  non-existent `status` column (table has `message`); there is no stream-response parse and no
-  history UI. Needs: fix the statement, add upsert methods, parse `CommittedTransactionInfo` +
-  balance changes, fetch loop, and a history view.
+- **A.2 transaction history (remainder)** — the SQL bug is fixed and the write/read methods exist;
+  still needed: parse the gateway `StreamTransactions` response (`CommittedTransactionInfo` +
+  balance changes) into domain `Transaction`s, the fetch loop, and the history UI.
 - **A.5 transaction review polish** — manifest summary + fee + message on the confirm screen (iced).
 - **B integration** — persist/load the live `Profile` in the running app; backup/restore UI.
 - **C integration** — wire the app-lock gate into the UI; persist `Profile.security` / `AppLock`;
