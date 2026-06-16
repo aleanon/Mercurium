@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use deps::tokio::{self, task::JoinHandle};
-use store::{AppDataDb, DataBase, DbError, IconsDb};
+use data_stores::{AppDataDb, DataBase, DbError, IconsDb};
 use types::{
     Account, AppError,
     address::ResourceAddress,

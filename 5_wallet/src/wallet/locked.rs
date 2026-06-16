@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use store::{AppDataDb, DataBase, IconsDb};
+use data_stores::{AppDataDb, DataBase, IconsDb};
 use thiserror::Error;
 use types::crypto::{Key, Password};
 

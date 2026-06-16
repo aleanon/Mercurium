@@ -1,4 +1,4 @@
-use store::DataBase;
+use data_stores::DataBase;
 use types::crypto::{EncryptedMnemonic, KeySaltPair, Password};
 
 use super::wallet::wallet_setup::setup_error::SetupError;

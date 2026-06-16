@@ -18,7 +18,7 @@ reload = []
 [dependencies]
 deps = { path = "../0_deps" }
 types = { path = "../1_types" }
-store = { path = "../2_store" }
+data_stores = { path = "../01_ports_and_adapters/data_stores" }
 icon_provider = { path = "../01_ports_and_adapters/icon_provider" }
 font_and_icons = { path = "../4_font_and_icons" }
 wallet = { path = "../5_wallet" }

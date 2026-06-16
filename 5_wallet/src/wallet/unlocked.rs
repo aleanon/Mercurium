@@ -1,6 +1,6 @@
 use deps::{tokio::task::JoinHandle, *};
 use secrets_store::get_db_encryption_salt;
-use store::{AppDataDb, DataBase};
+use data_stores::{AppDataDb, DataBase};
 
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;

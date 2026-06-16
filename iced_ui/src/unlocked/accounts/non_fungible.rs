@@ -15,7 +15,7 @@ use iced::{
     Element, Length, Padding,
     widget::{self, Container, container, image::Handle, row, text},
 };
-use store::{DbError, IconsDb};
+use data_stores::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
 
 use crate::{

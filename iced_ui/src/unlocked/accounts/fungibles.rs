@@ -8,7 +8,7 @@ use iced::{
     Element, Length, Padding, Task,
     widget::{self, Button, column, container, image::Handle, row, text},
 };
-use store::{DbError, IconsDb};
+use data_stores::{DbError, IconsDb};
 use wallet::{Unlocked, Wallet};
 
 use crate::{app::AppMessage, styles, unlocked::app_view};

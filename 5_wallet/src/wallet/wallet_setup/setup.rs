@@ -1,5 +1,5 @@
 use deps::{debug_print::debug_println, *};
-use store::{AppDataDb, DataBase, IconsDb};
+use data_stores::{AppDataDb, DataBase, IconsDb};
 
 use std::{collections::HashMap, sync::Arc};
 

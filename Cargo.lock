@@ -2664,10 +2664,10 @@ dependencies = [
 name = "iced_ui"
 version = "0.1.0"
 dependencies = [
+ "data_stores",
  "deps",
  "font_and_icons",
  "icon_provider",
- "store",
  "types",
  "wallet",
  "widgets",
@@ -3154,7 +3154,6 @@ dependencies = [
  "async-trait",
  "data_stores",
  "deps",
- "store",
  "thiserror 2.0.18",
  "types",
 ]
@@ -5878,16 +5877,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
-name = "store"
-version = "0.1.0"
-dependencies = [
- "deps",
- "thiserror 2.0.18",
- "types",
- "zeroize",
-]
-
-[[package]]
 name = "strict-num"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6620,12 +6609,12 @@ dependencies = [
 name = "wallet"
 version = "0.1.0"
 dependencies = [
+ "data_stores",
  "deps",
  "icon_provider",
  "ledger_connector",
  "secrets_store",
  "serde",
- "store",
  "thiserror 2.0.18",
  "types",
 ]

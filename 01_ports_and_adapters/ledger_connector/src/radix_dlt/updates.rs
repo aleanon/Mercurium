@@ -4,7 +4,7 @@ use super::*;
 use debug_print::debug_println;
 use futures::future::join_all;
 use std::{collections::HashMap, fmt::Display, sync::Arc};
-use store::AppDataDb;
+use data_stores::AppDataDb;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use types::{

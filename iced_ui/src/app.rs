@@ -11,7 +11,7 @@ use deps::{
 };
 
 use std::fmt::Debug;
-use store::AppDataDb;
+use data_stores::AppDataDb;
 use types::AppError;
 use types::{Network, Notification, Theme as AppTheme};
 use wallet::wallet::Wallet;

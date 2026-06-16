@@ -2,7 +2,7 @@ use deps::*;
 
 use debug_print::debug_println;
 use futures::TryFutureExt;
-use store::{AppDataDb, IconsDb};
+use data_stores::{AppDataDb, IconsDb};
 use types::{
     AppError, Network,
     crypto::{Key, Password},

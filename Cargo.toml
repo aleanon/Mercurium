@@ -10,7 +10,6 @@ members = [
     "01_ports_and_adapters/secrets_store",
     "0_deps",
     "1_types",
-    "2_store",
     "4_font_and_icons",
     "5_wallet",
     "iced_ui",

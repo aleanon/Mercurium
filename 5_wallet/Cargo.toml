@@ -10,7 +10,7 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 deps = { path = "../0_deps" }
 types = { path = "../1_types" }
-store = { path = "../2_store" }
+data_stores = { path = "../01_ports_and_adapters/data_stores" }
 ledger_connector = { path = "../01_ports_and_adapters/ledger_connector" }
 secrets_store = { path = "../01_ports_and_adapters/secrets_store" }
 icon_provider = { path = "../01_ports_and_adapters/icon_provider" }

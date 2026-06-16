@@ -1,5 +1,5 @@
 use deps::*;
-use store::{AppDataDb, DbError, IconsDb};
+use data_stores::{AppDataDb, DbError, IconsDb};
 
 use std::collections::{BTreeSet, HashMap};
 
