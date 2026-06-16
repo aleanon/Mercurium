@@ -1,5 +1,12 @@
 # Plan — Dissolve the `handles` crate into ports/adapters and the wallet
 
+> **STATUS: ✅ COMPLETED 2026-06-16.** The `handles` crate has been removed. All 7 steps landed
+> as separate commits; the workspace builds (incl. the `mercurium` binary) and 41 tests pass.
+> `statics` went to `iced_ui::bootstrap` (see decision log); dead code (`accounts_and_resources`,
+> `app_settings` consumers, `create_wallet`/`create_account`, `database_handle`, unused image
+> helpers) was dropped.
+
+
 > Goal: remove the `3_handles` ("handles") crate by moving each of its modules to the layer it
 > belongs to — gateway/ledger and secrets and store concerns into `01_ports_and_adapters`,
 > wallet orchestration into `5_wallet` — leaving no general-purpose "handles" grab-bag.

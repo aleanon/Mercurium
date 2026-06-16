@@ -15,6 +15,17 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
   and open a PR. The plan and this decision log are kept in `.ai_docs/`.
 - **Consequence:** History is readable per-point; the plan and rationale are versioned alongside code.
 
+## 2026-06-16 — `handles` dissolved; `statics` → `iced_ui` bootstrap (not mercurium)
+- **Context:** Executing the handles-dissolution plan. `initialize_statics` was planned for the
+  mercurium composition root, but `App::new` (in `iced_ui`) is invoked by the iced runtime and is
+  the actual bootstrap point; branching on init failure happens there.
+- **Decision:** Move `initialize_statics` into `iced_ui::bootstrap` (the plan's "tiny bootstrap
+  module" option) rather than mercurium, to dissolve `handles` with zero behavior change. Also
+  found `accounts_and_resources`, `app_settings`, `create_wallet`, `create_account`,
+  `database_handle`, and several `image` helpers were dead — dropped rather than carried.
+- **Consequence:** The `handles` crate is fully removed (7 commits, all green, 41 tests pass).
+  Moving bootstrap to a true mercurium composition root remains a possible future cleanup.
+
 ## 2026-06-16 — Dissolving `handles`: module destinations (incl. `image`)
 - **Context:** Planning the removal of the `3_handles` grab-bag crate (see
   [refactor_handles_plan.md](./refactor_handles_plan.md)); `image` placement was an open question.
