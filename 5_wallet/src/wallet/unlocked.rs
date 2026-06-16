@@ -124,6 +124,31 @@ impl Wallet<Unlocked> {
             .insert(persona.identity_address.clone(), persona);
     }
 
+    /// Updates a persona's user-controlled data (name, emails, phone numbers) in memory and
+    /// persists it in the background. No mnemonic is needed — persona data is not derived secret
+    /// material, only the identity address it is attached to is.
+    pub fn update_persona_data(
+        &mut self,
+        identity_address: &str,
+        persona_data: types::PersonaData,
+    ) -> Result<(), AppError> {
+        let network = self.wallet_data.settings.network;
+        let persona = {
+            let resource_data = Arc::make_mut(&mut self.wallet_data.resource_data);
+            let persona = resource_data.personas.get_mut(identity_address).ok_or_else(|| {
+                AppError::NonFatal(Notification::Info("Persona not found".to_string()))
+            })?;
+            persona.persona_data = persona_data;
+            persona.clone()
+        };
+        deps::tokio::spawn(async move {
+            if let Some(db) = AppDataDb::get(network) {
+                let _ = db.upsert_persona(persona).await;
+            }
+        });
+        Ok(())
+    }
+
     /// Derives, persists and registers a new persona (identity). The mnemonic is re-decrypted
     /// for this operation using the login `password`, then dropped.
     pub async fn create_new_persona(
