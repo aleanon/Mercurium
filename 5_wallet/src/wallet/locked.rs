@@ -52,7 +52,7 @@ impl Wallet<Locked> {
 
         let key = Key::<DataBase>::new(password.as_str(), &salt);
 
-        let mut wallet = match handles::wallet::perform_login_check(
+        let mut wallet = match crate::wallet::login::perform_login_check(
             self.wallet_data.settings.network,
             &password,
         )

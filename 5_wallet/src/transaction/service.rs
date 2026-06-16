@@ -123,7 +123,7 @@ pub async fn submit_transfer_with_password(
 ) -> Result<SubmittedTransaction, AppError> {
     let network = from_account.network;
 
-    let (mnemonic, seed_password) = handles::wallet::get_decrypted_mnemonic(&password)?;
+    let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&password)?;
     let signer =
         signing_keypair_for_account(&mnemonic, Some(seed_password.as_str()), &from_account);
 

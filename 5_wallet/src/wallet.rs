@@ -1,4 +1,5 @@
 pub(crate) mod locked;
+pub mod login;
 pub(crate) mod resource_data;
 pub(crate) mod unlocked;
 pub(crate) mod wallet_data;
@@ -8,14 +9,29 @@ use std::str::FromStr;
 
 use deps::bip39::Mnemonic;
 use types::{
-    Account, Network, Persona, PersonaData, UnwrapUnreachable,
+    Account, AppError, Network, Persona, PersonaData, UnwrapUnreachable,
     address::AccountAddress,
-    crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair},
+    crypto::{Bip32Entity, Bip32KeyKind, Ed25519KeyPair, Password},
     debug_info,
 };
 use wallet_data::WalletData;
 
 use crate::settings::Settings;
+
+/// Decrypts and returns the wallet mnemonic (and its optional seed password) using the user's
+/// login password. Moved here from `handles::wallet::get_mnemonic`.
+///
+/// This is the signing-session primitive: callers re-decrypt the mnemonic for each signing
+/// operation and drop it immediately (it is zeroized on drop) rather than caching it. Decryption
+/// derives a key with a high iteration count, so run it off the UI thread.
+pub fn get_decrypted_mnemonic(password: &Password) -> Result<(Mnemonic, Password), AppError> {
+    let encrypted =
+        secrets_store::get_encrypted_mnemonic().map_err(|err| AppError::Fatal(err.to_string()))?;
+
+    encrypted
+        .decrypt_mnemonic(password)
+        .map_err(|err| AppError::NonFatal(types::Notification::Info(err.to_string())))
+}
 
 pub trait WalletState {}
 

@@ -83,7 +83,7 @@ impl Wallet<Unlocked> {
         let network = self.wallet_data.settings.network;
 
         deps::tokio::spawn(async move {
-            let (mnemonic, seed_password) = handles::wallet::get_decrypted_mnemonic(&password)?;
+            let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&password)?;
             let persona = crate::wallet::create_persona_from_mnemonic(
                 &mnemonic,
                 Some(seed_password.as_str()),
@@ -134,7 +134,7 @@ impl Wallet<Unlocked> {
             },
         );
 
-        let (mnemonic, seed_password) = handles::wallet::get_decrypted_mnemonic(&password)?;
+        let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&password)?;
         let persona = crate::wallet::create_persona_from_mnemonic(
             &mnemonic,
             Some(seed_password.as_str()),

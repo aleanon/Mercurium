@@ -2,12 +2,14 @@ use deps::*;
 
 use debug_print::debug_println;
 use futures::TryFutureExt;
-use store::{AppDataDb, DbError, IconsDb};
+use store::{AppDataDb, IconsDb};
 use types::{
     AppError, Network,
     crypto::{Key, Password},
 };
 
+/// Verifies the login `password` against the stored hash and, on success, loads the encrypted
+/// databases for the session. Moved here from `handles::wallet::login`.
 pub async fn perform_login_check(network: Network, password: &Password) -> Result<(), AppError> {
     let salt = secrets_store::get_db_encryption_salt()?;
     let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
@@ -32,10 +34,10 @@ pub async fn perform_login_check(network: Network, password: &Password) -> Resul
         IconsDb::load(network, key)
             .map_err(|err| AppError::Fatal(err.to_string()))
             .await?;
-        return Ok(());
+        Ok(())
     } else {
-        return Err(AppError::NonFatal(types::Notification::Info(
+        Err(AppError::NonFatal(types::Notification::Info(
             "Incorrect Password".to_string(),
-        )));
+        )))
     }
 }
