@@ -5,6 +5,7 @@ pub mod balance_changes;
 pub mod fungible_assets;
 pub mod non_fungible_assets;
 pub mod password_hash;
+pub mod personas;
 pub mod resources;
 pub mod transaction;
 
@@ -12,14 +13,15 @@ use self::{
     accounts::CREATE_TABLE_ACCOUNTS, balance_changes::CREATE_TABLE_BALANCE_CHANGES,
     fungible_assets::CREATE_TABLE_FUNGIBLE_ASSETS,
     non_fungible_assets::CREATE_TABLE_NON_FUNGIBLE_ASSETS,
-    password_hash::CREATE_TABLE_PASSWORD_HASH, resources::CREATE_TABLE_RESOURCES,
-    transaction::CREATE_TABLE_TRANSACTIONS,
+    password_hash::CREATE_TABLE_PASSWORD_HASH, personas::CREATE_TABLE_PERSONAS,
+    resources::CREATE_TABLE_RESOURCES, transaction::CREATE_TABLE_TRANSACTIONS,
 };
 
 pub const CREATE_ALL_MAIN_DB_TABLES_BATCH: &'static str = const_format::formatcp!(
     "BEGIN;
     {CREATE_TABLE_PASSWORD_HASH};
     {CREATE_TABLE_ACCOUNTS};
+    {CREATE_TABLE_PERSONAS};
     {CREATE_TABLE_RESOURCES};
     {CREATE_TABLE_FUNGIBLE_ASSETS};
     {CREATE_TABLE_NON_FUNGIBLE_ASSETS};
@@ -45,6 +47,13 @@ mod test {
     #[test]
     fn test_create_table_accounts() {
         let result = execute_stmt(CREATE_TABLE_ACCOUNTS);
+        println!("{:?}", result);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_create_table_personas() {
+        let result = execute_stmt(CREATE_TABLE_PERSONAS);
         println!("{:?}", result);
         assert!(result.is_ok());
     }

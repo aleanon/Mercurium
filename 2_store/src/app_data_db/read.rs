@@ -5,7 +5,7 @@ use std::collections::{BTreeSet, HashMap};
 use async_sqlite::rusqlite::{self, Row};
 use asynciter::{AsyncIterator, FromAsyncIterator, IntoAsyncIterator};
 use types::{
-    Account, BalanceChange, Ed25519PublicKey, Resource, Transaction, TransactionId,
+    Account, BalanceChange, Ed25519PublicKey, Persona, Resource, Transaction, TransactionId,
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
@@ -49,6 +49,14 @@ impl AppDataDb {
         T: FromIterator<Account> + Send + 'static,
     {
         self.query_map("SELECT * FROM accounts", [], Self::get_account_from_row)
+            .await
+    }
+
+    pub async fn get_personas<T>(&self) -> Result<T, DbError>
+    where
+        T: FromIterator<Persona> + Send + 'static,
+    {
+        self.query_map("SELECT * FROM personas", [], Self::get_persona_from_row)
             .await
     }
 
@@ -283,6 +291,19 @@ impl AppDataDb {
             transactions_last_updated: row.get(9)?,
         };
         Ok(account)
+    }
+
+    fn get_persona_from_row(row: &Row<'_>) -> Result<Persona, rusqlite::Error> {
+        Ok(Persona {
+            identity_address: row.get(0)?,
+            id: row.get(1)?,
+            label: row.get(2)?,
+            network: row.get(3)?,
+            derivation_path: row.get(4)?,
+            public_key: Ed25519PublicKey(row.get(5)?),
+            persona_data: row.get(6)?,
+            hidden: row.get(7)?,
+        })
     }
 
     fn get_non_fungible_asset_from_row(row: &Row<'_>) -> Result<NonFungibleAsset, rusqlite::Error> {

@@ -4,7 +4,7 @@ use super::statements::*;
 use crate::DbError;
 use async_sqlite::rusqlite::params;
 use types::{
-    Account, Resource, Transaction,
+    Account, Persona, Resource, Transaction,
     address::AccountAddress,
     assets::{FungibleAsset, NonFungibleAsset},
     crypto::HashedPassword,
@@ -57,6 +57,45 @@ impl AppDataDb {
                     account.settings,
                     account.balances_last_updated,
                     account.transactions_last_updated,
+                ])?;
+            }
+            Ok(())
+        })
+        .await
+    }
+
+    pub async fn upsert_persona(&self, persona: Persona) -> Result<(), DbError> {
+        self.transaction(personas::UPSERT_PERSONA, move |cached_stmt| {
+            cached_stmt.execute(params![
+                persona.identity_address,
+                persona.id as i64,
+                persona.label,
+                persona.network,
+                persona.derivation_path,
+                persona.public_key.0,
+                persona.persona_data,
+                persona.hidden,
+            ])?;
+            Ok(())
+        })
+        .await
+    }
+
+    pub async fn upsert_personas<Personas: IntoIterator<Item = Persona> + Send + 'static>(
+        &self,
+        personas: Personas,
+    ) -> Result<(), DbError> {
+        self.transaction(personas::UPSERT_PERSONA, move |cached_stmt| {
+            for persona in personas {
+                cached_stmt.execute(params![
+                    persona.identity_address,
+                    persona.id as i64,
+                    persona.label,
+                    persona.network,
+                    persona.derivation_path,
+                    persona.public_key.0,
+                    persona.persona_data,
+                    persona.hidden,
                 ])?;
             }
             Ok(())
