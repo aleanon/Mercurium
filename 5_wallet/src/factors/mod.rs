@@ -8,6 +8,7 @@
 
 pub mod access_controller;
 pub mod ledger;
+pub mod multi_factor;
 
 use deps::*;
 
