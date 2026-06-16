@@ -7,6 +7,42 @@
 
 ---
 
+## 0. Implementation status — Stages A–C (live)
+
+Execution toward Stages A–C has begun. **134 tests pass; the full workspace + `mercurium`
+binary build.** Built this pass (each its own commit, all unit-tested):
+
+| Item | Status | Where |
+|---|---|---|
+| **A.1** Radix Connect client flow — CAP-21 responses, `ConnectRelay: RelayTransport`, session driver (receive→dispatch→respond) | ✅ done + tested | `5_wallet/src/radix_connect/{cap21,relay,session}.rs` |
+| **A.3** Account recovery scan (derivation + BIP-44 gap-limit scan over a presence predicate) | ✅ done + tested | `5_wallet/src/recovery.rs` |
+| **A.4** Gateway switching logic (`Gateways::switch_to`, custom gateway) | ✅ done + tested | `1_types/src/profile.rs` (UI pending) |
+| **B.6** Versioned `Profile` model (gateways, preferences, authorized dApps, factor-source metadata, security structures) | ✅ done + tested | `1_types/src/profile.rs` |
+| **B.7/B.8** Encrypted Profile backup (export/import + file, AES-256-GCM/PBKDF2) | ✅ done + tested | `5_wallet/src/profile_backup.rs` |
+| **B.9** Authorized-dApp + persona-data model (`AuthorizedDapp`/`AuthorizedPersona`, upsert/forget) | ✅ done + tested | `1_types/src/profile.rs` (UI pending) |
+| **C.10** App lock (PBKDF2 PIN, serializable, constant-time verify) | ✅ done + tested | `5_wallet/src/app_lock.rs` |
+| **C.11/C.12** Factor-source signing abstraction (`SigningFactor`, `DeviceFactor`) + Ledger seam (`LedgerFactor`) | ✅ done + tested | `5_wallet/src/factors/mod.rs` |
+| **C.13** Security Shields / MFA data model (`SecurityStructure`, `RoleOfFactors`, satisfiability) | ✅ done + tested | `1_types/src/profile.rs` |
+
+**Remaining for full Stages A–C** (integration, GUI, or external infra — not new logic):
+
+- **A.2 transaction history** — *blocked on a bug + missing pieces*: `UPSERT_TRANSACTION` writes a
+  non-existent `status` column (table has `message`); there is no stream-response parse and no
+  history UI. Needs: fix the statement, add upsert methods, parse `CommittedTransactionInfo` +
+  balance changes, fetch loop, and a history view.
+- **A.5 transaction review polish** — manifest summary + fee + message on the confirm screen (iced).
+- **B integration** — persist/load the live `Profile` in the running app; backup/restore UI.
+- **C integration** — wire the app-lock gate into the UI; persist `Profile.security` / `AppLock`;
+  **Ledger HID transport** (needs a physical device); **on-ledger Access Controller** creation +
+  MFA signing flow (a large radix-engine workstream); **biometric** unlock (platform API).
+- **UI** for all of the above (iced screens) needs the running GUI to verify.
+
+The tested *logic* for every Stage A–C capability that can be built without a GUI / live relay /
+physical Ledger / on-ledger access-controller engine work is in place behind clean modules/ports;
+the residual is integration and external-dependent flows, documented above.
+
+---
+
 ## 1. Parity target — official wallet feature areas
 
 From the official wallet docs and the `radixdlt/sargon` shared-logic crates (`factors`,
