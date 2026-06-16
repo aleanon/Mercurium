@@ -65,3 +65,44 @@ where
         mem::take(&mut self.key)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::num::NonZeroU32;
+
+    struct TestKeyType;
+    impl KeyType for TestKeyType {
+        const KEY_LENGTH: usize = 32;
+        const ITERATIONS: NonZeroU32 = NonZeroU32::MIN;
+    }
+
+    #[test]
+    fn from_salt_keeps_salt_and_derives_matching_key() {
+        let salt = Salt::from([3u8; Salt::LENGTH]);
+        let pair = KeySaltPair::<TestKeyType>::from_salt("pw", salt.clone());
+
+        assert_eq!(pair.salt().as_bytes(), salt.as_bytes());
+        let expected = Key::<TestKeyType>::new("pw", &salt);
+        assert_eq!(pair.key().as_bytes(), expected.as_bytes());
+    }
+
+    #[test]
+    fn into_inner_splits_key_and_salt() {
+        let salt = Salt::from([4u8; Salt::LENGTH]);
+        let pair = KeySaltPair::<TestKeyType>::from_salt("pw", salt.clone());
+        let (key, out_salt) = pair.into_inner();
+        assert_eq!(out_salt.as_bytes(), salt.as_bytes());
+        assert_eq!(key.as_bytes(), Key::<TestKeyType>::new("pw", &salt).as_bytes());
+    }
+
+    #[test]
+    fn into_salt_and_into_key_extract_each_half() {
+        let salt = Salt::from([5u8; Salt::LENGTH]);
+        let by_salt = KeySaltPair::<TestKeyType>::from_salt("pw", salt.clone()).into_salt();
+        assert_eq!(by_salt.as_bytes(), salt.as_bytes());
+
+        let by_key = KeySaltPair::<TestKeyType>::from_salt("pw", salt.clone()).into_key();
+        assert_eq!(by_key.as_bytes(), Key::<TestKeyType>::new("pw", &salt).as_bytes());
+    }
+}

@@ -88,3 +88,37 @@ impl<T: ?Sized> DerefMut for UnsafeRefMut<T> {
 }
 
 unsafe impl<T: ?Sized + Send> Send for UnsafeRefMut<T> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unsafe_ref_derefs_and_is_copy() {
+        let value = 42i32;
+        let reference = unsafe { UnsafeRef::new(&value) };
+        assert_eq!(*reference, 42);
+        let copy = reference; // Copy
+        assert_eq!(*copy, 42);
+        assert_eq!(*reference, 42);
+    }
+
+    #[test]
+    fn unsafe_slice_exposes_the_slice() {
+        let data = vec![1u8, 2, 3, 4];
+        let slice = unsafe { UnsafeSlice::new(&data) };
+        assert_eq!(slice.len(), 4);
+        assert_eq!(&*slice, &[1u8, 2, 3, 4][..]);
+    }
+
+    #[test]
+    fn unsafe_ref_mut_reads_and_writes_through_pointer() {
+        let mut value = 10i32;
+        {
+            let mut reference = unsafe { UnsafeRefMut::new(&mut value) };
+            *reference += 5;
+            assert_eq!(*reference, 15);
+        }
+        assert_eq!(value, 15);
+    }
+}
