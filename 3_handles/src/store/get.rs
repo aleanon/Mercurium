@@ -8,7 +8,7 @@ use store::{AppDataDb, DbError, IconsDb};
 use types::address::ResourceAddress;
 use types::{AppError, Network, collections::AppdataFromDisk};
 
-use crate::image::resize::resize_standard_dimensions_from_bytes;
+use icon_provider::resize_standard_dimensions_from_bytes;
 
 pub async fn accounts_and_resources(network: Network) -> Result<AppdataFromDisk, DbError> {
     let Some(db) = AppDataDb::get(network) else {

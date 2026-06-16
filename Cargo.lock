@@ -2112,6 +2112,7 @@ name = "handles"
 version = "0.1.0"
 dependencies = [
  "deps",
+ "icon_provider",
  "secrets_store",
  "store",
  "thiserror 2.0.18",
@@ -2678,6 +2679,7 @@ dependencies = [
  "deps",
  "font_and_icons",
  "handles",
+ "icon_provider",
  "store",
  "types",
  "wallet",
@@ -2737,6 +2739,15 @@ dependencies = [
  "web-sys",
  "window_clipboard",
  "winit",
+]
+
+[[package]]
+name = "icon_provider"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "deps",
+ "types",
 ]
 
 [[package]]
@@ -6624,6 +6635,7 @@ version = "0.1.0"
 dependencies = [
  "deps",
  "handles",
+ "icon_provider",
  "ledger_connector",
  "secrets_store",
  "serde",

@@ -99,7 +99,7 @@ impl<'a> NonFungible {
                 Task::perform(
                     async move {
                         let image_handle =
-                            handles::image::download::download_and_resize_icon(&url_clone)
+                            icon_provider::fetch_icon(&url_clone)
                                 .await
                                 .and_then(|image| Some(Handle::from_bytes(image)));
                         match image_handle {

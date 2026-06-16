@@ -177,7 +177,7 @@ impl TaskManager {
         icon_urls: BTreeMap<ResourceAddress, String>,
     ) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
         debug_println!("Downloading icons");
-        let result = handles::image::download::download_and_resize_icons(icon_urls).await;
+        let result = icon_provider::fetch_icons(icon_urls).await;
         debug_println!("Icons downloaded");
         Ok(result)
     }
