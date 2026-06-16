@@ -15,6 +15,19 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
   and open a PR. The plan and this decision log are kept in `.ai_docs/`.
 - **Consequence:** History is readable per-point; the plan and rationale are versioned alongside code.
 
+## 2026-06-16 — Parity roadmap: Profile model precedes MFA/Security Shields
+- **Context:** Planning the path to official-wallet parity (see
+  [parity_roadmap.md](./parity_roadmap.md)). The official wallet is built around a single
+  versioned `Profile` object that is cloud-backed-up without the seed; Mercurium uses ad-hoc
+  `WalletData` + SQLite rows.
+- **Decision:** Sequence the roadmap as: Stage A (validate/finish existing — Radix Connect live,
+  tx history, recovery scan, network switch) → Stage B (adopt a versioned **Profile** + encrypted
+  backup/restore + authorized-dApp management) → Stage C (app lock → factor sources → Ledger →
+  Security Shields/MFA/Access Controllers). Stage D (staking/pool units/deposit settings/asset
+  detail) is independent and can slot in early; Stage E (transaction V2/pre-auth, guarantees, RNS).
+- **Consequence:** Backup/restore, MFA and multi-device all build on the Profile model, so it
+  lands before the security-heavy work rather than after — avoiding a later re-platforming.
+
 ## 2026-06-16 — `2_store` removed; SQLite store consolidated into `data_stores`
 - **Context:** Two store implementations existed: the working `2_store` (`AppDataDb`/`IconsDb`)
   used everywhere, and an *incomplete parallel* hexagonal redesign inside `data_stores`
