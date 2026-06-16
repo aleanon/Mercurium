@@ -67,7 +67,7 @@ impl App {
         let settings = wallet::Settings::load_from_disk_or_default();
 
         let app_state =
-            match handles::statics::initialize_statics::initialize_statics(settings.network) {
+            match crate::bootstrap::initialize_statics(settings.network) {
                 Err(err) => AppState::Error(err.to_string()),
                 Ok(_) => {
                     if AppDataDb::exists(settings.network) {

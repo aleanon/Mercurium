@@ -2108,18 +2108,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "handles"
-version = "0.1.0"
-dependencies = [
- "deps",
- "icon_provider",
- "secrets_store",
- "store",
- "thiserror 2.0.18",
- "types",
-]
-
-[[package]]
 name = "harfrust"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2678,7 +2666,6 @@ version = "0.1.0"
 dependencies = [
  "deps",
  "font_and_icons",
- "handles",
  "icon_provider",
  "store",
  "types",

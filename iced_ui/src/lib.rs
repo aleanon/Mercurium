@@ -1,4 +1,5 @@
 mod app;
+mod bootstrap;
 mod common;
 mod common_elements;
 mod components;
