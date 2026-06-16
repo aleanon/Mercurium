@@ -26,12 +26,15 @@ binary build.** Built this pass (each its own commit, all unit-tested):
 
 | **A.2** Transaction history **backend** — fixed buggy `UPSERT_TRANSACTION` + a latent `BalanceChangeId` panic; `upsert_transactions`, `parse_transaction` (gateway→domain, tested), `fetch_transactions` + `LedgerReader::transaction_history`, `transactions_for_account` accessor | ✅ backend done + tested | `data_stores`, `ledger_connector`, `5_wallet`, `1_types` |
 | **B** Live Profile store (JSON persistence, load/save) | ✅ done + tested | `data_stores` (`profile_store`) |
+| **A.2** Cursor pagination + **Transaction History UI tab** (account picker → async load → list) | ✅ done (UI compiles into binary) | `ledger_connector`, `iced_ui/src/unlocked/history` |
+| **C.13** On-ledger **Access Controller (Smart Account) manifest** (`securify_account_manifest`) | ✅ done + tested | `5_wallet/src/factors/access_controller.rs` |
 
 **Remaining for full Stages A–C** — *all GUI, a physical device, on-ledger execution, or a
 platform API; none buildable/verifiable in a non-interactive environment*:
 
-- **GUI (iced screens)** — transaction history view, transaction-review polish, persona/
-  authorized-dApp/settings/gateway/backup-restore/app-lock screens. The backends are ready to call.
+- **GUI (iced screens)** — the **transaction history tab is built**; still to wire (same pattern,
+  needs GUI verification + deeper App-state Profile integration): transaction-review polish,
+  persona-data/authorized-dApp/settings/gateway/backup-restore/app-lock screens. Backends are ready.
 - **Ledger HID transport** — needs a physical Ledger device.
 - **On-ledger Access Controllers + MFA signing** — a large radix-engine workstream that must be
   validated on-ledger.
