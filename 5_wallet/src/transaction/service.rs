@@ -162,3 +162,41 @@ pub async fn poll_until_settled(
     }
     Ok(last)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn submitted_status_maps_to_outcome() {
+        assert_eq!(
+            TransactionOutcome::from(SubmittedStatus::CommittedSuccess),
+            TransactionOutcome::CommittedSuccess
+        );
+        assert_eq!(
+            TransactionOutcome::from(SubmittedStatus::CommittedFailure),
+            TransactionOutcome::CommittedFailure
+        );
+        assert_eq!(
+            TransactionOutcome::from(SubmittedStatus::Pending),
+            TransactionOutcome::Pending
+        );
+        assert_eq!(
+            TransactionOutcome::from(SubmittedStatus::Rejected),
+            TransactionOutcome::Rejected
+        );
+        assert_eq!(
+            TransactionOutcome::from(SubmittedStatus::Unknown),
+            TransactionOutcome::Unknown
+        );
+    }
+
+    #[test]
+    fn is_settled_only_for_terminal_outcomes() {
+        assert!(TransactionOutcome::CommittedSuccess.is_settled());
+        assert!(TransactionOutcome::CommittedFailure.is_settled());
+        assert!(TransactionOutcome::Rejected.is_settled());
+        assert!(!TransactionOutcome::Pending.is_settled());
+        assert!(!TransactionOutcome::Unknown.is_settled());
+    }
+}

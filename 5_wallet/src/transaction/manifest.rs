@@ -246,3 +246,57 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+mod non_fungible_tests {
+    use super::*;
+    use std::str::FromStr;
+
+    const STOKENET_ACCOUNT_A: &str =
+        "account_tdx_2_12y0kpp2nhn8f36gt2ppqmxeltj6n2r446s0jlh4l7yxttpfeahjn66";
+    const STOKENET_ACCOUNT_B: &str =
+        "account_tdx_2_12866llg04px7q2wee02yxcxtdwgtpzdc8n75fermd070u64t98jtnj";
+    // Any well-formed stokenet resource address works for manifest text construction.
+    const STOKENET_NFT_RESOURCE: &str =
+        "resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc";
+
+    #[test]
+    fn builds_a_non_fungible_transfer_manifest() {
+        let request = TransferRequest {
+            from: AccountAddress::from_str(STOKENET_ACCOUNT_A).unwrap(),
+            transfers: vec![RecipientTransfer {
+                to: AccountAddress::from_str(STOKENET_ACCOUNT_B).unwrap(),
+                fungibles: vec![],
+                non_fungibles: vec![NonFungibleTransfer {
+                    resource: ResourceAddress::from_str(STOKENET_NFT_RESOURCE).unwrap(),
+                    ids: vec![NonFungibleLocalId::integer(1)],
+                }],
+            }],
+        };
+
+        let manifest = build_transfer_manifest(&request, Network::Stokenet).unwrap();
+        let rtm = manifest_to_string(&manifest, Network::Stokenet).unwrap();
+
+        assert!(rtm.contains("withdraw_non_fungibles"), "manifest:\n{rtm}");
+        assert!(rtm.contains("try_deposit_or_abort"), "manifest:\n{rtm}");
+    }
+
+    #[test]
+    fn non_fungible_transfer_with_empty_ids_produces_no_instructions() {
+        let request = TransferRequest {
+            from: AccountAddress::from_str(STOKENET_ACCOUNT_A).unwrap(),
+            transfers: vec![RecipientTransfer {
+                to: AccountAddress::from_str(STOKENET_ACCOUNT_B).unwrap(),
+                fungibles: vec![],
+                non_fungibles: vec![NonFungibleTransfer {
+                    resource: ResourceAddress::from_str(STOKENET_NFT_RESOURCE).unwrap(),
+                    ids: vec![],
+                }],
+            }],
+        };
+        // A recipient is present (so the request is not "Empty"), but the empty NFT id list is
+        // skipped, leaving a manifest with no instructions.
+        let manifest = build_transfer_manifest(&request, Network::Stokenet).unwrap();
+        assert_eq!(manifest.instructions.len(), 0);
+    }
+}
