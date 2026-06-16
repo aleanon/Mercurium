@@ -1,5 +1,7 @@
 pub mod error;
+pub mod radix_connect;
 mod settings;
+pub mod transaction;
 pub mod wallet;
 mod wallet_encryption_keys;
 
