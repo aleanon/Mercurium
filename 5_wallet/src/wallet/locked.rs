@@ -46,7 +46,7 @@ impl Wallet<Locked> {
             return LoginResponse::Failed(self, LoginError::MaxAttemptsReached);
         }
 
-        let Ok(salt) = handles::credentials::get_db_encryption_salt() else {
+        let Ok(salt) = secrets_store::get_db_encryption_salt() else {
             return LoginResponse::Failed(self, LoginError::Unrecoverable);
         };
 

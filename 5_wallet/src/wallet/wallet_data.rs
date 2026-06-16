@@ -64,7 +64,7 @@ impl WalletData {
         let network = self.settings.network;
 
         tokio::spawn(async move {
-            let encrypted_mnemonic = handles::credentials::get_encrypted_mnemonic()?;
+            let encrypted_mnemonic = secrets_store::get_encrypted_mnemonic()?;
             let (mnemonic, seed_password) = encrypted_mnemonic
                 .decrypt_mnemonic(&password)
                 .map_err(|err| match err {

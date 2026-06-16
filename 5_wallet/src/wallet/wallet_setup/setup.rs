@@ -254,10 +254,10 @@ pub async fn create_new_wallet_with_accounts(
     )
     .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    handles::credentials::store_encrypted_mnemonic(&encrypted_mnemonic)
+    secrets_store::store_encrypted_mnemonic(&encrypted_mnemonic)
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
-    handles::credentials::store_db_encryption_salt(db_key_salt.take_salt())?;
+    secrets_store::store_db_encryption_salt(db_key_salt.take_salt())?;
 
     let db = AppDataDb::load(network, db_key_salt.take_key())
         .await

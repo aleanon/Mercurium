@@ -1,5 +1,5 @@
 use deps::{tokio::task::JoinHandle, *};
-use handles::credentials::get_db_encryption_salt;
+use secrets_store::get_db_encryption_salt;
 use store::{AppDataDb, DataBase};
 
 use std::collections::{BTreeSet, HashMap};

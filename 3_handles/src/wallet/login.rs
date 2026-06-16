@@ -9,7 +9,7 @@ use types::{
 };
 
 pub async fn perform_login_check(network: Network, password: &Password) -> Result<(), AppError> {
-    let salt = crate::credentials::get_db_encryption_salt()?;
+    let salt = secrets_store::get_db_encryption_salt()?;
     let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
 
     let key = Key::new(password.as_str(), &salt);

@@ -13,6 +13,7 @@ types = { path = "../1_types" }
 store = { path = "../2_store" }
 handles = { path = "../3_handles" }
 ledger_connector = { path = "../01_ports_and_adapters/ledger_connector" }
+secrets_store = { path = "../01_ports_and_adapters/secrets_store" }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 

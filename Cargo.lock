@@ -2112,6 +2112,7 @@ name = "handles"
 version = "0.1.0"
 dependencies = [
  "deps",
+ "secrets_store",
  "store",
  "thiserror 2.0.18",
  "types",
@@ -5424,6 +5425,7 @@ name = "secrets_store"
 version = "0.1.0"
 dependencies = [
  "deps",
+ "types",
 ]
 
 [[package]]
@@ -6622,6 +6624,7 @@ dependencies = [
  "deps",
  "handles",
  "ledger_connector",
+ "secrets_store",
  "serde",
  "store",
  "thiserror 2.0.18",

@@ -1,19 +1,19 @@
-use deps::*;
+use types::{
+    AppError,
+    crypto::{EncryptedMnemonic, Salt},
+};
 
-pub enum Error {
-    FailedToSaveSecret,
-    FailedToDeleteSecret,
-    FailedToRetrieveSecret,
-    FailedToDecryptSecret,
-}
+/// Port for storing the wallet's secrets (the encrypted mnemonic and the database-encryption
+/// salt) in the platform's secure store. Errors are surfaced as [`AppError`] to match the rest
+/// of the wallet; the adapter ([`crate::OsCredentialStore`]) backs this with the OS credential
+/// store (Windows) or the config directory (Unix).
+pub trait SecretsStore {
+    fn get_db_encryption_salt(&self) -> Result<Salt, AppError>;
+    fn get_encrypted_mnemonic(&self) -> Result<EncryptedMnemonic, AppError>;
 
-pub trait SecretsRepository {
-    type Secret: encrypt::traits::Encrypt;
-    type Key: encrypt::traits::Key;
+    fn store_db_encryption_salt(&self, salt: Salt) -> Result<(), AppError>;
+    fn store_encrypted_mnemonic(&self, mnemonic: &EncryptedMnemonic) -> Result<(), AppError>;
 
-    fn delete(&self) -> Result<(), Error>;
-
-    fn save(&self, secret: Self::Secret) -> Result<(), Error>;
-
-    fn get(&self) -> Result<Self::Secret, Error>;
+    fn delete_db_encryption_salt(&self) -> Result<(), AppError>;
+    fn delete_encrypted_mnemonic(&self) -> Result<(), AppError>;
 }

@@ -12,6 +12,7 @@ edition.workspace = true
 deps = { path = "../0_deps" }
 types = { path = "../1_types" }
 store = { path = "../2_store" }
+secrets_store = { path = "../01_ports_and_adapters/secrets_store" }
 thiserror.workspace = true
 
 

@@ -11,7 +11,7 @@ use types::{AppError, crypto::Password};
 /// drop it immediately afterwards. The mnemonic is zeroized on drop. Decryption derives a key
 /// with a high iteration count, so callers should run this off the UI thread.
 pub fn get_decrypted_mnemonic(password: &Password) -> Result<(Mnemonic, Password), AppError> {
-    let encrypted = crate::credentials::get_encrypted_mnemonic()
+    let encrypted = secrets_store::get_encrypted_mnemonic()
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     encrypted
