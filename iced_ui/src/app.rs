@@ -191,7 +191,27 @@ impl App {
         match action {
             Action::SwitchGateway(gateway) => self.profile.gateways.switch_to(gateway),
             Action::SetAppLockEnabled(enabled) => {
-                self.profile.app_preferences.security.is_app_lock_enabled = enabled
+                let security = &mut self.profile.app_preferences.security;
+                security.is_app_lock_enabled = enabled;
+                // Disabling the lock discards the stored PIN hash; enabling only flips the flag,
+                // leaving the UI to prompt for a PIN via `SetPin`.
+                if !enabled {
+                    security.app_lock = None;
+                }
+            }
+            Action::SetPin(pin) => {
+                match types::AppLock::new(&pin) {
+                    Ok(lock) => {
+                        let security = &mut self.profile.app_preferences.security;
+                        security.app_lock = Some(lock);
+                        security.is_app_lock_enabled = true;
+                        self.notification = Notification::Info("PIN set".to_string());
+                    }
+                    Err(err) => {
+                        self.notification = Notification::Warn(err.to_string());
+                        return;
+                    }
+                }
             }
             Action::SetDeveloperMode(enabled) => {
                 self.profile.app_preferences.security.is_developer_mode_enabled = enabled

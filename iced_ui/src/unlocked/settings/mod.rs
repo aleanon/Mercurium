@@ -13,6 +13,7 @@ use crate::{App, app::AppMessage, styles, unlocked::app_view};
 #[derive(Debug, Clone)]
 pub enum Message {
     InputBackupPassword(String),
+    InputPin(String),
 }
 
 impl Into<AppMessage> for Message {
@@ -27,6 +28,7 @@ impl Into<AppMessage> for Message {
 pub enum Action {
     SwitchGateway(GatewayConfig),
     SetAppLockEnabled(bool),
+    SetPin(String),
     SetDeveloperMode(bool),
     ExportBackup(String),
     ImportBackup(String),
@@ -35,12 +37,14 @@ pub enum Action {
 #[derive(Debug)]
 pub struct SettingsView {
     backup_password: String,
+    pin: String,
 }
 
 impl<'a> SettingsView {
     pub fn new() -> Self {
         Self {
             backup_password: String::new(),
+            pin: String::new(),
         }
     }
 
@@ -49,6 +53,11 @@ impl<'a> SettingsView {
             Message::InputBackupPassword(mut input) => {
                 self.backup_password.zeroize();
                 self.backup_password = input.clone();
+                input.zeroize();
+            }
+            Message::InputPin(mut input) => {
+                self.pin.zeroize();
+                self.pin = input.clone();
                 input.zeroize();
             }
         }
@@ -88,7 +97,34 @@ impl<'a> SettingsView {
         ]
         .align_y(Alignment::Center);
 
-        let security = Self::section("Security", column![app_lock, dev_mode].spacing(10).into());
+        // --- PIN entry, shown only while app lock is enabled. ---
+        let mut security_items = column![app_lock].spacing(10);
+        if profile.app_preferences.security.is_app_lock_enabled {
+            let pin_set = profile.app_preferences.security.app_lock.is_some();
+            let status = if pin_set { "PIN is set" } else { "No PIN set yet" };
+            let pin_input = text_input("New PIN", &self.pin)
+                .secure(true)
+                .padding(10)
+                .style(styles::text_input::base_layer_1_rounded)
+                .on_input(|input| Message::InputPin(input).into());
+            let set_pin = button(text(if pin_set { "Change PIN" } else { "Set PIN" }).center())
+                .padding(10)
+                .style(styles::button::primary)
+                .on_press_maybe(
+                    (!self.pin.is_empty())
+                        .then(|| AppMessage::Settings(Action::SetPin(self.pin.clone()))),
+                );
+            security_items = security_items.push(
+                column![
+                    text(status).size(11).style(styles::text::muted),
+                    row![pin_input, set_pin].spacing(10).align_y(Alignment::Center),
+                ]
+                .spacing(6),
+            );
+        }
+        security_items = security_items.push(dev_mode);
+
+        let security = Self::section("Security", security_items.into());
 
         // --- Encrypted profile backup (seed-free). ---
         let password_input = text_input("Backup password", &self.backup_password)

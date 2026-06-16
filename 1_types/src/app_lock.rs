@@ -10,7 +10,7 @@ use std::num::NonZeroU32;
 
 use ring::pbkdf2::{self, PBKDF2_HMAC_SHA256};
 use serde::{Deserialize, Serialize};
-use types::crypto::Salt;
+use crate::crypto::Salt;
 
 const ITERATIONS: u32 = 120_000;
 const HASH_LEN: usize = 32;

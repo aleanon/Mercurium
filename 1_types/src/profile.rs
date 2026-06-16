@@ -2,7 +2,7 @@ use deps::*;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Network, persona::PersonaData, theme::Theme};
+use crate::{AppLock, Network, persona::PersonaData, theme::Theme};
 
 /// The versioned wallet **Profile** — the single, serializable source of truth for the wallet's
 /// configuration, mirroring the official wallet's profile model. It holds the parts that are
@@ -134,6 +134,10 @@ impl Default for AppPreferences {
 pub struct SecurityPreferences {
     pub is_app_lock_enabled: bool,
     pub is_developer_mode_enabled: bool,
+    /// The PIN lock, set when the user enables app lock. `None` until a PIN is chosen; the flag
+    /// `is_app_lock_enabled` can be toggled independently so the UI can prompt for a PIN.
+    #[serde(default)]
+    pub app_lock: Option<AppLock>,
 }
 
 /// A dApp the user has authorized, and the personas/accounts/data shared with it.

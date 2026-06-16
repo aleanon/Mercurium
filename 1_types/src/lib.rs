@@ -5,6 +5,7 @@ use deps::*;
 
 pub(crate) mod account;
 pub(crate) mod app_error;
+pub(crate) mod app_lock;
 pub(crate) mod app_path;
 pub(crate) mod app_settings;
 pub(crate) mod decimal;
@@ -24,6 +25,7 @@ pub(crate) mod unwrap_unreachable;
 
 pub use account::Account;
 pub use app_error::*;
+pub use app_lock::*;
 pub use app_path::*;
 pub use app_settings::*;
 pub use decimal::*;
