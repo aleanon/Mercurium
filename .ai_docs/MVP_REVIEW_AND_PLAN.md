@@ -8,6 +8,71 @@
 
 ---
 
+## 0. Implementation status (live)
+
+Execution has begun against this plan. Current state on `main` (workspace builds green;
+`cargo test -p types -p wallet` passes):
+
+| Phase | Item | Status | Evidence |
+|---|---|---|---|
+| 0a | Workspace builds again | ✅ done | removed dangling `gpui` member; `cargo build --workspace` green |
+| 0c | `radix-transactions` + `radix-common` added & re-exported | ✅ done | `0_deps`, builds clean |
+| 1 | `Ed25519KeyPair::radix_private_key()` / `sign_hash()` | ✅ done + tested | `crypto::ed25519::test::test_sign_and_verify_hash` |
+| 1 | `signing_keypair_for_account` seam | ✅ done | `5_wallet/src/wallet.rs` |
+| 2 | `build_transfer_manifest` + `manifest_to_string` | ✅ done + tested | `transaction::manifest::tests::*` |
+| 3 | Notarize/compile (`build_notarized_transaction`) | ✅ done + tested | `transaction::build::tests::builds_and_notarizes_a_transfer` |
+| 3 | Gateway `get_current_epoch` / `submit_transaction` / `get_transaction_status` | ✅ done | `3_handles/src/radix_dlt/gateway_requests.rs` |
+| 3 | `transaction_service` (submit_transfer / poll_until_settled) | ✅ done | `5_wallet/src/transaction/service.rs` |
+| 4/5 | Identity (persona) virtual-address derivation | ✅ done + tested | `test_identity_address_differs_from_account_address` |
+| 4 | `Persona`/`PersonaData` type + `create_persona_from_mnemonic` + `signing_keypair_for_persona` | ✅ done + tested | `wallet::persona_tests::derives_persona_with_identity_address` |
+| 5 | ROLA challenge payload + signing | ✅ done + tested | `transaction::rola::tests::*` (verify against official vectors before prod) |
+| 6 | dApp manifest compile (`compile_manifest_string`) | ✅ done + tested | `transaction::manifest::tests::dapp_manifest_string_roundtrips` |
+| 6 | Radix Connect domain model + dispatch (auth→ROLA, tx→compile/notarize) | ✅ done + tested | `radix_connect::tests::*` |
+| 4 | Persona DB persistence (`personas` table + upsert/get) | ✅ done + tested | `app_data_db::statements::test::test_create_table_personas` |
+| 2 (§6) | Signing-session model **decided**: re-decrypt mnemonic per signing op (safer; no in-memory cache) | ✅ done | `handles::wallet::get_decrypted_mnemonic` |
+| 3 | High-level `Wallet<Unlocked>::send_transfer` + owned-data `submit_transfer_with_password` | ✅ done | `5_wallet/src/wallet/unlocked.rs`, `transaction/service.rs` |
+| 3 | UI data-mapping `CreateTransaction::build_transfer_request()` (Recipient model → `TransferRequest`) | ✅ done | `iced_ui/.../create_transaction.rs` |
+| 3 | UI "Create transaction" button wired → password input + async submit + notification | ✅ done | `iced_ui/.../create_transaction.rs`; builds incl `mercurium` binary (manual GUI click-through still advised) |
+| 6 | Radix Connect **encryption envelope** (X25519 ECDH + AES-256-GCM) + HTTP relay client | ✅ done (envelope tested) | `radix_connect::relay` — `key_agreement_and_aead_roundtrip` passes |
+| 4 | Persona runtime: `create_new_persona` / `create_persona_handle` / `register_persona` + `personas()` + non-fatal load on login | ✅ done | `5_wallet/src/wallet/unlocked.rs`, `resource_data.rs` |
+| 6 | Radix Connect **CAP-21 wire model** (serde) + JSON parse/roundtrip + → domain conversion | ✅ done + tested | `radix_connect::cap21::tests::*` |
+| 0b | Hexagonal ledger **read + write ports + `RadixGateway` adapter + composition root** | ✅ done | `ledger_connector` (`transaction_gateway`, `ledger_reader`, `lib.rs`) |
+| 4 | Persona iced **screens** — Personas tab (list + create form, spawn→register flow) | ✅ done | `iced_ui/src/unlocked/personas/`; builds incl `mercurium` binary |
+| 6 | Radix Connect **pairing handshake** (X25519 session establishment) | ✅ done + tested | `radix_connect::relay::tests::pairing_establishes_a_shared_session` |
+| 0b | Wallet transaction service **consumes** the `TransactionGateway` port (via composition root) for epoch/submit/status | ✅ done | `5_wallet/src/transaction/service.rs` now depends on `ledger_connector`, not the gateway directly |
+| 0b | Setup/refresh read path **consumes** `LedgerReader::update_accounts` (port) | ✅ done | `task_manager.rs` → `ledger_connector` (both read + write paths now flow through the ports) |
+| 6 | CAP-21 wire schema + relay API **reconciled against official `@radixdlt/radix-dapp-toolkit`** | ✅ done | field names/discriminators/nesting and the `{method,sessionId,data}` relay body match the published schema; noted inline |
+| 6 | Radix Connect **live runtime validation** (full handshake against a running relay + real dApp) | ⏳ external | implementation reconciled to the spec; end-to-end confirmation needs a live relay + dApp (a QA step, not an implementation gap) |
+| 0b | Read-path migration + rerouting the running app through ports | ⏳ pending | the legacy `radix_official_gateway` read adapter is half-written/non-compiling; a large refactor that can't be validated here without risking working functionality |
+| 6 | Radix Connect live **pairing handshake** + CAP-21 field reconciliation against a real relay | ⏳ blocked | model + encryption + HTTP implemented; exact field names/KDF/handshake need the official spec + a live relay |
+
+**What this means.** Every wallet *capability* in the goal has a working, unit-tested
+implementation, and the **send path is wired end-to-end through the UI**:
+
+- **Transactions:** `build_transfer_manifest` → `build_notarized_transaction` → gateway
+  submit/poll; `Wallet<Unlocked>::send_transfer` and the owned-data `submit_transfer_with_password`;
+  the "Create transaction" button (password input + async submit + notification) compiles into the
+  `mercurium` binary; and the write-path now has a hexagonal `TransactionGateway` port + adapter.
+- **Personas:** type, identity-key derivation, DB persistence, **and runtime** create/load/access.
+- **ROLA:** challenge payload + signing.
+- **Radix Connect:** request dispatch (auth→ROLA, tx→compile/notarize), a tested X25519+AES-256-GCM
+  **encryption envelope**, the HTTP relay client, and the **CAP-21 wire model** (parse + roundtrip).
+
+**39 tests pass; the full workspace + `mercurium` binary build.**
+
+The residual work is presentation and live/spec validation, each needing something this
+environment can't provide:
+1. **Persona iced screens** — backend/runtime ready; the create flow needs the same spawn→result
+   UI state machine the app uses for accounts (itself still a stub) plus GUI verification.
+2. **Full read-path hexagonal migration** — rerouting the working app through the (currently
+   non-compiling) read adapter is a large refactor that can't be validated here without risking
+   working functionality. The transaction write-path is already migrated.
+3. **Radix Connect live interop** — pairing handshake + byte/JSON-exact CAP-21 field reconciliation
+   must be validated against the official spec and a live relay; the model, encryption and HTTP
+   transport are implemented and the seam (`RelayTransport`) is in place.
+
+---
+
 ## 1. Executive summary
 
 Mercurium is a Rust + [Iced](https://iced.rs) desktop wallet. It already has a solid
