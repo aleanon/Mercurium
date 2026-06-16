@@ -18,6 +18,7 @@ use super::{
         overlay::{self, Overlay, SpawnOverlay},
         receive::Receive,
     },
+    personas::{self, PersonasView},
     transaction::{self, create_transaction::CreateTransaction},
 };
 
@@ -30,6 +31,7 @@ pub enum Message {
     SpawnOverlay(SpawnOverlay),
     CloseOverlay,
     OverlayMessage(overlay::Message),
+    PersonasViewMessage(personas::Message),
 }
 
 impl Into<AppMessage> for Message {
@@ -42,12 +44,14 @@ impl Into<AppMessage> for Message {
 pub enum ActiveTab {
     Accounts(accounts::AccountsView),
     Transfer(CreateTransaction),
+    Personas(PersonasView),
 }
 
 #[derive(Debug, Clone)]
 pub enum TabId {
     Accounts,
     Transfer,
+    Personas,
 }
 
 #[derive(Debug)]
@@ -96,6 +100,11 @@ impl<'a> AppView {
                     return overlay.update(overlay_message, wallet);
                 }
             }
+            Message::PersonasViewMessage(personas_message) => {
+                if let ActiveTab::Personas(view) = &mut self.active_tab {
+                    return view.update(personas_message, wallet);
+                }
+            }
         }
 
         Task::none()
@@ -107,6 +116,7 @@ impl<'a> AppView {
             TabId::Transfer => {
                 self.active_tab = ActiveTab::Transfer(CreateTransaction::new(None, None))
             }
+            TabId::Personas => self.active_tab = ActiveTab::Personas(PersonasView::new()),
         }
     }
 
@@ -147,6 +157,9 @@ impl<'a> AppView {
             ActiveTab::Accounts(ref accounts_view) => widget::container(accounts_view.view(wallet)),
             ActiveTab::Transfer(ref transaction_view) => {
                 widget::container(transaction_view.view(wallet))
+            }
+            ActiveTab::Personas(ref personas_view) => {
+                widget::container(personas_view.view(wallet))
             }
         }
         .padding(10)
@@ -213,6 +226,13 @@ impl<'a> AppView {
         };
         let mut transaction_button = Self::menu_button(transaction_icon, "Send", message);
 
+        let personas_icon = text(Bootstrap::PersonBadge).font(BOOTSTRAP_FONT);
+        let mut personas_button = Self::menu_button(
+            personas_icon,
+            "Personas",
+            Message::SelectTab(TabId::Personas).into(),
+        );
+
         match self.active_tab {
             ActiveTab::Accounts(_) => {
                 accounts_button = accounts_button.style(styles::button::selected_menu_button)
@@ -220,13 +240,17 @@ impl<'a> AppView {
             ActiveTab::Transfer(_) => {
                 transaction_button = transaction_button.style(styles::button::selected_menu_button)
             }
+            ActiveTab::Personas(_) => {
+                personas_button = personas_button.style(styles::button::selected_menu_button)
+            }
         }
 
         let buttons = widget::column![
             logo_container,
             toggle_theme_button,
             accounts_button,
-            transaction_button
+            transaction_button,
+            personas_button
         ]
         .width(Length::Fill)
         .height(Length::Shrink)

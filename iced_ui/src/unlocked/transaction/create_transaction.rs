@@ -20,8 +20,9 @@ use iced::{
     widget::{self, Container, button, container, image::Handle, row, text},
 };
 use types::{
-    Account, Decimal,
+    Account, AppError, Decimal, Notification,
     address::{AccountAddress, Address, ResourceAddress},
+    crypto::Password,
 };
 use wallet::{Unlocked, Wallet};
 
@@ -46,6 +47,8 @@ pub enum Message {
     TextFieldMessage(components::text_field::Message),
     RemoveAsset(usize, ResourceAddress),
     ToggleTextField,
+    InputPassword(String),
+    SubmitTransaction,
 }
 
 impl Into<AppMessage> for Message {
@@ -83,6 +86,9 @@ pub struct CreateTransaction {
     pub(crate) recipients: Vec<Recipient>,
     pub(crate) text_field: Option<components::text_field::TextField>,
     pub(crate) view: View,
+    /// Login password, entered at send time to authorize signing. Held only until the
+    /// transaction is submitted (the mnemonic is re-decrypted per send, never cached).
+    pub(crate) password: Password,
 }
 
 impl CreateTransaction {
@@ -96,6 +102,7 @@ impl CreateTransaction {
             recipients: vec![Recipient::new(None)],
             text_field: None,
             view: View::Transaction,
+            password: Password::new(),
         }
     }
 
@@ -106,7 +113,57 @@ impl CreateTransaction {
             recipients: vec![Recipient::new(Some(address))],
             text_field: None,
             view: View::Transaction,
+            password: Password::new(),
         }
+    }
+
+    /// Maps the in-memory recipient/asset model into a backend [`TransferRequest`].
+    ///
+    /// Returns `None` if the form is incomplete (no sender, a recipient without an address, an
+    /// unparseable amount, or no assets to send). The resulting request is what gets passed to
+    /// [`wallet::transaction::submit_transfer_with_password`] once the user confirms with their
+    /// password.
+    pub fn build_transfer_request(&self) -> Option<wallet::transaction::TransferRequest> {
+        use std::str::FromStr;
+        use types::RadixDecimal;
+        use wallet::transaction::{FungibleTransfer, RecipientTransfer, TransferRequest};
+
+        let from = self.from_account.as_ref()?.address.clone();
+
+        let mut transfers = Vec::new();
+        for recipient in &self.recipients {
+            let Some(to) = recipient.address.clone() else {
+                continue;
+            };
+
+            let mut fungibles = Vec::new();
+            for (resource, (_symbol, amount)) in &recipient.resources {
+                if amount.is_empty() {
+                    continue;
+                }
+                // Reject the whole request if any amount is malformed rather than silently dropping it.
+                let amount = RadixDecimal::from_str(amount).ok()?;
+                fungibles.push(FungibleTransfer {
+                    resource: resource.clone(),
+                    amount,
+                });
+            }
+
+            if fungibles.is_empty() {
+                continue;
+            }
+            transfers.push(RecipientTransfer {
+                to,
+                fungibles,
+                non_fungibles: Vec::new(),
+            });
+        }
+
+        if transfers.is_empty() {
+            return None;
+        }
+
+        Some(TransferRequest { from, transfers })
     }
 }
 
@@ -166,9 +223,43 @@ impl<'a> CreateTransaction {
                     None => Some(TextField::new()),
                 }
             }
+            Message::InputPassword(input) => {
+                self.password.clear();
+                self.password.push_str(input.as_str());
+            }
+            Message::SubmitTransaction => return self.submit_transaction(wallet),
         }
 
         Task::none()
+    }
+
+    /// Builds the transfer request from the form, looks up the sending account, and spawns the
+    /// async submit. The result is surfaced to the user via the app-level notification banner.
+    fn submit_transaction(&mut self, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
+        let Some(request) = self.build_transfer_request() else {
+            return Task::done(AppMessage::Error(AppError::NonFatal(Notification::Info(
+                "Add a sender, a recipient and at least one valid amount".to_string(),
+            ))));
+        };
+
+        let Some(from_account) = wallet.accounts().get(&request.from).cloned() else {
+            return Task::done(AppMessage::Error(AppError::NonFatal(Notification::Info(
+                "Sending account is not in this wallet".to_string(),
+            ))));
+        };
+
+        // Move the password out so it is dropped (zeroized) once the submit completes.
+        let password = std::mem::replace(&mut self.password, Password::new());
+
+        Task::perform(
+            wallet::transaction::submit_transfer_with_password(request, from_account, password, 0),
+            |result| match result {
+                Ok(submitted) => AppMessage::Error(AppError::NonFatal(Notification::Info(
+                    format!("Transaction submitted: {}", submitted.intent_hash_id),
+                ))),
+                Err(err) => AppMessage::Error(err),
+            },
+        )
     }
 
     fn create_new_add_assets_view(&mut self, recipient_index: usize, from_account: AccountAddress) {
@@ -247,11 +338,26 @@ impl<'a> CreateTransaction {
                 ..Padding::ZERO
             });
 
+        let password_input = widget::text_input("Password to sign", self.password.as_str())
+            .secure(true)
+            .padding(10)
+            .style(styles::text_input::base_layer_1_rounded)
+            .on_input(|input| Message::InputPassword(input).into())
+            .on_submit(Message::SubmitTransaction.into());
+
+        // Enabled only once a sender is chosen and a password has been entered.
+        let can_submit = self.from_account.is_some() && !self.password.is_empty();
+
         let create_transaction = container(
-            button(text("Create transaction").width(Length::Fill).center())
-                .width(Length::Fill)
-                .style(styles::button::primary)
-                .height(50),
+            column![
+                password_input,
+                button(text("Create transaction").width(Length::Fill).center())
+                    .width(Length::Fill)
+                    .style(styles::button::primary)
+                    .height(50)
+                    .on_press_maybe(can_submit.then(|| Message::SubmitTransaction.into())),
+            ]
+            .spacing(10),
         )
         .padding(Padding {
             left: 15.,
