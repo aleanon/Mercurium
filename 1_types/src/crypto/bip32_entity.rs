@@ -14,3 +14,14 @@ impl Bip32Entity {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn entity_path_indexes() {
+        assert_eq!(Bip32Entity::Account.path_index(), 525);
+        assert_eq!(Bip32Entity::Identity.path_index(), 618);
+    }
+}

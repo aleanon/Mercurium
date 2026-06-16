@@ -117,3 +117,52 @@ pub enum NameVariant {
     Western,
     Eastern,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_persona(path: [u32; 6]) -> Persona {
+        Persona::new(
+            0,
+            "Main".to_string(),
+            Network::Mainnet,
+            "identity_rdx_example".to_string(),
+            Ed25519PublicKey([0u8; Ed25519PublicKey::LENGTH]),
+            path,
+            PersonaData::default(),
+        )
+    }
+
+    #[test]
+    fn derivation_path_roundtrips_through_byte_storage() {
+        let path = [44 + 0x8000_0000, 1022, 2, 618, 1460, 3];
+        let persona = sample_persona(path);
+        assert_eq!(persona.derivation_path(), path);
+        assert_eq!(persona.derivation_index(), 3);
+    }
+
+    #[test]
+    fn persona_data_serde_roundtrip() {
+        let data = PersonaData {
+            name: Some(PersonaName {
+                given: "Ada".to_string(),
+                family: "Lovelace".to_string(),
+                variant: NameVariant::Western,
+            }),
+            email_addresses: vec!["ada@example.com".to_string()],
+            phone_numbers: vec![],
+        };
+        let json = deps::serde_json::to_string(&data).unwrap();
+        let restored: PersonaData = deps::serde_json::from_str(&json).unwrap();
+        assert_eq!(data, restored);
+    }
+
+    #[test]
+    fn default_persona_data_is_empty() {
+        let data = PersonaData::default();
+        assert!(data.name.is_none());
+        assert!(data.email_addresses.is_empty());
+        assert!(data.phone_numbers.is_empty());
+    }
+}

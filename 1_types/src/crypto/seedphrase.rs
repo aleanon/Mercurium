@@ -130,3 +130,42 @@ impl From<String> for Phrase {
         phrase
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_word_lowercases_and_reference_reads_back() {
+        let mut phrase = SeedPhrase::new();
+        phrase.update_word(0, "Abandon");
+        assert_eq!(phrase.reference_word(0), Some("abandon"));
+    }
+
+    #[test]
+    fn reference_word_out_of_bounds_is_none() {
+        let phrase = SeedPhrase::new();
+        assert_eq!(phrase.reference_word(SeedPhrase::WORD_COUNT), None);
+        assert_eq!(phrase.reference_word(1000), None);
+    }
+
+    #[test]
+    fn from_str_splits_words() {
+        let phrase = SeedPhrase::from_str("abandon ability able");
+        assert_eq!(phrase.reference_word(0), Some("abandon"));
+        assert_eq!(phrase.reference_word(1), Some("ability"));
+        assert_eq!(phrase.reference_word(2), Some("able"));
+    }
+
+    #[test]
+    fn long_word_is_truncated_to_max_length() {
+        let mut phrase = SeedPhrase::new();
+        phrase.update_word(0, "abcdefghij"); // 10 chars > MAX_WORD_LENGTH (8)
+        assert_eq!(phrase.reference_word(0), Some("abcdefgh"));
+    }
+
+    #[test]
+    fn word_count_is_24() {
+        assert_eq!(SeedPhrase::new().nr_of_words(), 24);
+    }
+}

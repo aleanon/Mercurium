@@ -58,3 +58,39 @@ impl Debug for Salt {
         write!(f, "Salt(*)")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_salt_has_correct_length_and_is_random() {
+        let a = Salt::new().unwrap();
+        let b = Salt::new().unwrap();
+        assert_eq!(a.as_bytes().len(), Salt::LENGTH);
+        // Two random salts must (overwhelmingly likely) differ.
+        assert_ne!(a.as_bytes(), b.as_bytes());
+    }
+
+    #[test]
+    fn default_salt_is_zeroed() {
+        assert!(Salt::default().as_bytes().iter().all(|&byte| byte == 0));
+    }
+
+    #[test]
+    fn from_array_and_to_inner_roundtrip() {
+        let bytes = [7u8; Salt::LENGTH];
+        assert_eq!(Salt::from(bytes).to_inner(), bytes);
+    }
+
+    #[test]
+    fn try_from_vec_validates_length() {
+        assert!(Salt::try_from(vec![1u8; Salt::LENGTH]).is_ok());
+        assert!(Salt::try_from(vec![1u8; 10]).is_err());
+    }
+
+    #[test]
+    fn debug_redacts_contents() {
+        assert_eq!(format!("{:?}", Salt::default()), "Salt(*)");
+    }
+}
