@@ -24,13 +24,19 @@ binary build.** Built this pass (each its own commit, all unit-tested):
 | **C.11/C.12** Factor-source signing abstraction (`SigningFactor`, `DeviceFactor`) + Ledger seam (`LedgerFactor`) | ✅ done + tested | `5_wallet/src/factors/mod.rs` |
 | **C.13** Security Shields / MFA data model (`SecurityStructure`, `RoleOfFactors`, satisfiability) | ✅ done + tested | `1_types/src/profile.rs` |
 
-| **A.2** Transaction write path — fixed the buggy `UPSERT_TRANSACTION`, added `upsert_transactions` (+balance changes) and a `transactions_for_account` read accessor | ◑ partial + tested | `data_stores` + `5_wallet/src/wallet/unlocked.rs` |
+| **A.2** Transaction history **backend** — fixed buggy `UPSERT_TRANSACTION` + a latent `BalanceChangeId` panic; `upsert_transactions`, `parse_transaction` (gateway→domain, tested), `fetch_transactions` + `LedgerReader::transaction_history`, `transactions_for_account` accessor | ✅ backend done + tested | `data_stores`, `ledger_connector`, `5_wallet`, `1_types` |
+| **B** Live Profile store (JSON persistence, load/save) | ✅ done + tested | `data_stores` (`profile_store`) |
 
-**Remaining for full Stages A–C** (integration, GUI, or external infra — not new logic):
+**Remaining for full Stages A–C** — *all GUI, a physical device, on-ledger execution, or a
+platform API; none buildable/verifiable in a non-interactive environment*:
 
-- **A.2 transaction history (remainder)** — the SQL bug is fixed and the write/read methods exist;
-  still needed: parse the gateway `StreamTransactions` response (`CommittedTransactionInfo` +
-  balance changes) into domain `Transaction`s, the fetch loop, and the history UI.
+- **GUI (iced screens)** — transaction history view, transaction-review polish, persona/
+  authorized-dApp/settings/gateway/backup-restore/app-lock screens. The backends are ready to call.
+- **Ledger HID transport** — needs a physical Ledger device.
+- **On-ledger Access Controllers + MFA signing** — a large radix-engine workstream that must be
+  validated on-ledger.
+- **Biometric unlock** — a platform API.
+- **A.2 cursor pagination** — `fetch_transactions` is single-page for now.
 - **A.5 transaction review polish** — manifest summary + fee + message on the confirm screen (iced).
 - **B integration** — persist/load the live `Profile` in the running app; backup/restore UI.
 - **C integration** — wire the app-lock gate into the UI; persist `Profile.security` / `AppLock`;
