@@ -1,3 +1,4 @@
+pub mod biometric;
 pub mod error;
 pub mod factors;
 pub mod profile_backup;
