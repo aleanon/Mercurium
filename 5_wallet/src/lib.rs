@@ -1,3 +1,4 @@
+pub mod app_lock;
 pub mod error;
 pub mod factors;
 pub mod profile_backup;
