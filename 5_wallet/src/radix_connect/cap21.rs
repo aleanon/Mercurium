@@ -15,7 +15,64 @@ use deps::*;
 use serde::{Deserialize, Serialize};
 use types::Network;
 
-use super::{ConnectError, DappMetadata, WalletInteraction, WalletRequest};
+use super::{ConnectError, DappMetadata, WalletInteraction, WalletRequest, WalletResponse};
+
+fn to_hex(bytes: &[u8]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        s.push_str(&format!("{b:02x}"));
+    }
+    s
+}
+
+/// Serializes a [`WalletResponse`] into the CAP-21 response JSON sent back to the dApp.
+///
+/// The success/failure discriminator and `interactionId` match the official schema; the inner
+/// item/proof field names are the spec-sensitive part to confirm against a live dApp (the proof
+/// is an Ed25519 ROLA signature over the dApp-bound challenge).
+pub fn response_to_cap21_json(
+    interaction_id: &str,
+    response: &WalletResponse,
+) -> Result<String, ConnectError> {
+    let value = match response {
+        WalletResponse::Auth {
+            persona_identity_address,
+            proof,
+        } => serde_json::json!({
+            "discriminator": "success",
+            "interactionId": interaction_id,
+            "items": {
+                "discriminator": "authorizedRequest",
+                "auth": {
+                    "discriminator": "loginWithChallenge",
+                    "persona": { "identityAddress": persona_identity_address },
+                    "proof": {
+                        "publicKey": to_hex(&proof.public_key.0),
+                        "signature": to_hex(&proof.signature.0),
+                        "curve": "curve25519"
+                    }
+                }
+            }
+        }),
+        WalletResponse::Transaction { intent_hash_id } => serde_json::json!({
+            "discriminator": "success",
+            "interactionId": interaction_id,
+            "items": {
+                "discriminator": "transaction",
+                "send": { "transactionIntentHash": intent_hash_id }
+            }
+        }),
+        WalletResponse::Rejected { reason } => serde_json::json!({
+            "discriminator": "failure",
+            "interactionId": interaction_id,
+            "error": "rejectedByUser",
+            "message": reason
+        }),
+    };
+
+    serde_json::to_string(&value)
+        .map_err(|e| ConnectError::Transport(format!("failed to serialize CAP-21 response: {e}")))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

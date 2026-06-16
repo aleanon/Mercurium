@@ -16,6 +16,7 @@
 
 pub mod cap21;
 pub mod relay;
+pub mod session;
 
 use deps::*;
 

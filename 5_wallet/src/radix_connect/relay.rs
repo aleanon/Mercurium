@@ -17,7 +17,8 @@ use ring::agreement::{EphemeralPrivateKey, PublicKey, UnparsedPublicKey, X25519,
 use ring::digest::{SHA256, digest};
 use ring::rand::{SecureRandom, SystemRandom};
 
-use super::ConnectError;
+use super::cap21::{WalletInteractionWire, response_to_cap21_json};
+use super::{ConnectError, RelayTransport, WalletInteraction, WalletResponse};
 
 const NONCE_LEN: usize = 12;
 
@@ -227,6 +228,30 @@ impl ConnectRelay {
             .map_err(|e| ConnectError::Transport(format!("invalid hex from relay: {e}")))?;
         let plaintext = self.session_key.open(&sealed)?;
         Ok(Some(plaintext))
+    }
+}
+
+/// The live relay implements the session transport: decrypt+parse incoming CAP-21 requests, and
+/// serialize+encrypt outgoing CAP-21 responses. Polls the relay until a request is available.
+impl RelayTransport for ConnectRelay {
+    async fn next_interaction(&mut self) -> Result<WalletInteraction, ConnectError> {
+        loop {
+            if let Some(plaintext) = self.receive_encrypted().await? {
+                let json = String::from_utf8(plaintext)
+                    .map_err(|e| ConnectError::Transport(format!("non-utf8 payload: {e}")))?;
+                return WalletInteractionWire::from_json(&json)?.into_interaction();
+            }
+            deps::tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+    }
+
+    async fn send_response(
+        &mut self,
+        interaction_id: &str,
+        response: &WalletResponse,
+    ) -> Result<(), ConnectError> {
+        let json = response_to_cap21_json(interaction_id, response)?;
+        self.send_encrypted(json.as_bytes()).await
     }
 }
 
