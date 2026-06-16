@@ -141,12 +141,12 @@ impl TaskManager {
         accounts: Vec<Account>,
         network: Network,
     ) -> Result<AccountsUpdate, SetupError> {
-        Ok(handles::radix_dlt::updates::update_accounts(
-            network,
-            Arc::new(HashMap::new()),
-            accounts,
-        )
-        .await)
+        use ledger_connector::LedgerReader;
+
+        ledger_connector::radix_transaction_gateway(network)
+            .update_accounts(accounts, HashMap::new())
+            .await
+            .map_err(|err| SetupError::Unspecified)
     }
 
     async fn accounts_with_summaries(

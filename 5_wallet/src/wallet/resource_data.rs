@@ -5,7 +5,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use bytes::Bytes;
 use types::{
-    Account, Resource, UnwrapUnreachable,
+    Account, Persona, Resource, UnwrapUnreachable,
     address::{AccountAddress, ResourceAddress},
     assets::{FungibleAsset, NonFungibleAsset},
     debug_info,
@@ -14,6 +14,8 @@ use types::{
 #[derive(Debug, Clone)]
 pub struct ResourceData {
     pub accounts: HashMap<AccountAddress, Account>,
+    /// Personas keyed by their bech32m `identity_...` address.
+    pub personas: HashMap<String, Persona>,
     pub fungibles: HashMap<AccountAddress, BTreeSet<FungibleAsset>>,
     pub non_fungibles: HashMap<AccountAddress, BTreeSet<NonFungibleAsset>>,
     pub resources: HashMap<ResourceAddress, Resource>,
@@ -24,6 +26,7 @@ impl ResourceData {
     pub fn new() -> Self {
         Self {
             accounts: HashMap::new(),
+            personas: HashMap::new(),
             fungibles: HashMap::new(),
             non_fungibles: HashMap::new(),
             resources: HashMap::new(),
@@ -37,6 +40,18 @@ impl ResourceData {
         icons_db: &IconsDb,
     ) -> Result<(), DbError> {
         self.accounts = app_data_db.get_accounts().await?;
+        // Personas are loaded non-fatally: wallets created before the `personas` table existed
+        // simply have none, and must still be able to log in.
+        self.personas = app_data_db
+            .get_personas::<Vec<Persona>>()
+            .await
+            .map(|personas| {
+                personas
+                    .into_iter()
+                    .map(|persona| (persona.identity_address.clone(), persona))
+                    .collect()
+            })
+            .unwrap_or_default();
         self.fungibles = app_data_db.get_all_fungible_assets_per_account().await?;
         self.non_fungibles = app_data_db
             .get_all_non_fungible_assets_per_account()
@@ -108,5 +123,16 @@ impl ResourceData {
             .insert(account.address.clone(), account.clone())
             .unwrap_unreachable(debug_info!("Created an account that already exists"));
         db.upsert_account(account).await
+    }
+
+    pub async fn save_persona(&mut self, persona: Persona, db: &AppDataDb) -> Result<(), DbError> {
+        self.personas
+            .insert(persona.identity_address.clone(), persona.clone());
+        db.upsert_persona(persona).await
+    }
+
+    pub async fn save_personas_to_disk(&self, db: &AppDataDb) -> Result<(), DbError> {
+        let personas = self.personas.values().cloned().collect::<Vec<_>>();
+        db.upsert_personas(personas).await
     }
 }
