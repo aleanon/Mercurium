@@ -217,3 +217,39 @@ mod tests {
         assert_eq!(wire, parsed);
     }
 }
+
+#[cfg(test)]
+mod negative_tests {
+    use super::*;
+
+    #[test]
+    fn login_with_malformed_challenge_is_rejected() {
+        let json = r#"{
+            "interactionId": "x",
+            "metadata": { "version": 2, "networkId": 1,
+                "dAppDefinitionAddress": "account_rdx1", "origin": "https://x" },
+            "items": { "discriminator": "authorizedRequest",
+                "auth": { "discriminator": "loginWithChallenge", "challenge": "00" } }
+        }"#;
+        let result = WalletInteractionWire::from_json(json).unwrap().into_interaction();
+        assert!(result.is_err(), "a 1-byte challenge must be rejected");
+    }
+
+    #[test]
+    fn unsupported_network_id_is_rejected() {
+        let json = r#"{
+            "interactionId": "x",
+            "metadata": { "version": 2, "networkId": 99,
+                "dAppDefinitionAddress": "account_rdx1", "origin": "https://x" },
+            "items": { "discriminator": "transaction",
+                "send": { "transactionManifest": "CALL_METHOD;", "version": 1 } }
+        }"#;
+        let result = WalletInteractionWire::from_json(json).unwrap().into_interaction();
+        assert!(result.is_err(), "network id 99 is not supported");
+    }
+
+    #[test]
+    fn invalid_json_is_rejected() {
+        assert!(WalletInteractionWire::from_json("{ not json").is_err());
+    }
+}
