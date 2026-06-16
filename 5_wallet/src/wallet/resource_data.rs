@@ -57,7 +57,16 @@ impl ResourceData {
             .get_all_non_fungible_assets_per_account()
             .await?;
         self.resources = app_data_db.get_all_resources().await?;
-        self.resource_icons = handles::store::get::resource_icons(&icons_db).await;
+        // Read raw icon bytes from the store and resize them for display via the icon provider.
+        let raw_icons: HashMap<ResourceAddress, Vec<u8>> =
+            icons_db.get_all_resource_icons().await.unwrap_or_default();
+        self.resource_icons = raw_icons
+            .into_iter()
+            .filter_map(|(address, data)| {
+                let resized = icon_provider::resize_standard_dimensions_from_bytes(&data)?;
+                Some((address, Bytes::from_owner(resized)))
+            })
+            .collect();
 
         Ok(())
     }
