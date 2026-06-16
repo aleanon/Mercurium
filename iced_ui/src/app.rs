@@ -32,6 +32,7 @@ pub enum AppMessage {
     Error(AppError),
     Common(Message),
     ToggleTheme,
+    Settings(crate::unlocked::settings::Action),
     None,
 }
 
@@ -59,6 +60,8 @@ pub struct App {
     pub appview: AppView,
     pub notification: Notification,
     pub preferences: Preferences,
+    /// The live wallet profile (gateways, preferences, authorized dApps, factor-source metadata).
+    pub profile: types::Profile,
 }
 
 impl App {
@@ -90,6 +93,9 @@ impl App {
             appview: AppView::new(),
             notification: Notification::None,
             preferences: Preferences::default(),
+            profile: <data_stores::JsonProfileStore as data_stores::ProfileStore>::load(
+                &data_stores::JsonProfileStore,
+            ),
         };
 
         (app, Task::none())
@@ -132,6 +138,7 @@ impl App {
             }
             AppMessage::Common(common_message) => return common_message.process(self),
             AppMessage::ToggleTheme => self.toggle_theme(),
+            AppMessage::Settings(action) => self.apply_settings(action),
             AppMessage::Error(err) => self.handle_error(err),
             AppMessage::None => {}
         }
@@ -175,6 +182,26 @@ impl App {
                 self.notification = notification;
             }
             AppError::Ignore => {}
+        }
+    }
+
+    /// Applies a settings change to the live profile and persists it.
+    fn apply_settings(&mut self, action: crate::unlocked::settings::Action) {
+        use crate::unlocked::settings::Action;
+        match action {
+            Action::SwitchGateway(gateway) => self.profile.gateways.switch_to(gateway),
+            Action::SetAppLockEnabled(enabled) => {
+                self.profile.app_preferences.security.is_app_lock_enabled = enabled
+            }
+            Action::SetDeveloperMode(enabled) => {
+                self.profile.app_preferences.security.is_developer_mode_enabled = enabled
+            }
+        }
+        if let Err(err) = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
+            &data_stores::JsonProfileStore,
+            &self.profile,
+        ) {
+            self.handle_error(err);
         }
     }
 

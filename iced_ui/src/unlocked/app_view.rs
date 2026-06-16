@@ -20,6 +20,7 @@ use super::{
         receive::Receive,
     },
     personas::{self, PersonasView},
+    settings::SettingsView,
     transaction::{self, create_transaction::CreateTransaction},
 };
 
@@ -48,6 +49,7 @@ pub enum ActiveTab {
     Transfer(CreateTransaction),
     Personas(PersonasView),
     History(HistoryView),
+    Settings(SettingsView),
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +58,7 @@ pub enum TabId {
     Transfer,
     Personas,
     History,
+    Settings,
 }
 
 #[derive(Debug)]
@@ -127,6 +130,7 @@ impl<'a> AppView {
             }
             TabId::Personas => self.active_tab = ActiveTab::Personas(PersonasView::new()),
             TabId::History => self.active_tab = ActiveTab::History(HistoryView::new()),
+            TabId::Settings => self.active_tab = ActiveTab::Settings(SettingsView::new()),
         }
     }
 
@@ -174,6 +178,7 @@ impl<'a> AppView {
             ActiveTab::History(ref history_view) => {
                 widget::container(history_view.view(wallet))
             }
+            ActiveTab::Settings(ref settings_view) => widget::container(settings_view.view(app)),
         }
         .padding(10)
         .style(styles::container::center_panel)
@@ -253,6 +258,13 @@ impl<'a> AppView {
             Message::SelectTab(TabId::History).into(),
         );
 
+        let settings_icon = text(Bootstrap::Gear).font(BOOTSTRAP_FONT);
+        let mut settings_button = Self::menu_button(
+            settings_icon,
+            "Settings",
+            Message::SelectTab(TabId::Settings).into(),
+        );
+
         match self.active_tab {
             ActiveTab::Accounts(_) => {
                 accounts_button = accounts_button.style(styles::button::selected_menu_button)
@@ -266,6 +278,9 @@ impl<'a> AppView {
             ActiveTab::History(_) => {
                 history_button = history_button.style(styles::button::selected_menu_button)
             }
+            ActiveTab::Settings(_) => {
+                settings_button = settings_button.style(styles::button::selected_menu_button)
+            }
         }
 
         let buttons = widget::column![
@@ -274,7 +289,8 @@ impl<'a> AppView {
             accounts_button,
             transaction_button,
             personas_button,
-            history_button
+            history_button,
+            settings_button
         ]
         .width(Length::Fill)
         .height(Length::Shrink)
