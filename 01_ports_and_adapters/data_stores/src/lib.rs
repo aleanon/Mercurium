@@ -15,4 +15,6 @@ pub use sqlite_key::SqliteKey;
 
 // Settings store (JSON file).
 pub use adapters::JsonSettingsStore;
+pub use adapters::JsonProfileStore;
+pub use ports::profile_store::ProfileStore;
 pub use ports::settings_store::SettingsStore;
