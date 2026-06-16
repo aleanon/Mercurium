@@ -50,6 +50,7 @@ iced = { workspace = true, features = [
 scrypto = { workspace = true }
 radix-transactions = { workspace = true }
 radix-common = { workspace = true }
+radix-engine-interface = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

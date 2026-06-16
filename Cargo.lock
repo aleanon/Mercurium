@@ -1227,6 +1227,7 @@ dependencies = [
  "once_cell",
  "openssl-sys",
  "radix-common",
+ "radix-engine-interface",
  "radix-gateway-sdk",
  "radix-transactions",
  "rand 0.10.1",
@@ -3152,6 +3153,7 @@ name = "ledger_connector"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "data_stores",
  "deps",
  "thiserror 2.0.18",

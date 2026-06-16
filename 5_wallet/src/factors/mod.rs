@@ -6,6 +6,8 @@
 //! factor doesn't change the transaction/ROLA code. [`FactorSourceKind`] (in `types`) is the
 //! catalogue of factor kinds.
 
+pub mod access_controller;
+
 use deps::*;
 
 use bip39::Mnemonic;
