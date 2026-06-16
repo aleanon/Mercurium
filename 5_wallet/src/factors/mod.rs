@@ -7,6 +7,7 @@
 //! catalogue of factor kinds.
 
 pub mod access_controller;
+pub mod ledger;
 
 use deps::*;
 
@@ -73,12 +74,48 @@ impl SigningFactor for DeviceFactor {
 
 /// A Ledger hardware factor source.
 ///
-/// Signing requires the physical device over a transport (HID/USB) and the Radix Ledger app,
-/// which isn't available in this build. This type is the seam the transport plugs into: a real
-/// implementation derives the public key and signs *on the device* (the private key never
-/// leaves it), so it returns [`FactorError::Unavailable`] until a transport is wired.
+/// The protocol (APDU framing, BIP-32 path serialization, response parsing) is implemented in
+/// [`ledger`] and exercised by tests against a mock transport. The private key never leaves the
+/// device: this factor builds the APDU, hands it to a [`LedgerTransport`], and parses the reply.
+/// The transport is the only hardware-dependent piece (raw USB/HID byte exchange); with no
+/// transport connected the factor reports [`FactorError::Unavailable`].
+///
+/// Note: the Radix Ledger app signs a *transaction intent*, not a pre-hashed digest, so
+/// [`SigningFactor::sign_account`] (which receives a [`Hash`]) is not the device's signing entry
+/// point — use [`ledger::ledger_sign_transaction`] with the intent bytes for on-device signing.
 pub struct LedgerFactor {
     pub device_label: String,
+    pub transport: Option<Box<dyn ledger::LedgerTransport>>,
+}
+
+impl LedgerFactor {
+    /// A Ledger factor with no transport connected (the headless default).
+    pub fn disconnected(device_label: impl Into<String>) -> Self {
+        Self { device_label: device_label.into(), transport: None }
+    }
+
+    /// A Ledger factor backed by a connected transport (e.g. a HID/USB link).
+    pub fn connected(
+        device_label: impl Into<String>,
+        transport: Box<dyn ledger::LedgerTransport>,
+    ) -> Self {
+        Self { device_label: device_label.into(), transport: Some(transport) }
+    }
+
+    fn transport(&self) -> Result<&dyn ledger::LedgerTransport, FactorError> {
+        self.transport
+            .as_deref()
+            .ok_or_else(|| FactorError::Unavailable("no Ledger transport connected".to_string()))
+    }
+
+    /// Signs a transaction intent on the device (the Radix Ledger app's native signing flow).
+    pub fn sign_transaction(
+        &self,
+        account: &Account,
+        intent: &[u8],
+    ) -> Result<Ed25519Signature, FactorError> {
+        ledger::ledger_sign_transaction(self.transport()?, account, intent)
+    }
 }
 
 impl SigningFactor for LedgerFactor {
@@ -86,10 +123,8 @@ impl SigningFactor for LedgerFactor {
         FactorSourceKind::LedgerHardware
     }
 
-    fn account_public_key(&self, _account: &Account) -> Result<Ed25519PublicKey, FactorError> {
-        Err(FactorError::Unavailable(
-            "Ledger transport (HID) not implemented in this build".to_string(),
-        ))
+    fn account_public_key(&self, account: &Account) -> Result<Ed25519PublicKey, FactorError> {
+        ledger::ledger_account_public_key(self.transport()?, account)
     }
 
     fn sign_account(
@@ -97,8 +132,11 @@ impl SigningFactor for LedgerFactor {
         _account: &Account,
         _hash: &Hash,
     ) -> Result<Ed25519Signature, FactorError> {
+        // The Radix Ledger app signs intents, not bare hashes; route on-device signing through
+        // `sign_transaction` with the intent bytes instead.
         Err(FactorError::Unavailable(
-            "Ledger transport (HID) not implemented in this build".to_string(),
+            "Ledger signs transaction intents, not pre-hashed digests; use sign_transaction"
+                .to_string(),
         ))
     }
 }
@@ -138,9 +176,10 @@ mod tests {
 
     #[test]
     fn ledger_factor_is_unavailable_without_transport() {
-        let ledger = LedgerFactor { device_label: "Nano".to_string() };
+        let ledger = LedgerFactor::disconnected("Nano");
         assert_eq!(ledger.kind(), FactorSourceKind::LedgerHardware);
         assert!(ledger.account_public_key(&account()).is_err());
         assert!(ledger.sign_account(&account(), &radix_common::crypto::hash(b"x")).is_err());
+        assert!(ledger.sign_transaction(&account(), b"intent").is_err());
     }
 }
