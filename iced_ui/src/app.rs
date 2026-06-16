@@ -196,6 +196,20 @@ impl App {
             Action::SetDeveloperMode(enabled) => {
                 self.profile.app_preferences.security.is_developer_mode_enabled = enabled
             }
+            Action::ExportBackup(password) => {
+                let mut path = types::AppPath::get().config_directory();
+                path.push("profile_backup.bin");
+                match wallet::profile_backup::save_to_file(&self.profile, &password, &path) {
+                    Ok(()) => {
+                        self.notification = Notification::Info(format!(
+                            "Encrypted backup saved to {}",
+                            path.display()
+                        ))
+                    }
+                    Err(err) => self.notification = Notification::Warn(err.to_string()),
+                }
+                return;
+            }
         }
         if let Err(err) = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
             &data_stores::JsonProfileStore,

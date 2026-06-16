@@ -2,26 +2,55 @@ use deps::*;
 
 use iced::{
     Alignment, Element, Length, Padding,
-    widget::{self, button, column, container, row, text},
+    widget::{self, button, column, container, row, text, text_input},
 };
 use types::GatewayConfig;
+use zeroize::Zeroize;
 
-use crate::{App, app::AppMessage, styles};
+use crate::{App, app::AppMessage, styles, unlocked::app_view};
 
-/// A settings change routed to `App::apply_settings` (mutates + persists the live profile).
+/// Local input messages routed through `AppView::update` to mutate this view's state.
+#[derive(Debug, Clone)]
+pub enum Message {
+    InputBackupPassword(String),
+}
+
+impl Into<AppMessage> for Message {
+    fn into(self) -> AppMessage {
+        AppMessage::AppView(app_view::Message::SettingsViewMessage(self))
+    }
+}
+
+/// Settings changes routed to `App::apply_settings` (mutates + persists the live profile, or
+/// performs an app-level action like exporting an encrypted backup).
 #[derive(Debug, Clone)]
 pub enum Action {
     SwitchGateway(GatewayConfig),
     SetAppLockEnabled(bool),
     SetDeveloperMode(bool),
+    ExportBackup(String),
 }
 
 #[derive(Debug)]
-pub struct SettingsView;
+pub struct SettingsView {
+    backup_password: String,
+}
 
 impl<'a> SettingsView {
     pub fn new() -> Self {
-        Self
+        Self {
+            backup_password: String::new(),
+        }
+    }
+
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::InputBackupPassword(mut input) => {
+                self.backup_password.zeroize();
+                self.backup_password = input.clone();
+                input.zeroize();
+            }
+        }
     }
 
     pub fn view(&'a self, app: &'a App) -> Element<'a, AppMessage> {
@@ -32,9 +61,7 @@ impl<'a> SettingsView {
         let gateway_buttons = profile.gateways.saved.iter().map(|gateway| {
             let is_current = gateway.url == profile.gateways.current.url;
             let label = format!("{:?} — {}", gateway.network, gateway.url);
-            let mut btn = button(text(label).size(13))
-                .width(Length::Fill)
-                .padding(8);
+            let mut btn = button(text(label).size(13)).width(Length::Fill).padding(8);
             btn = if is_current {
                 btn.style(styles::button::primary)
             } else {
@@ -43,10 +70,7 @@ impl<'a> SettingsView {
             };
             btn.into()
         });
-        let gateways = Self::section(
-            "Gateway",
-            column(gateway_buttons).spacing(6).into(),
-        );
+        let gateways = Self::section("Gateway", column(gateway_buttons).spacing(6).into());
 
         // --- Security toggles. ---
         let app_lock = row![
@@ -65,7 +89,32 @@ impl<'a> SettingsView {
 
         let security = Self::section("Security", column![app_lock, dev_mode].spacing(10).into());
 
-        // --- Authorized dApps (read-only count for now). ---
+        // --- Encrypted profile backup (seed-free). ---
+        let password_input = text_input("Backup password", &self.backup_password)
+            .secure(true)
+            .padding(10)
+            .style(styles::text_input::base_layer_1_rounded)
+            .on_input(|input| Message::InputBackupPassword(input).into());
+        let export_button = button(text("Export encrypted backup").center().width(Length::Fill))
+            .width(Length::Fill)
+            .padding(10)
+            .style(styles::button::primary)
+            .on_press_maybe((!self.backup_password.is_empty()).then(|| {
+                AppMessage::Settings(Action::ExportBackup(self.backup_password.clone()))
+            }));
+        let backup = Self::section(
+            "Backup",
+            column![
+                text("Encrypted with this password; contains no seed phrase.")
+                    .size(11)
+                    .style(styles::text::muted),
+                password_input,
+                export_button,
+            ]
+            .spacing(8)
+            .into(),
+        );
+
         let dapps = Self::section(
             "Connected dApps",
             text(format!("{} authorized", profile.authorized_dapps.len()))
@@ -73,7 +122,7 @@ impl<'a> SettingsView {
                 .into(),
         );
 
-        let content = column![header, gateways, security, dapps]
+        let content = column![header, gateways, security, backup, dapps]
             .spacing(20)
             .padding(Padding {
                 left: 10.,

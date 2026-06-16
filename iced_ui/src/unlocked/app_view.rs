@@ -20,7 +20,7 @@ use super::{
         receive::Receive,
     },
     personas::{self, PersonasView},
-    settings::SettingsView,
+    settings::{self, SettingsView},
     transaction::{self, create_transaction::CreateTransaction},
 };
 
@@ -35,6 +35,7 @@ pub enum Message {
     OverlayMessage(overlay::Message),
     PersonasViewMessage(personas::Message),
     HistoryViewMessage(history::Message),
+    SettingsViewMessage(settings::Message),
 }
 
 impl Into<AppMessage> for Message {
@@ -115,6 +116,11 @@ impl<'a> AppView {
             Message::HistoryViewMessage(history_message) => {
                 if let ActiveTab::History(view) = &mut self.active_tab {
                     return view.update(history_message, wallet);
+                }
+            }
+            Message::SettingsViewMessage(settings_message) => {
+                if let ActiveTab::Settings(view) = &mut self.active_tab {
+                    view.update(settings_message);
                 }
             }
         }
