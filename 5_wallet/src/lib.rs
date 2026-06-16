@@ -1,4 +1,5 @@
 pub mod error;
+pub mod profile_backup;
 pub mod radix_connect;
 mod settings;
 pub mod transaction;
