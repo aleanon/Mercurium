@@ -15,6 +15,19 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
   and open a PR. The plan and this decision log are kept in `.ai_docs/`.
 - **Consequence:** History is readable per-point; the plan and rationale are versioned alongside code.
 
+## 2026-06-16 — `2_store` removed; SQLite store consolidated into `data_stores`
+- **Context:** Two store implementations existed: the working `2_store` (`AppDataDb`/`IconsDb`)
+  used everywhere, and an *incomplete parallel* hexagonal redesign inside `data_stores`
+  (`DataStore`/`WalletDataStore`/`Sqlite`) that nothing consumed (only the dead, commented-out
+  `radix_official_gateway` referenced it).
+- **Decision:** Relocate the working `2_store` SQLite impl into `data_stores` (re-exported at the
+  crate root) and **drop the incomplete parallel scaffolding** rather than try to finish it.
+  Repoint all consumers (`5_wallet`, `iced_ui`, `ledger_connector`) from `store` to `data_stores`;
+  delete `2_store`. The test-generated `mock.db` is now gitignored.
+- **Consequence:** One store crate (`data_stores`), keeping the proven implementation. Full
+  workspace builds (incl. binary); 44 tests pass. A future clean hexagonal `WalletDataStore` port
+  over `AppDataDb` can be reintroduced incrementally if desired.
+
 ## 2026-06-16 — `handles` dissolved; `statics` → `iced_ui` bootstrap (not mercurium)
 - **Context:** Executing the handles-dissolution plan. `initialize_statics` was planned for the
   mercurium composition root, but `App::new` (in `iced_ui`) is invoked by the iced runtime and is
