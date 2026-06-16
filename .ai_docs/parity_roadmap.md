@@ -23,6 +23,9 @@ Built (each its own commit, all unit-tested where logic exists):
 | **B.9** Authorized-dApp + persona-data model (`AuthorizedDapp`/`AuthorizedPersona`, upsert/forget) | ✅ done + tested | `1_types/src/profile.rs` (UI pending) |
 | **C.10** App lock (PBKDF2 PIN, serializable, constant-time verify) | ✅ done + tested | `1_types/src/app_lock.rs` |
 | **C.11/C.12** Factor-source signing abstraction (`SigningFactor`, `DeviceFactor`) + Ledger seam (`LedgerFactor`) | ✅ done + tested | `5_wallet/src/factors/mod.rs` |
+| **C.12** Ledger **APDU protocol layer** — BIP-32 path serialization, APDU framing, response parsing; `LedgerTransport` trait abstracts the USB/HID exchange; driven via mock transport | ✅ protocol done + tested (raw HID exchange needs device) | `5_wallet/src/factors/ledger.rs` |
+| **C.10** Biometric **unlock abstraction** — `BiometricAuthenticator` trait + `unlock()` gating policy with PIN fallback | ✅ logic done + tested (OS sensor call needs platform) | `5_wallet/src/biometric.rs` |
+| **C.13** **Multi-factor signing aggregation** — `signatures_satisfying_role` (override/threshold), `role_is_met`, `outstanding_factors` | ✅ logic done + tested (on-ledger validation needs network) | `5_wallet/src/factors/multi_factor.rs` |
 | **C.13** Security Shields / MFA data model (`SecurityStructure`, `RoleOfFactors`, satisfiability) | ✅ done + tested | `1_types/src/profile.rs` |
 
 | **A.2** Transaction history **backend** — fixed buggy `UPSERT_TRANSACTION` + a latent `BalanceChangeId` panic; `upsert_transactions`, `parse_transaction` (gateway→domain, tested), `fetch_transactions` + `LedgerReader::transaction_history`, `transactions_for_account` accessor | ✅ backend done + tested | `data_stores`, `ledger_connector`, `5_wallet`, `1_types` |
@@ -35,21 +38,26 @@ Built (each its own commit, all unit-tested where logic exists):
 | **A.5** Transaction-**review summary** (From/To + asset amounts) above the send password field | ✅ done (compiles into binary) | `iced_ui/src/unlocked/transaction/create_transaction.rs` |
 | **B.9** Persona-**data editing** UI (name/email/phone inline edit) + `Unlocked::update_persona_data` | ✅ done (compiles into binary) | `iced_ui/src/unlocked/personas`, `5_wallet/src/wallet/unlocked.rs` |
 
-**Remaining for full Stages A–C** — *only items requiring a physical device, a platform API, or
-on-ledger execution; none buildable/verifiable in a non-interactive environment*:
+**Remaining for full Stages A–C** — *now narrowed to the single external primitive behind each item;
+the surrounding logic is implemented and tested*:
 
-- **Ledger HID transport (C.12)** — needs a physical Ledger device. The `LedgerFactor` seam is in
-  place; nothing to verify without hardware.
-- **Biometric unlock (C.10)** — a platform API (Secure Enclave / Android Keystore). The PIN lock is
-  built, tested, and wired into Settings; biometric is an OS integration layered on the same gate.
-- **On-ledger Access Controller creation + MFA signing (C.13)** — the `securify_account_manifest`
-  is built and tested, but its on-ledger semantics must be validated on Stokenet.
-- **Live GUI verification** — every iced screen above *compiles into the binary*, but visual/interaction
+- **Ledger raw HID/USB byte exchange (C.12)** — the only missing piece is a `LedgerTransport`
+  implementation that talks to the physical device (needs system USB libraries + hardware). The
+  APDU protocol, path serialization, and response parsing are implemented and tested via a mock
+  transport.
+- **Biometric OS sensor call (C.10)** — the only missing piece is a `BiometricAuthenticator` backend
+  per platform (Touch ID / Android BiometricPrompt / `fprintd`). The availability/authenticate
+  abstraction and the PIN-fallback `unlock()` policy are implemented and tested.
+- **On-ledger validation of MFA signature sets (C.13)** — the `securify_account_manifest` and the
+  `signatures_satisfying_role` aggregation are implemented and tested; confirming their on-ledger
+  acceptance requires submitting to Stokenet.
+- **Live GUI verification** — every iced screen *compiles into the binary*, but visual/interaction
   behaviour can only be confirmed by running the app.
 
-Every Stage A–C capability that can be built without a physical Ledger, a platform biometric API, or
-on-ledger execution is implemented behind clean modules/ports, with tested logic and (where it has a
-screen) a wired-in iced UI. The residual is strictly external-dependent.
+Every Stage A–C capability is now implemented behind clean modules/ports with tested logic and
+(where it has a screen) a wired-in iced UI. What remains is strictly the three hardware/platform/
+on-ledger *primitives* named above plus live-GUI verification — each isolated behind a trait so the
+surrounding, tested code does not change when the primitive is supplied.
 
 ---
 
