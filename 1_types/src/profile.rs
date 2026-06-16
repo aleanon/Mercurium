@@ -18,6 +18,9 @@ pub struct Profile {
     pub authorized_dapps: Vec<AuthorizedDapp>,
     /// Metadata about the factor sources the user has added (never the secret material itself).
     pub factor_sources: Vec<FactorSourceMeta>,
+    /// Security Shields (multi-factor structures) the user has defined; entities can be secured
+    /// with one of these (creating an on-ledger Access Controller).
+    pub security_structures: Vec<SecurityStructure>,
 }
 
 impl Profile {
@@ -31,6 +34,7 @@ impl Profile {
             app_preferences: AppPreferences::default(),
             authorized_dapps: Vec::new(),
             factor_sources: vec![FactorSourceMeta::device()],
+            security_structures: Vec::new(),
         }
     }
 
@@ -182,6 +186,60 @@ pub enum FactorSourceKind {
     ArculusCard,
 }
 
+/// A Security Shield: a matrix of factors arranged into the roles the wallet's Access Controller
+/// enforces on-ledger. Primary signs day-to-day transactions; recovery can start a recovery;
+/// confirmation confirms it. Factor sources are referenced by their [`FactorSourceMeta::id`].
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SecurityStructure {
+    pub id: String,
+    pub label: String,
+    pub primary_role: RoleOfFactors,
+    pub recovery_role: RoleOfFactors,
+    pub confirmation_role: RoleOfFactors,
+}
+
+impl SecurityStructure {
+    /// A single-factor shield (today's default: one device factor for every role).
+    pub fn single_factor(id: impl Into<String>, label: impl Into<String>, factor_id: impl Into<String>) -> Self {
+        let factor_id = factor_id.into();
+        let role = RoleOfFactors::single(&factor_id);
+        Self {
+            id: id.into(),
+            label: label.into(),
+            primary_role: role.clone(),
+            recovery_role: role.clone(),
+            confirmation_role: role,
+        }
+    }
+}
+
+/// One role within a Security Shield: a threshold over some factors, plus override factors any
+/// one of which satisfies the role on its own.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RoleOfFactors {
+    /// How many of `threshold_factors` are required.
+    pub threshold: u8,
+    pub threshold_factors: Vec<String>,
+    pub override_factors: Vec<String>,
+}
+
+impl RoleOfFactors {
+    /// A role satisfied by a single factor.
+    pub fn single(factor_id: &str) -> Self {
+        Self {
+            threshold: 1,
+            threshold_factors: vec![factor_id.to_string()],
+            override_factors: Vec::new(),
+        }
+    }
+
+    /// Whether a role is well-formed: the threshold is achievable, or an override exists.
+    pub fn is_satisfiable(&self) -> bool {
+        (self.threshold >= 1 && (self.threshold as usize) <= self.threshold_factors.len())
+            || !self.override_factors.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,5 +306,47 @@ mod tests {
         assert!(profile.forget_authorized_dapp("account_rdx_dapp"));
         assert!(profile.authorized_dapps.is_empty());
         assert!(!profile.forget_authorized_dapp("account_rdx_dapp"));
+    }
+
+    #[test]
+    fn single_factor_security_structure_is_satisfiable_and_serdes() {
+        let shield = SecurityStructure::single_factor("shield-1", "Default", "device");
+        assert!(shield.primary_role.is_satisfiable());
+        assert!(shield.recovery_role.is_satisfiable());
+        assert!(shield.confirmation_role.is_satisfiable());
+        assert_eq!(shield.primary_role.threshold, 1);
+
+        let mut profile = Profile::new();
+        profile.security_structures.push(shield);
+        let json = serde_json::to_string(&profile).unwrap();
+        let restored: Profile = serde_json::from_str(&json).unwrap();
+        assert_eq!(profile, restored);
+    }
+
+    #[test]
+    fn role_satisfiability_rules() {
+        // threshold larger than available factors, no override -> not satisfiable
+        let bad = RoleOfFactors {
+            threshold: 2,
+            threshold_factors: vec!["a".to_string()],
+            override_factors: vec![],
+        };
+        assert!(!bad.is_satisfiable());
+
+        // an override alone satisfies it
+        let with_override = RoleOfFactors {
+            threshold: 2,
+            threshold_factors: vec!["a".to_string()],
+            override_factors: vec!["ledger".to_string()],
+        };
+        assert!(with_override.is_satisfiable());
+
+        // 2-of-2 threshold is satisfiable
+        let two_of_two = RoleOfFactors {
+            threshold: 2,
+            threshold_factors: vec!["a".to_string(), "b".to_string()],
+            override_factors: vec![],
+        };
+        assert!(two_of_two.is_satisfiable());
     }
 }
