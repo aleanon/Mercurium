@@ -51,7 +51,7 @@ pub trait LedgerReader {
 #[async_trait]
 impl LedgerReader for RadixGateway {
     async fn update_all_accounts(&self) -> Result<AccountsUpdate, LedgerReaderError> {
-        handles::radix_dlt::updates::update_all_accounts(self.network)
+        crate::radix_dlt::updates::update_all_accounts(self.network)
             .await
             .map_err(|e| LedgerReaderError::Update(e.to_string()))
     }
@@ -61,8 +61,8 @@ impl LedgerReader for RadixGateway {
         accounts: Vec<Account>,
         known_resources: HashMap<ResourceAddress, Resource>,
     ) -> Result<AccountsUpdate, LedgerReaderError> {
-        // `handles::update_accounts` is infallible (it logs and skips failures per account).
-        Ok(handles::radix_dlt::updates::update_accounts(
+        // `update_accounts` is infallible (it logs and skips failures per account).
+        Ok(crate::radix_dlt::updates::update_accounts(
             self.network,
             Arc::new(known_resources),
             accounts,

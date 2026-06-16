@@ -3156,7 +3156,8 @@ dependencies = [
  "async-trait",
  "data_stores",
  "deps",
- "handles",
+ "store",
+ "thiserror 2.0.18",
  "types",
 ]
 

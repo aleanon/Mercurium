@@ -65,14 +65,14 @@ impl RadixGateway {
 #[async_trait]
 impl TransactionGateway for RadixGateway {
     async fn current_epoch(&self) -> Result<u64, TransactionGatewayError> {
-        handles::radix_dlt::gateway_requests::get_current_epoch(self.network)
+        crate::radix_dlt::gateway_requests::get_current_epoch(self.network)
             .await
             .map_err(|e| TransactionGatewayError::Gateway(e.to_string()))
     }
 
     async fn submit(&self, notarized_hex: &str) -> Result<bool, TransactionGatewayError> {
         let response =
-            handles::radix_dlt::gateway_requests::submit_transaction(self.network, notarized_hex)
+            crate::radix_dlt::gateway_requests::submit_transaction(self.network, notarized_hex)
                 .await
                 .map_err(|e| TransactionGatewayError::Gateway(e.to_string()))?;
         Ok(response.duplicate)
@@ -84,7 +84,7 @@ impl TransactionGateway for RadixGateway {
     ) -> Result<SubmittedStatus, TransactionGatewayError> {
         use deps::radix_gateway_sdk::generated::model::TransactionStatus;
 
-        let response = handles::radix_dlt::gateway_requests::get_transaction_status(
+        let response = crate::radix_dlt::gateway_requests::get_transaction_status(
             self.network,
             intent_hash_id,
         )

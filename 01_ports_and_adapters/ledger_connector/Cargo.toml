@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 deps = { path = "../../0_deps" }
 types = { path = "../../1_types" }
+store = { path = "../../2_store" }
 data_stores = { path = "../data_stores" }
-handles = { path = "../../3_handles" }
 async-trait = { workspace = true }
+thiserror = { workspace = true }
