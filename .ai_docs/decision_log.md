@@ -7,6 +7,28 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
 
 ---
 
+## 2026-06-17 — `AppLock` lives in `types`, inside `Profile.security`
+- **Context:** The app-lock PIN must be part of the serializable, backed-up `Profile`
+  (`SecurityPreferences`), but `AppLock` was originally in the `5_wallet` crate, which `1_types`
+  cannot depend on. `AppLock` only needs `ring::pbkdf2` + `crypto::Salt`, both already in `types`.
+- **Decision:** Move `AppLock` into `1_types` (`app_lock.rs`) and add
+  `SecurityPreferences.app_lock: Option<AppLock>`. Enabling app lock flips a flag and reveals a PIN
+  field in Settings; setting a PIN stores the PBKDF2 hash; disabling clears it.
+- **Consequence:** The PIN gate is captured by Profile backup/restore for free. Biometric unlock,
+  when added, layers on this same lock via a platform API.
+
+## 2026-06-17 — Stage A–C boundary: built everything not needing device/platform/on-ledger
+- **Context:** The goal was to "complete the plan up to and including Stage C." Three capabilities
+  cannot be completed or verified in a non-interactive session: Ledger HID (physical device),
+  biometric unlock (platform API), and on-ledger Access Controller/MFA validation (Stokenet).
+- **Decision:** Build and test every other Stage A–C capability to a wired-in state — backends with
+  unit tests, plus iced UI verticals (send-review, history, settings, backup export/import,
+  app-lock PIN, persona-data editing) that compile into the binary. Leave clean seams
+  (`LedgerFactor`, the PIN gate, `securify_account_manifest`) for the three external-dependent items.
+- **Consequence:** The residual for full parity Stage C is strictly hardware/platform/on-ledger and
+  live-GUI verification; all in-process logic is implemented and tested. Documented in
+  [parity_roadmap.md](./parity_roadmap.md) §0.
+
 ## 2026-06-16 — Workflow: commit per completed point + PR; docs live in `.ai_docs/`
 - **Context:** CLAUDE.md asks for "a clear explanation of what has been done for every point
   completed" (e.g. 0B data stores gets its own commit). The user asked to commit/PR completed

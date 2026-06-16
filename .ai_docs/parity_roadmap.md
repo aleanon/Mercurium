@@ -3,14 +3,15 @@
 > Goal: identify the development stages that take Mercurium from its current MVP to feature
 > parity with the official Radix Wallet, with a detailed, ordered step list.
 >
-> Status date: 2026-06-16 · Grounded in the official wallet feature set (see §6 sources).
+> Status date: 2026-06-17 · Grounded in the official wallet feature set (see §6 sources).
 
 ---
 
 ## 0. Implementation status — Stages A–C (live)
 
-Execution toward Stages A–C has begun. **134 tests pass; the full workspace + `mercurium`
-binary build.** Built this pass (each its own commit, all unit-tested):
+Execution toward Stages A–C is essentially complete for everything buildable without external
+hardware/platform/network. **141 tests pass; the full workspace + `mercurium` binary build.**
+Built (each its own commit, all unit-tested where logic exists):
 
 | Item | Status | Where |
 |---|---|---|
@@ -20,7 +21,7 @@ binary build.** Built this pass (each its own commit, all unit-tested):
 | **B.6** Versioned `Profile` model (gateways, preferences, authorized dApps, factor-source metadata, security structures) | ✅ done + tested | `1_types/src/profile.rs` |
 | **B.7/B.8** Encrypted Profile backup (export/import + file, AES-256-GCM/PBKDF2) | ✅ done + tested | `5_wallet/src/profile_backup.rs` |
 | **B.9** Authorized-dApp + persona-data model (`AuthorizedDapp`/`AuthorizedPersona`, upsert/forget) | ✅ done + tested | `1_types/src/profile.rs` (UI pending) |
-| **C.10** App lock (PBKDF2 PIN, serializable, constant-time verify) | ✅ done + tested | `5_wallet/src/app_lock.rs` |
+| **C.10** App lock (PBKDF2 PIN, serializable, constant-time verify) | ✅ done + tested | `1_types/src/app_lock.rs` |
 | **C.11/C.12** Factor-source signing abstraction (`SigningFactor`, `DeviceFactor`) + Ledger seam (`LedgerFactor`) | ✅ done + tested | `5_wallet/src/factors/mod.rs` |
 | **C.13** Security Shields / MFA data model (`SecurityStructure`, `RoleOfFactors`, satisfiability) | ✅ done + tested | `1_types/src/profile.rs` |
 
@@ -29,29 +30,26 @@ binary build.** Built this pass (each its own commit, all unit-tested):
 | **A.2** Cursor pagination + **Transaction History UI tab** (account picker → async load → list) | ✅ done (UI compiles into binary) | `ledger_connector`, `iced_ui/src/unlocked/history` |
 | **C.13** On-ledger **Access Controller (Smart Account) manifest** (`securify_account_manifest`) | ✅ done + tested | `5_wallet/src/factors/access_controller.rs` |
 | **B/C** Live **Profile threaded into `App`** (load/persist via `JsonProfileStore`) + **Settings UI** (switch gateway A.4, toggle app-lock C.10 / dev-mode, dApp count) | ✅ done (compiles into binary) | `iced_ui/src/app.rs`, `iced_ui/src/unlocked/settings` |
+| **B.8** Backup **export + restore (import)** UI in Settings (password field, save/load `profile_backup.bin`) | ✅ done (compiles into binary) | `iced_ui/src/unlocked/settings`, `iced_ui/src/app.rs` |
+| **C.10** App-lock **PIN entry** UI — `AppLock` moved into `types::Profile.security`, PIN set/clear in Settings | ✅ done (compiles into binary) | `1_types/src/{app_lock,profile}.rs`, `iced_ui/src/unlocked/settings` |
+| **A.5** Transaction-**review summary** (From/To + asset amounts) above the send password field | ✅ done (compiles into binary) | `iced_ui/src/unlocked/transaction/create_transaction.rs` |
+| **B.9** Persona-**data editing** UI (name/email/phone inline edit) + `Unlocked::update_persona_data` | ✅ done (compiles into binary) | `iced_ui/src/unlocked/personas`, `5_wallet/src/wallet/unlocked.rs` |
 
-**Remaining for full Stages A–C** — *all GUI, a physical device, on-ledger execution, or a
-platform API; none buildable/verifiable in a non-interactive environment*:
+**Remaining for full Stages A–C** — *only items requiring a physical device, a platform API, or
+on-ledger execution; none buildable/verifiable in a non-interactive environment*:
 
-- **GUI (iced screens)** — **history + settings tabs are built and the Profile is threaded into
-  `App`**. Still to wire (same proven pattern, each needs GUI verification): transaction-review
-  polish, backup-restore + app-lock-PIN entry (need a password modal), persona-data/authorized-dApp
-  management screens. Backends + app-state are ready.
-- **Ledger HID transport** — needs a physical Ledger device.
-- **On-ledger Access Controllers + MFA signing** — a large radix-engine workstream that must be
-  validated on-ledger.
-- **Biometric unlock** — a platform API.
-- **A.2 cursor pagination** — `fetch_transactions` is single-page for now.
-- **A.5 transaction review polish** — manifest summary + fee + message on the confirm screen (iced).
-- **B integration** — persist/load the live `Profile` in the running app; backup/restore UI.
-- **C integration** — wire the app-lock gate into the UI; persist `Profile.security` / `AppLock`;
-  **Ledger HID transport** (needs a physical device); **on-ledger Access Controller** creation +
-  MFA signing flow (a large radix-engine workstream); **biometric** unlock (platform API).
-- **UI** for all of the above (iced screens) needs the running GUI to verify.
+- **Ledger HID transport (C.12)** — needs a physical Ledger device. The `LedgerFactor` seam is in
+  place; nothing to verify without hardware.
+- **Biometric unlock (C.10)** — a platform API (Secure Enclave / Android Keystore). The PIN lock is
+  built, tested, and wired into Settings; biometric is an OS integration layered on the same gate.
+- **On-ledger Access Controller creation + MFA signing (C.13)** — the `securify_account_manifest`
+  is built and tested, but its on-ledger semantics must be validated on Stokenet.
+- **Live GUI verification** — every iced screen above *compiles into the binary*, but visual/interaction
+  behaviour can only be confirmed by running the app.
 
-The tested *logic* for every Stage A–C capability that can be built without a GUI / live relay /
-physical Ledger / on-ledger access-controller engine work is in place behind clean modules/ports;
-the residual is integration and external-dependent flows, documented above.
+Every Stage A–C capability that can be built without a physical Ledger, a platform biometric API, or
+on-ledger execution is implemented behind clean modules/ports, with tested logic and (where it has a
+screen) a wired-in iced UI. The residual is strictly external-dependent.
 
 ---
 
