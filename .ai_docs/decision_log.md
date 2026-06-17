@@ -7,6 +7,20 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
 
 ---
 
+## 2026-06-17 — Stage A–C "complete" = code-complete + tested; on-device verification descoped
+- **Context:** Stages A–C were implemented and unit-tested (159 tests), but three items can only be
+  *verified* with resources absent from a headless/CI session: a physical Ledger (raw HID exchange),
+  a biometric sensor (OS call), and a live Stokenet connection (on-ledger MFA submission). The
+  surrounding logic for all three is implemented and tested behind traits.
+- **Decision (user-chosen — "descope to buildable"):** Define Stage A–C completion as
+  **code-complete + unit-tested**. Move the three irreducible external verifications out of A–C
+  scope into a separate **on-device verification backlog** (`parity_roadmap.md` §0a, items V.1–V.4),
+  each being a single trait implementation against real hardware/platform/network.
+- **Consequence:** Stages A–C are complete by this definition. The deferred work is isolated behind
+  `LedgerTransport`, `BiometricAuthenticator`, and the manifest/aggregation seams, so supplying each
+  primitive later does not alter the tested code. GUI screens compile into the binary; visual
+  verification is V.4.
+
 ## 2026-06-17 — `AppLock` lives in `types`, inside `Profile.security`
 - **Context:** The app-lock PIN must be part of the serializable, backed-up `Profile`
   (`SecurityPreferences`), but `AppLock` was originally in the `5_wallet` crate, which `1_types`

@@ -9,9 +9,15 @@
 
 ## 0. Implementation status — Stages A–C (live)
 
-Execution toward Stages A–C is essentially complete for everything buildable without external
-hardware/platform/network. **141 tests pass; the full workspace + `mercurium` binary build.**
-Built (each its own commit, all unit-tested where logic exists):
+**Scope decision (2026-06-17):** Stages A–C are **defined as code-complete + unit-tested**. The
+three irreducible *on-device / on-ledger verifications* — the raw Ledger HID/USB byte exchange
+(C.12), the OS biometric sensor call (C.10), and on-ledger submission of an MFA signature set
+(C.13) — are **explicitly out of the A–C completion scope** and tracked separately under
+[§0a On-device verification backlog](#0a-on-device-verification-backlog-post-ac). Each is isolated
+behind a trait so the tested surrounding code does not change when the primitive is supplied.
+
+By that definition, **Stages A–C are complete.** **159 tests pass; the full workspace + `mercurium`
+binary builds.** Built (each its own commit, all unit-tested where logic exists):
 
 | Item | Status | Where |
 |---|---|---|
@@ -38,26 +44,30 @@ Built (each its own commit, all unit-tested where logic exists):
 | **A.5** Transaction-**review summary** (From/To + asset amounts) above the send password field | ✅ done (compiles into binary) | `iced_ui/src/unlocked/transaction/create_transaction.rs` |
 | **B.9** Persona-**data editing** UI (name/email/phone inline edit) + `Unlocked::update_persona_data` | ✅ done (compiles into binary) | `iced_ui/src/unlocked/personas`, `5_wallet/src/wallet/unlocked.rs` |
 
-**Remaining for full Stages A–C** — *now narrowed to the single external primitive behind each item;
-the surrounding logic is implemented and tested*:
+Every Stage A–C capability is implemented behind clean modules/ports with tested logic and (where
+it has a screen) a wired-in iced UI. Per the scope decision above, the items below are **not** part
+of A–C completion — they are the irreducible external primitives, deferred to the backlog.
 
-- **Ledger raw HID/USB byte exchange (C.12)** — the only missing piece is a `LedgerTransport`
-  implementation that talks to the physical device (needs system USB libraries + hardware). The
-  APDU protocol, path serialization, and response parsing are implemented and tested via a mock
-  transport.
-- **Biometric OS sensor call (C.10)** — the only missing piece is a `BiometricAuthenticator` backend
-  per platform (Touch ID / Android BiometricPrompt / `fprintd`). The availability/authenticate
-  abstraction and the PIN-fallback `unlock()` policy are implemented and tested.
-- **On-ledger validation of MFA signature sets (C.13)** — the `securify_account_manifest` and the
-  `signatures_satisfying_role` aggregation are implemented and tested; confirming their on-ledger
-  acceptance requires submitting to Stokenet.
-- **Live GUI verification** — every iced screen *compiles into the binary*, but visual/interaction
-  behaviour can only be confirmed by running the app.
+---
 
-Every Stage A–C capability is now implemented behind clean modules/ports with tested logic and
-(where it has a screen) a wired-in iced UI. What remains is strictly the three hardware/platform/
-on-ledger *primitives* named above plus live-GUI verification — each isolated behind a trait so the
-surrounding, tested code does not change when the primitive is supplied.
+## 0a. On-device verification backlog (post-A–C)
+
+*Explicitly out of Stage A–C scope (see scope decision in §0). Each is a single trait
+implementation against a resource unavailable in CI/headless builds; the surrounding code is done
+and tested, so supplying the primitive does not change it.*
+
+- **V.1 — Ledger raw HID/USB byte exchange (was C.12).** Implement `LedgerTransport::exchange`
+  against a physical device (system USB libraries + hardware), then verify the APDU flow end-to-end
+  on a Ledger. Protocol/parsing already tested via mock transport (`factors/ledger.rs`).
+- **V.2 — Biometric OS sensor call (was C.10).** Implement a `BiometricAuthenticator` backend per
+  target (Touch ID / Android BiometricPrompt / `fprintd`). Gating policy + PIN fallback already
+  tested (`biometric.rs`).
+- **V.3 — On-ledger MFA validation (was C.13).** Submit `securify_account_manifest` output to
+  Stokenet and confirm an Access Controller is created and the `signatures_satisfying_role` set is
+  accepted. Manifest + aggregation already tested (`factors/{access_controller,multi_factor}.rs`).
+- **V.4 — Live GUI verification.** Run the `mercurium` binary and manually verify each iced screen
+  (send-review, history, settings, backup export/import, app-lock PIN, persona-data editing). All
+  compile into the binary today.
 
 ---
 
