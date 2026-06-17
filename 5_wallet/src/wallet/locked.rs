@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use data_stores::{AppDataDb, DataBase, IconsDb};
+use data_stores::{DataBase, IconsDb};
 use secrets_store::SecretsStore;
 use thiserror::Error;
 use types::crypto::{Key, Password};
@@ -60,29 +60,15 @@ impl Wallet<Locked> {
         )
         .await
         {
-            Ok(_) => Wallet {
-                state: Unlocked::new(key),
+            // `perform_login_check` returns the opened DB handle; it lives in the Unlocked state.
+            Ok(db) => Wallet {
+                state: Unlocked::new(key, db),
                 wallet_data: self.wallet_data,
             },
             Err(_) => return LoginResponse::Failed(self, LoginError::IncorrectPassword),
         };
 
         if self.state.is_initial_login {
-            let Ok(app_data_db) = AppDataDb::get_or_init(
-                wallet.wallet_data.settings.network,
-                wallet.state.key.clone(),
-            )
-            .await
-            else {
-                return LoginResponse::Failed(
-                    Wallet {
-                        state: Locked::new(true),
-                        wallet_data: wallet.wallet_data,
-                    },
-                    LoginError::Unrecoverable,
-                );
-            };
-
             let Ok(icons_db) = IconsDb::get_or_init(
                 wallet.wallet_data.settings.network,
                 wallet.state.key.clone(),
@@ -98,10 +84,11 @@ impl Wallet<Locked> {
                 );
             };
 
+            let db = wallet.state.db.clone();
             let resources = Arc::make_mut(&mut wallet.wallet_data.resource_data);
 
             resources
-                .load_resource_data_from_disk(app_data_db, icons_db)
+                .load_resource_data_from_disk(&db, icons_db)
                 .await
                 .inspect_err(|err| eprintln!("Failed to load resource data: {err}"))
                 .ok();

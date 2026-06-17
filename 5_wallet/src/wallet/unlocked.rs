@@ -24,11 +24,14 @@ use super::{Wallet, locked::Locked};
 #[derive(Clone)]
 pub struct Unlocked {
     pub(crate) key: Key<DataBase>,
+    /// The open app database, produced at the `Locked → Unlocked` transition. Owned here (not a
+    /// process global), cloned into spawned tasks. See `.ai_docs/di_testability_plan.md` §1a.
+    pub(crate) db: AppDataDb,
 }
 
 impl Unlocked {
-    pub fn new(key: Key<DataBase>) -> Self {
-        Self { key }
+    pub fn new(key: Key<DataBase>, db: AppDataDb) -> Self {
+        Self { key, db }
     }
 }
 
@@ -57,6 +60,11 @@ impl Wallet<Unlocked> {
         self.wallet_data.env.secrets.clone()
     }
 
+    /// The open app database handle (for owned async read tasks that can't borrow the wallet).
+    pub fn db(&self) -> AppDataDb {
+        self.state.db.clone()
+    }
+
     pub fn resources(&self) -> &HashMap<ResourceAddress, Resource> {
         &self.wallet_data.resource_data.resources
     }
@@ -75,10 +83,9 @@ impl Wallet<Unlocked> {
         &self,
         account_address: AccountAddress,
     ) -> Result<BTreeSet<Transaction>, AppError> {
-        let network = self.wallet_data.settings.network;
-        let db = AppDataDb::get(network)
-            .ok_or_else(|| AppError::Fatal("Database not found".to_string()))?;
-        db.get_transactions_for_account::<BTreeSet<Transaction>>(account_address)
+        self.state
+            .db
+            .get_transactions_for_account::<BTreeSet<Transaction>>(account_address)
             .await
             .map_err(|err| AppError::NonFatal(Notification::Info(err.to_string())))
     }
@@ -107,6 +114,7 @@ impl Wallet<Unlocked> {
         );
         let network = self.wallet_data.settings.network;
         let secrets = self.wallet_data.env.secrets.clone();
+        let db = self.state.db.clone();
 
         deps::tokio::spawn(async move {
             let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&secrets, &password)?;
@@ -119,8 +127,6 @@ impl Wallet<Unlocked> {
                 network,
             );
 
-            let db = AppDataDb::get(network)
-                .ok_or_else(|| AppError::Fatal("Database not found".to_string()))?;
             db.upsert_persona(persona.clone())
                 .await
                 .map_err(|err| AppError::NonFatal(Notification::Info(err.to_string())))?;
@@ -144,7 +150,6 @@ impl Wallet<Unlocked> {
         identity_address: &str,
         persona_data: types::PersonaData,
     ) -> Result<(), AppError> {
-        let network = self.wallet_data.settings.network;
         let persona = {
             let resource_data = Arc::make_mut(&mut self.wallet_data.resource_data);
             let persona = resource_data.personas.get_mut(identity_address).ok_or_else(|| {
@@ -153,10 +158,9 @@ impl Wallet<Unlocked> {
             persona.persona_data = persona_data;
             persona.clone()
         };
+        let db = self.state.db.clone();
         deps::tokio::spawn(async move {
-            if let Some(db) = AppDataDb::get(network) {
-                let _ = db.upsert_persona(persona).await;
-            }
+            let _ = db.upsert_persona(persona).await;
         });
         Ok(())
     }
@@ -196,11 +200,10 @@ impl Wallet<Unlocked> {
             network,
         );
 
-        let db = AppDataDb::get(network)
-            .ok_or_else(|| AppError::Fatal("Database not found".to_string()))?;
+        let db = self.state.db.clone();
 
         Arc::make_mut(&mut self.wallet_data.resource_data)
-            .save_persona(persona.clone(), db)
+            .save_persona(persona.clone(), &db)
             .await
             .map_err(|err| AppError::NonFatal(Notification::Info(err.to_string())))?;
 
@@ -267,8 +270,9 @@ impl Wallet<Unlocked> {
     ) -> Result<JoinHandle<Result<Account, AppError>>, AppError> {
         let salt = self.wallet_data.env.secrets.get_db_encryption_salt()?;
         let key = Key::new(password.as_str(), &salt);
+        let db = self.state.db.clone();
         Ok(self
             .wallet_data
-            .create_new_account(account_name, password, key))
+            .create_new_account(account_name, password, key, db))
     }
 }

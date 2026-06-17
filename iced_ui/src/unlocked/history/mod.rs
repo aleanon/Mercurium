@@ -42,13 +42,13 @@ impl<'a> HistoryView {
     pub fn update(&mut self, message: Message, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
         match message {
             Message::SelectAccount(account) => {
-                let network = wallet.settings().network;
+                let db = wallet.db();
                 let address = account.address.clone();
                 self.selected = Some(account);
                 self.status = Some("Loading…".to_string());
                 self.transactions.clear();
                 Task::perform(
-                    wallet::transaction::read_account_transactions(network, address),
+                    wallet::transaction::read_account_transactions(db, address),
                     |result| Message::Loaded(result).into(),
                 )
             }

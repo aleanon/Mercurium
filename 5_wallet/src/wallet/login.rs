@@ -13,11 +13,14 @@ use types::{
 
 /// Verifies the login `password` against the stored hash and, on success, loads the encrypted
 /// databases for the session. Moved here from `handles::wallet::login`.
+/// Returns the **opened** [`AppDataDb`] handle on success, for the caller to move into the
+/// `Unlocked` wallet state (the DB is no longer a process global — see
+/// `.ai_docs/di_testability_plan.md` §1a).
 pub async fn perform_login_check(
     secrets: &Arc<dyn SecretsStore>,
     network: Network,
     password: &Password,
-) -> Result<(), AppError> {
+) -> Result<AppDataDb, AppError> {
     let salt = secrets.get_db_encryption_salt()?;
     let password_hash = password.derive_db_encryption_key_hash_from_salt(&salt);
 
@@ -25,7 +28,7 @@ pub async fn perform_login_check(
 
     debug_println!("Key created");
 
-    let db = AppDataDb::get_or_init(network, key.clone())
+    let db = AppDataDb::open(network, key.clone())
         .await
         .map_err(|err| AppError::NonFatal(types::Notification::Info(err.to_string())))?;
 
@@ -41,7 +44,7 @@ pub async fn perform_login_check(
         IconsDb::load(network, key)
             .map_err(|err| AppError::Fatal(err.to_string()))
             .await?;
-        Ok(())
+        Ok(db)
     } else {
         Err(AppError::NonFatal(types::Notification::Info(
             "Incorrect Password".to_string(),

@@ -137,11 +137,9 @@ pub async fn submit_transfer_with_password(
 /// Reads an account's persisted transaction history, owned-data so it can be driven from an
 /// async UI task. Populated by gateway sync (`upsert_transactions`).
 pub async fn read_account_transactions(
-    network: Network,
+    db: data_stores::AppDataDb,
     account: types::address::AccountAddress,
 ) -> Result<std::collections::BTreeSet<types::Transaction>, AppError> {
-    let db = data_stores::AppDataDb::get(network)
-        .ok_or_else(|| AppError::Fatal("Database not found".to_string()))?;
     db.get_transactions_for_account::<std::collections::BTreeSet<types::Transaction>>(account)
         .await
         .map_err(|err| AppError::NonFatal(Notification::Info(err.to_string())))

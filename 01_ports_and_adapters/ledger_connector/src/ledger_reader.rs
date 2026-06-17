@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use data_stores::AppDataDb;
 
 use crate::transaction_gateway::RadixGateway;
 
@@ -38,8 +39,12 @@ impl std::error::Error for LedgerReaderError {}
 /// accounts.
 #[async_trait]
 pub trait LedgerReader {
-    /// Fetches an up-to-date snapshot for all of the wallet's stored accounts.
-    async fn update_all_accounts(&self) -> Result<AccountsUpdate, LedgerReaderError>;
+    /// Fetches an up-to-date snapshot for all of the wallet's stored accounts. The caller supplies
+    /// the open database handle (held by the `Unlocked` wallet state).
+    async fn update_all_accounts(
+        &self,
+        db: &AppDataDb,
+    ) -> Result<AccountsUpdate, LedgerReaderError>;
 
     /// Fetches snapshots for the given accounts (e.g. freshly-derived accounts during setup,
     /// before they are stored), seeded with any already-known resources.
@@ -59,8 +64,11 @@ pub trait LedgerReader {
 
 #[async_trait]
 impl LedgerReader for RadixGateway {
-    async fn update_all_accounts(&self) -> Result<AccountsUpdate, LedgerReaderError> {
-        crate::radix_dlt::updates::update_all_accounts(self.network)
+    async fn update_all_accounts(
+        &self,
+        db: &AppDataDb,
+    ) -> Result<AccountsUpdate, LedgerReaderError> {
+        crate::radix_dlt::updates::update_all_accounts(self.network, db)
             .await
             .map_err(|e| LedgerReaderError::Update(e.to_string()))
     }

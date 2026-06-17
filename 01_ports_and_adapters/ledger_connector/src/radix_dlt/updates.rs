@@ -64,10 +64,10 @@ pub async fn fetch_transactions(
     Ok(transactions)
 }
 
-pub async fn update_all_accounts(network: Network) -> Result<AccountsUpdate, AppError> {
-    let db =
-        AppDataDb::get(network).ok_or(AppError::Fatal("Database not initialized".to_string()))?;
-
+pub async fn update_all_accounts(
+    network: Network,
+    db: &AppDataDb,
+) -> Result<AccountsUpdate, AppError> {
     let accounts = db.get_accounts().await.unwrap_or(Vec::new());
     let resource_map = db.get_all_resources().await.unwrap_or(HashMap::new());
     let resources = Arc::new(resource_map);

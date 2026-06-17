@@ -53,9 +53,7 @@ impl WalletData {
         Ok(())
     }
 
-    pub async fn save_resource_data_to_disk(&self, key: Key<DataBase>) -> Result<(), DbError> {
-        let db = AppDataDb::get_or_init(self.settings.network, key).await?;
-
+    pub async fn save_resource_data_to_disk(&self, db: &AppDataDb) -> Result<(), DbError> {
         self.resource_data.save_resource_data_to_disk(db).await
     }
 
@@ -64,6 +62,7 @@ impl WalletData {
         account_name: String,
         password: Password,
         key: Key<DataBase>,
+        db: AppDataDb,
     ) -> JoinHandle<Result<Account, AppError>> {
         let (id, derivation_index) = self.resource_data.accounts.values().fold(
             (0i64, 0u32),
@@ -101,8 +100,6 @@ impl WalletData {
                 network,
             );
 
-            let db =
-                AppDataDb::get(network).ok_or(AppError::Fatal("Database not found".to_string()))?;
             db.upsert_account(account.clone())
                 .await
                 .map_err(|err| AppError::NonFatal(types::Notification::Info(err.to_string())))?;

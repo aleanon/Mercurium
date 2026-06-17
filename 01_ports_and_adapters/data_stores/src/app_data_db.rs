@@ -6,12 +6,8 @@ pub mod statements;
 pub mod update;
 
 use crate::database::{DataBase, DbError};
-use once_cell::sync::OnceCell;
 use std::ops::Deref;
 use types::{AppPath, Network, crypto::Key};
-
-pub static MAINNET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
-pub static STOKENET_DB: OnceCell<AppDataDb> = once_cell::sync::OnceCell::new();
 
 #[derive(Clone)]
 pub struct AppDataDb {
@@ -19,13 +15,18 @@ pub struct AppDataDb {
 }
 
 impl AppDataDb {
-    pub async fn load(network: Network, key: Key<DataBase>) -> Result<&'static Self, DbError> {
+    /// Opens (and ensures tables exist in) the network's database with `key`.
+    ///
+    /// No process-global caching: the returned handle is **owned by the caller** — it lives in the
+    /// `Unlocked` wallet state (produced at the `Locked → Unlocked` transition) and is cloned into
+    /// any spawned task that needs it. See `.ai_docs/di_testability_plan.md` §1a.
+    pub async fn open(network: Network, key: Key<DataBase>) -> Result<Self, DbError> {
         let app_data_db = Self::initialize(network, key).await?;
         app_data_db.create_tables_if_not_exist().await?;
 
         debug_println!("AppDataDb connection up");
 
-        Ok(Self::get_static(network).get_or_init(|| app_data_db))
+        Ok(app_data_db)
     }
 
     pub async fn initialize(network: Network, key: Key<DataBase>) -> Result<Self, DbError> {
@@ -35,29 +36,8 @@ impl AppDataDb {
         Ok(Self { db })
     }
 
-    pub async fn get_or_init(
-        network: Network,
-        key: Key<DataBase>,
-    ) -> Result<&'static Self, DbError> {
-        match Self::get(network) {
-            Some(db) => Ok(db),
-            None => Self::load(network, key).await,
-        }
-    }
-
-    pub fn get(network: Network) -> Option<&'static Self> {
-        Self::get_static(network).get()
-    }
-
     pub fn exists(network: Network) -> bool {
         AppPath::get().db_path_ref(network).exists()
-    }
-
-    fn get_static(network: Network) -> &'static OnceCell<AppDataDb> {
-        match network {
-            Network::Mainnet => &MAINNET_DB,
-            Network::Stokenet => &STOKENET_DB,
-        }
     }
 }
 

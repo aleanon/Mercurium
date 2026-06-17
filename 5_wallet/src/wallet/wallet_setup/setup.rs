@@ -191,7 +191,7 @@ impl Setup {
 
         let db_key = wallet_keys.db_key_salt.key().clone();
 
-        create_new_wallet_with_accounts(
+        let db = create_new_wallet_with_accounts(
             self.get_mnemonic().ok_or(SetupError::NoMnemonicProvided)?,
             self.get_seed_password(),
             wallet_keys.db_key_salt,
@@ -219,9 +219,7 @@ impl Setup {
         )
         .await?;
 
-        wallet_data
-            .save_resource_data_to_disk(db_key.clone())
-            .await?;
+        wallet_data.save_resource_data_to_disk(&db).await?;
 
         debug_println!(
             "Saved {} icons to disk",
@@ -229,7 +227,7 @@ impl Setup {
         );
 
         Ok(Wallet {
-            state: Unlocked::new(db_key),
+            state: Unlocked::new(db_key, db),
             wallet_data,
         })
     }
@@ -247,7 +245,7 @@ pub async fn create_new_wallet_with_accounts(
     password_hash: HashedPassword,
     accounts: &[Account],
     network: Network,
-) -> Result<(), AppError> {
+) -> Result<AppDataDb, AppError> {
     let encrypted_mnemonic = EncryptedMnemonic::new_with_key_and_salt(
         mnemonic,
         seed_password.unwrap_or(""),
@@ -260,7 +258,7 @@ pub async fn create_new_wallet_with_accounts(
 
     secrets_store::store_db_encryption_salt(db_key_salt.take_salt())?;
 
-    let db = AppDataDb::load(network, db_key_salt.take_key())
+    let db = AppDataDb::open(network, db_key_salt.take_key())
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
@@ -269,7 +267,8 @@ pub async fn create_new_wallet_with_accounts(
         .map_err(|err| AppError::Fatal(err.to_string()))?;
     db.upsert_accounts(accounts.to_vec()).await.ok();
 
-    Ok(())
+    // Return the opened handle so the caller can move it into the Unlocked state (no global).
+    Ok(db)
 }
 
 fn save_updated_accounts_to_resource_data(
