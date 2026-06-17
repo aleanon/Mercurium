@@ -251,11 +251,19 @@ create_persona_handle, update_persona_data, create_new_persona}`, `wallet/login.
 `service.rs::read_account_transactions`. The DB is opened once during `Env` construction (login path)
 and handed around.
 
-### Phase 4 — Delete the `AppPath` global
+### Phase 4 — Delete the `AppPath` global  ✅ done
 
-Replace the `Lazy<AppPathInner>` static + `AppPath::get()` with an `Arc<AppPathInner>` constructed at
-boot and carried in `Env`. Add `AppPathInner::with_root(PathBuf)` (refactor `new()` = `with_root(
-default_root)`); derive `Clone`.
+Removed the `Lazy<AppPathInner>` static + `AppPath::get()`; the path set is now an
+`Arc<AppPathInner>` carried in `Env` (`production()` builds the platform default; tests pass
+`AppPathInner::with_root(temp_dir)`). Threaded through every consumer (data_stores DB/icons opens +
+JSON adapters, `OsCredentialStore`, `Settings::load`, login/setup, `App::new_with`). `IconsDb`'s
+cached `get(network)` stayed untouched. The complications below were handled as noted; the
+`login_send_e2e` test now sandboxes via `with_root` (no env-var hack) and validated the rewiring at
+runtime. **Both globals (`AppDataDb`, `AppPath`) are gone.**
+
+Original sketch (for reference): replace the `Lazy<AppPathInner>` static + `AppPath::get()` with an
+`Arc<AppPathInner>` constructed at boot and carried in `Env`. Add `AppPathInner::with_root(PathBuf)`
+(refactor `new()` = `with_root(default_root)`); derive `Clone`.
 
 **Exact `AppPath::get()` site map (compile-enforced once the global is removed):**
 - `data_stores`: `app_data_db.rs:33,40` (initialize/exists), `icons_db.rs:41,104`,
@@ -314,14 +322,16 @@ phase-5 temp-dir integration test green and/or a manual live run** — not blind
 
 ## 5. Sequencing recap & status
 
-Executed: Phase 1 ✅ → 2 ✅ → 2.5 ✅ (Env + boot seam + Simulator harness) → 3 ✅ (AppDataDb global
-deleted; DB in `Unlocked`) → 5 ✅ (end-to-end login→send integration test — **the goal**). Phase 4
-(delete the `AppPath` global) is **partially done** (`AppPathInner::with_root` + `Clone` landed); the
-full removal is deferred because it entangles the still-global `IconsDb` and setup's secrets
-creation across runtime-unverified paths — it should land with a live run / the optional `.ice`, per
-the §Phase-4 caveat.
+Executed in full: Phase 1 ✅ → 2 ✅ → 2.5 ✅ (Env + boot seam + Simulator harness) → 3 ✅ (AppDataDb
+global deleted; DB in `Unlocked`) → 5 ✅ (end-to-end login→send integration test — **the goal**) →
+4 ✅ (AppPath global deleted; `AppPathInner` injected via `Env`, the e2e test re-pointed at
+`with_root` to validate the rewiring at runtime).
 
 **Net result:** the app is headlessly verifiable end-to-end through the injected gateway, secrets
-store, and Unlocked-owned DB; one of the two globals is gone; every step is a separate green commit.
+store, paths, and Unlocked-owned DB; **both** process globals (`AppDataDb`, `AppPath`) are gone;
+every step is a separate green commit. Remaining optional polish (not blocking): the `.ice` GUI
+click-through, and migrating the parallel unused `app_path` crate or removing it. The `IconsDb`
+OnceCell cache remains (its open paths are injected; only the cache is global) — a small future
+cleanup if desired.
 </content>
 </invoke>
