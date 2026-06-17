@@ -22,5 +22,11 @@ serde = { workspace = true, features = ["derive"] }
 # debug_print = { workspace = true }
 
 [dev-dependencies]
-# Enable the in-memory test doubles (FakeGateway) for the transaction-service tests.
+# Enable the in-memory test doubles (FakeGateway, InMemorySecretsStore) + temp-dir sandbox for
+# the headless end-to-end login→send integration test.
 ledger_connector = { path = "../01_ports_and_adapters/ledger_connector", features = ["testing"] }
+secrets_store = { path = "../01_ports_and_adapters/secrets_store", features = ["testing"] }
+data_stores = { path = "../01_ports_and_adapters/data_stores" }
+types = { path = "../1_types" }
+deps = { path = "../0_deps" }
+tempfile = "3"

@@ -6644,6 +6644,7 @@ dependencies = [
  "ledger_connector",
  "secrets_store",
  "serde",
+ "tempfile",
  "thiserror 2.0.18",
  "types",
 ]
