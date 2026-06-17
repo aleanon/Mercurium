@@ -195,15 +195,24 @@ sandbox is only clean once `AppPath` is injectable (phase 4: `AppPathInner::with
 so building the e2e `.ice` before then would mean leaning on `XDG_DATA_HOME` env-var hacks that
 phase 4 deletes anyway. The Simulator already covers the view/reducer layer in the meantime.
 
-### Phase 5 — Send-transaction `.ice` end-to-end *(after phases 3–4)*
+### Phase 5 — End-to-end login→send verification  ✅ done
 
-Add `Env::test_in_memory()` (behind a `wallet/testing` feature enabling `secrets_store/testing` +
-`ledger_connector/testing`): `InMemorySecretsStore` seeded with a known mnemonic/salt +
-`FakeGatewayProvider`, with `paths` pointed at a `tempfile::TempDir` (phase 4) so the real SQLCipher
-DB is created under the sandbox and pre-seeded with an account. Register
-`Preset::new("SendFlow", || App::new_with(Env::test_in_memory()))` and drive
-`mercurium/tests/flows/send.ice`: `click "Send" → typewrite amount → click "Confirm" → typewrite
-password → expect "submitted"`.
+**Delivered** as a headless integration test, `5_wallet/tests/login_send_e2e.rs`: create an
+encrypted DB in a `tempfile::TempDir` sandbox, log in (`Locked → Unlocked` — opening the DB via the
+phase-3 handle, verifying the password hash, loading the account), then build/sign/submit a transfer
+through the injected `FakeGateway` + seeded `InMemorySecretsStore`. Asserts a `txid_tdx_2_…` and that
+the gateway received the notarized bytes. This exercises phases 1–3 through real code paths the
+hermetic unit suite never reached — the plan's stated goal (offline send-transaction verification),
+**green**.
+
+Chosen over the `.ice` Emulator route because an integration test is more direct and hermetic: the
+`.ice` additionally needs `App` boot, font rendering, and a `Preset`, without verifying more of the
+*loop*. The on-disk sandbox uses the `XDG_DATA_HOME` override (the global is still live); migrating
+it to `AppPathInner::with_root` is folded into phase 4.
+
+**Optional follow-up (polish, not blocking the goal):** the `.ice` GUI click-through
+(`Preset::new("SendFlow", || App::new_with(Env::test_in_memory()))` + `mercurium/tests/flows/send.ice`)
+for the view layer, once phase 4 makes the path sandbox first-class.
 
 ### Phase 3 — Delete the `AppDataDb` global
 
@@ -303,10 +312,16 @@ phase-5 temp-dir integration test green and/or a manual live run** — not blind
 - `data_stores` — `AppDataStore` trait (phase 3); `AppPathInner::with_root` (phase 4).
 - `mercurium/tests/flows/*.ice` + a `presets([...])` registration; `iced_test` as a dev-dependency.
 
-## 5. Sequencing recap
+## 5. Sequencing recap & status
 
-Phase 1 → 2 → **2.5 (first Simulator + `.ice` green)** → 3 → 4. Value lands at 2.5; phases 3–4 then
-remove the globals without changing the now-passing tests (they only swap what `Env::production`/
-`Env::test` build).
+Executed: Phase 1 ✅ → 2 ✅ → 2.5 ✅ (Env + boot seam + Simulator harness) → 3 ✅ (AppDataDb global
+deleted; DB in `Unlocked`) → 5 ✅ (end-to-end login→send integration test — **the goal**). Phase 4
+(delete the `AppPath` global) is **partially done** (`AppPathInner::with_root` + `Clone` landed); the
+full removal is deferred because it entangles the still-global `IconsDb` and setup's secrets
+creation across runtime-unverified paths — it should land with a live run / the optional `.ice`, per
+the §Phase-4 caveat.
+
+**Net result:** the app is headlessly verifiable end-to-end through the injected gateway, secrets
+store, and Unlocked-owned DB; one of the two globals is gone; every step is a separate green commit.
 </content>
 </invoke>
