@@ -1,4 +1,5 @@
 pub mod biometric;
+pub mod env;
 pub mod error;
 pub mod factors;
 pub mod profile_backup;
@@ -9,6 +10,7 @@ pub mod transaction;
 pub mod wallet;
 mod wallet_encryption_keys;
 
+pub use env::Env;
 pub use settings::Settings;
 pub use wallet::Wallet;
 pub use wallet::locked::Locked;

@@ -75,17 +75,6 @@ pub struct SubmittedTransaction {
     pub duplicate: bool,
 }
 
-/// Phase-1 convenience: the production [`TransactionGateway`] for a network, as a trait object.
-///
-/// Temporary composition glue while the gateway is injected one call site at a time. Phase 2.5
-/// removes this in favour of `Env::gateways` (the injected per-network provider); see
-/// `.ai_docs/di_testability_plan.md`.
-pub fn production_gateway(
-    network: Network,
-) -> Arc<dyn TransactionGateway + Send + Sync> {
-    Arc::new(ledger_connector::RadixGateway::new(network))
-}
-
 /// Builds, notarizes, and submits a transfer in one call. Does not wait for commitment;
 /// use [`poll_until_settled`] (or [`transaction_status`]) with the returned id.
 pub async fn submit_transfer(

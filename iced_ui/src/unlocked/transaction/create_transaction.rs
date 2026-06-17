@@ -251,8 +251,9 @@ impl<'a> CreateTransaction {
         // Move the password out so it is dropped (zeroized) once the submit completes.
         let password = std::mem::replace(&mut self.password, Password::new());
 
-        let gateway = wallet::transaction::production_gateway(from_account.network);
-        let secrets = wallet.secrets();
+        let env = wallet.env();
+        let gateway = env.gateway(from_account.network);
+        let secrets = env.secrets.clone();
 
         Task::perform(
             wallet::transaction::submit_transfer_with_password(

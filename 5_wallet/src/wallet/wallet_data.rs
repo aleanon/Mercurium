@@ -9,6 +9,7 @@ use types::{
     crypto::{EncryptedMnemonicError, Key, Password},
 };
 
+use crate::env::Env;
 use crate::settings::Settings;
 
 use super::{create_account_from_mnemonic, resource_data::ResourceData};
@@ -17,24 +18,29 @@ use super::{create_account_from_mnemonic, resource_data::ResourceData};
 pub struct WalletData {
     pub resource_data: Arc<ResourceData>,
     pub settings: Settings,
-    /// Injected secrets store (OS keychain in production, in-memory under test). Shared so it can
-    /// be cloned into signing/derivation tasks. See `.ai_docs/di_testability_plan.md`.
-    pub secrets: Arc<dyn SecretsStore>,
+    /// Injected capability bundle (secrets store, gateway provider, …). Shared so its capabilities
+    /// can be cloned into signing/derivation/submit tasks. See `.ai_docs/di_testability_plan.md`.
+    pub env: Env,
 }
 
 impl WalletData {
-    /// Production constructor: the OS-backed secrets store.
+    /// Production constructor: the OS-backed environment.
     pub fn new(settings: Settings) -> Self {
-        Self::with_secrets(settings, secrets_store::production())
+        Self::with_env(settings, Env::production())
     }
 
-    /// Inject a specific secrets store (used by `Env::test` for headless verification).
-    pub fn with_secrets(settings: Settings, secrets: Arc<dyn SecretsStore>) -> Self {
+    /// Inject a specific environment (used by `Env::test` for headless verification).
+    pub fn with_env(settings: Settings, env: Env) -> Self {
         Self {
             resource_data: Arc::new(ResourceData::new()),
             settings,
-            secrets,
+            env,
         }
+    }
+
+    /// Convenience accessor for the injected secrets store.
+    pub fn secrets(&self) -> &Arc<dyn SecretsStore> {
+        &self.env.secrets
     }
 
     pub async fn save_resource_icons_to_disk(
@@ -73,7 +79,7 @@ impl WalletData {
             },
         );
         let network = self.settings.network;
-        let secrets = self.secrets.clone();
+        let secrets = self.env.secrets.clone();
 
         tokio::spawn(async move {
             let encrypted_mnemonic = secrets.get_encrypted_mnemonic()?;

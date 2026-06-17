@@ -15,7 +15,7 @@ use data_stores::AppDataDb;
 use types::AppError;
 use types::{Network, Notification, Theme as AppTheme};
 use wallet::wallet::Wallet;
-use wallet::{Locked, Unlocked, WalletData};
+use wallet::{Env, Locked, Unlocked, WalletData};
 
 use crate::common::Message;
 use crate::initial::restore_from_seed;
@@ -62,11 +62,21 @@ pub struct App {
     pub preferences: Preferences,
     /// The live wallet profile (gateways, preferences, authorized dApps, factor-source metadata).
     pub profile: types::Profile,
+    /// Injected capability bundle, threaded into every wallet this app constructs. Production uses
+    /// `Env::production()`; iced_test `Preset`s inject a fake env for headless verification.
+    pub env: Env,
 }
 
 impl App {
     #[hot_fn(feature = "reload")]
     pub fn new() -> (Self, Task<AppMessage>) {
+        Self::new_with(Env::production())
+    }
+
+    /// Boot with an injected [`Env`]. Production calls this via [`App::new`] with
+    /// `Env::production()`; iced_test `Preset` closures call it with a fake env to get a
+    /// reproducible, offline app. See `.ai_docs/di_testability_plan.md`.
+    pub fn new_with(env: Env) -> (Self, Task<AppMessage>) {
         let settings = wallet::Settings::load_from_disk_or_default();
 
         let app_state =
@@ -76,12 +86,18 @@ impl App {
                     if AppDataDb::exists(settings.network) {
                         AppState::Locked(
                             LoginScreen::new(true),
-                            Wallet::new(Locked::new(true), WalletData::new(settings)),
+                            Wallet::new(
+                                Locked::new(true),
+                                WalletData::with_env(settings, env.clone()),
+                            ),
                         )
                     } else {
                         AppState::Initial(
                             Setup::new(),
-                            Wallet::new(wallet::Setup::new(), WalletData::new(settings)),
+                            Wallet::new(
+                                wallet::Setup::new(),
+                                WalletData::with_env(settings, env.clone()),
+                            ),
                         )
                     }
                 }
@@ -96,6 +112,7 @@ impl App {
             profile: <data_stores::JsonProfileStore as data_stores::ProfileStore>::load(
                 &data_stores::JsonProfileStore,
             ),
+            env,
         };
 
         (app, Task::none())

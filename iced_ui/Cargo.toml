@@ -36,3 +36,7 @@ widgets = { path = "widgets" }
 # bytes = { workspace = true }
 
 # debug_print.workspace = true
+
+[dev-dependencies]
+# Headless GUI verification harness (Simulator + .ice emulator). Matches iced 0.14.0.
+iced_test = "0.14.0"

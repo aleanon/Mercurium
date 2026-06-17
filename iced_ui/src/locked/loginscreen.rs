@@ -152,3 +152,35 @@ impl<'a> LoginScreen {
             .into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use iced_test::simulator;
+
+    // Proves the iced_test Simulator harness drives a real Mercurium view headlessly: it renders
+    // the widget tree, finds widgets by text, and reports the messages an interaction produces.
+    // This is the view↔message layer of verification (the send-transaction click-through that
+    // crosses async Tasks uses the .ice Emulator instead — see .ai_docs/di_testability_plan.md).
+    #[test]
+    fn login_button_emits_login_message() {
+        let screen = LoginScreen::new(true);
+        let mut ui = simulator(screen.view());
+
+        // The view actually renders.
+        assert!(
+            ui.find("Enter password to continue").is_ok(),
+            "password prompt should render"
+        );
+
+        // Clicking the Login button produces Message::Login.
+        ui.click("Login").expect("Login button is clickable");
+
+        let messages: Vec<Message> = ui.into_messages().collect();
+        assert!(
+            messages.iter().any(|m| matches!(m, Message::Login)),
+            "clicking Login should emit Message::Login, got {} message(s)",
+            messages.len()
+        );
+    }
+}

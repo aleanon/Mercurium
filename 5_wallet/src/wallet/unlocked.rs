@@ -46,10 +46,15 @@ impl Wallet<Unlocked> {
         &mut self.wallet_data.settings
     }
 
-    /// The injected secrets store, for owned async tasks (signing/decryption) that cannot borrow
+    /// The injected capability bundle, for owned async tasks (signing/submit) that cannot borrow
     /// the wallet. See `.ai_docs/di_testability_plan.md`.
+    pub fn env(&self) -> crate::env::Env {
+        self.wallet_data.env.clone()
+    }
+
+    /// Convenience: the injected secrets store.
     pub fn secrets(&self) -> std::sync::Arc<dyn SecretsStore> {
-        self.wallet_data.secrets.clone()
+        self.wallet_data.env.secrets.clone()
     }
 
     pub fn resources(&self) -> &HashMap<ResourceAddress, Resource> {
@@ -101,7 +106,7 @@ impl Wallet<Unlocked> {
             },
         );
         let network = self.wallet_data.settings.network;
-        let secrets = self.wallet_data.secrets.clone();
+        let secrets = self.wallet_data.env.secrets.clone();
 
         deps::tokio::spawn(async move {
             let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&secrets, &password)?;
@@ -181,7 +186,7 @@ impl Wallet<Unlocked> {
         );
 
         let (mnemonic, seed_password) =
-            crate::wallet::get_decrypted_mnemonic(&self.wallet_data.secrets, &password)?;
+            crate::wallet::get_decrypted_mnemonic(&self.wallet_data.env.secrets, &password)?;
         let persona = crate::wallet::create_persona_from_mnemonic(
             &mnemonic,
             Some(seed_password.as_str()),
@@ -240,11 +245,9 @@ impl Wallet<Unlocked> {
             })?
             .clone();
 
-        // Phase 1: production gateway for the account's network. Phase 2.5 swaps this for
-        // `self.wallet_data.env.gateways.gateway(from_account.network)` (the injected, per-network
-        // provider — see .ai_docs/di_testability_plan.md §1a).
-        let gateway = crate::transaction::service::production_gateway(from_account.network);
-        let secrets = self.wallet_data.secrets.clone();
+        // Injected per-network gateway provider + secrets (see .ai_docs/di_testability_plan.md §1a).
+        let gateway = self.wallet_data.env.gateway(from_account.network);
+        let secrets = self.wallet_data.env.secrets.clone();
 
         crate::transaction::service::submit_transfer_with_password(
             request,
@@ -262,7 +265,7 @@ impl Wallet<Unlocked> {
         account_name: String,
         password: Password,
     ) -> Result<JoinHandle<Result<Account, AppError>>, AppError> {
-        let salt = self.wallet_data.secrets.get_db_encryption_salt()?;
+        let salt = self.wallet_data.env.secrets.get_db_encryption_salt()?;
         let key = Key::new(password.as_str(), &salt);
         Ok(self
             .wallet_data
