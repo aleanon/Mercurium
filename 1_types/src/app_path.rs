@@ -7,6 +7,10 @@ use thiserror::Error;
 
 use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
+// NOTE: Phase 4 of .ai_docs/di_testability_plan.md will remove this global in favour of an
+// injected `Arc<AppPathInner>` carried in `Env`. The `with_root` constructor below is the
+// building block for that (and for the temp-dir test sandbox); the global remains until the wide,
+// IconsDb-entangled migration lands with live verification.
 static APP_PATH: Lazy<AppPathInner> = Lazy::new(|| {
     AppPathInner::new().unwrap_unreachable(debug_info!("Unable to establish application directory"))
 });
@@ -19,7 +23,7 @@ pub enum AppPathError {
     UnableToCreateDirectory(std::io::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AppPathInner {
     app_directory: Box<Path>,
     config_directory: Box<Path>,
@@ -46,8 +50,13 @@ impl AppPathInner {
     const ICONCASHE_STOKENET_FILE_NAME: &'static str = "iconcash_stokenet";
 
     pub fn new() -> Result<Self, AppPathError> {
-        let app_directory = Self::get_application_root_directory()?;
+        Self::with_root(Self::get_application_root_directory()?)
+    }
 
+    /// Builds the path set rooted at an explicit application directory. Production uses
+    /// [`Self::new`] (platform default); tests pass a `tempfile::TempDir` to sandbox all on-disk
+    /// state. See `.ai_docs/di_testability_plan.md`.
+    pub fn with_root(app_directory: PathBuf) -> Result<Self, AppPathError> {
         let mut config_directory = app_directory.clone();
         config_directory.push(Self::CONFIG_DIRECTORY);
 
@@ -221,7 +230,8 @@ impl AppPathInner {
     }
 }
 
-// The use of this type required the PATH static to be set at program startup and never Uninitialized.
+// The use of this type requires the PATH static to be set at program startup and never
+// uninitialized. (Slated for removal in phase 4 — see the note on `APP_PATH` above.)
 pub struct AppPath;
 
 impl AppPath {
@@ -229,3 +239,4 @@ impl AppPath {
         &APP_PATH
     }
 }
+
