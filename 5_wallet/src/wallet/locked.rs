@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use data_stores::{AppDataDb, DataBase, IconsDb};
+use secrets_store::SecretsStore;
 use thiserror::Error;
 use types::crypto::{Key, Password};
 
@@ -46,13 +47,14 @@ impl Wallet<Locked> {
             return LoginResponse::Failed(self, LoginError::MaxAttemptsReached);
         }
 
-        let Ok(salt) = secrets_store::get_db_encryption_salt() else {
+        let Ok(salt) = self.wallet_data.secrets.get_db_encryption_salt() else {
             return LoginResponse::Failed(self, LoginError::Unrecoverable);
         };
 
         let key = Key::<DataBase>::new(password.as_str(), &salt);
 
         let mut wallet = match crate::wallet::login::perform_login_check(
+            &self.wallet_data.secrets,
             self.wallet_data.settings.network,
             &password,
         )

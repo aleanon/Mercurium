@@ -7,7 +7,11 @@ use types::{
 /// salt) in the platform's secure store. Errors are surfaced as [`AppError`] to match the rest
 /// of the wallet; the adapter ([`crate::OsCredentialStore`]) backs this with the OS credential
 /// store (Windows) or the config directory (Unix).
-pub trait SecretsStore {
+///
+/// `Send + Sync` so it can be shared as `Arc<dyn SecretsStore>` and cloned into async tasks;
+/// `Debug` so carriers like `WalletData` keep deriving `Debug` (implementations must not print
+/// secret material).
+pub trait SecretsStore: std::fmt::Debug + Send + Sync {
     fn get_db_encryption_salt(&self) -> Result<Salt, AppError>;
     fn get_encrypted_mnemonic(&self) -> Result<EncryptedMnemonic, AppError>;
 

@@ -1,13 +1,22 @@
 mod os_credential_store;
 mod port;
 
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
+
 pub use os_credential_store::OsCredentialStore;
 pub use port::SecretsStore;
 
+use std::sync::Arc;
 use types::{
     AppError,
     crypto::{EncryptedMnemonic, Salt},
 };
+
+/// The production secrets store as a shared trait object, for injection into `WalletData`/`Env`.
+pub fn production() -> Arc<dyn SecretsStore> {
+    Arc::new(OsCredentialStore)
+}
 
 /// Convenience free functions over the default OS-backed secrets store, for call sites that do
 /// not yet inject the [`SecretsStore`] port.

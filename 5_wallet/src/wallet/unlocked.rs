@@ -1,5 +1,5 @@
 use deps::{tokio::task::JoinHandle, *};
-use secrets_store::get_db_encryption_salt;
+use secrets_store::SecretsStore;
 use data_stores::{AppDataDb, DataBase};
 
 use std::collections::{BTreeSet, HashMap};
@@ -44,6 +44,12 @@ impl Wallet<Unlocked> {
 
     pub fn settings_mut(&mut self) -> &mut Settings {
         &mut self.wallet_data.settings
+    }
+
+    /// The injected secrets store, for owned async tasks (signing/decryption) that cannot borrow
+    /// the wallet. See `.ai_docs/di_testability_plan.md`.
+    pub fn secrets(&self) -> std::sync::Arc<dyn SecretsStore> {
+        self.wallet_data.secrets.clone()
     }
 
     pub fn resources(&self) -> &HashMap<ResourceAddress, Resource> {
@@ -95,9 +101,10 @@ impl Wallet<Unlocked> {
             },
         );
         let network = self.wallet_data.settings.network;
+        let secrets = self.wallet_data.secrets.clone();
 
         deps::tokio::spawn(async move {
-            let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&password)?;
+            let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&secrets, &password)?;
             let persona = crate::wallet::create_persona_from_mnemonic(
                 &mnemonic,
                 Some(seed_password.as_str()),
@@ -173,7 +180,8 @@ impl Wallet<Unlocked> {
             },
         );
 
-        let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&password)?;
+        let (mnemonic, seed_password) =
+            crate::wallet::get_decrypted_mnemonic(&self.wallet_data.secrets, &password)?;
         let persona = crate::wallet::create_persona_from_mnemonic(
             &mnemonic,
             Some(seed_password.as_str()),
@@ -236,11 +244,13 @@ impl Wallet<Unlocked> {
         // `self.wallet_data.env.gateways.gateway(from_account.network)` (the injected, per-network
         // provider — see .ai_docs/di_testability_plan.md §1a).
         let gateway = crate::transaction::service::production_gateway(from_account.network);
+        let secrets = self.wallet_data.secrets.clone();
 
         crate::transaction::service::submit_transfer_with_password(
             request,
             from_account,
             gateway,
+            secrets,
             password,
             tip_percentage,
         )
@@ -252,7 +262,7 @@ impl Wallet<Unlocked> {
         account_name: String,
         password: Password,
     ) -> Result<JoinHandle<Result<Account, AppError>>, AppError> {
-        let salt = get_db_encryption_salt()?;
+        let salt = self.wallet_data.secrets.get_db_encryption_salt()?;
         let key = Key::new(password.as_str(), &salt);
         Ok(self
             .wallet_data

@@ -130,12 +130,13 @@ pub async fn submit_transfer_with_password(
     request: TransferRequest,
     from_account: Account,
     gateway: Arc<dyn TransactionGateway + Send + Sync>,
+    secrets: Arc<dyn secrets_store::SecretsStore>,
     password: Password,
     tip_percentage: u16,
 ) -> Result<SubmittedTransaction, AppError> {
     let network = from_account.network;
 
-    let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&password)?;
+    let (mnemonic, seed_password) = crate::wallet::get_decrypted_mnemonic(&secrets, &password)?;
     let signer =
         signing_keypair_for_account(&mnemonic, Some(seed_password.as_str()), &from_account);
 

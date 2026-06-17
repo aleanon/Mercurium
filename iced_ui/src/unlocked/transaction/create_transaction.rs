@@ -252,12 +252,14 @@ impl<'a> CreateTransaction {
         let password = std::mem::replace(&mut self.password, Password::new());
 
         let gateway = wallet::transaction::production_gateway(from_account.network);
+        let secrets = wallet.secrets();
 
         Task::perform(
             wallet::transaction::submit_transfer_with_password(
                 request,
                 from_account,
                 gateway,
+                secrets,
                 password,
                 0,
             ),

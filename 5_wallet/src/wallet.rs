@@ -6,6 +6,7 @@ pub(crate) mod wallet_data;
 pub(crate) mod wallet_setup;
 
 use std::str::FromStr;
+use std::sync::Arc;
 
 use deps::bip39::Mnemonic;
 use types::{
@@ -24,9 +25,13 @@ use crate::settings::Settings;
 /// This is the signing-session primitive: callers re-decrypt the mnemonic for each signing
 /// operation and drop it immediately (it is zeroized on drop) rather than caching it. Decryption
 /// derives a key with a high iteration count, so run it off the UI thread.
-pub fn get_decrypted_mnemonic(password: &Password) -> Result<(Mnemonic, Password), AppError> {
-    let encrypted =
-        secrets_store::get_encrypted_mnemonic().map_err(|err| AppError::Fatal(err.to_string()))?;
+pub fn get_decrypted_mnemonic(
+    secrets: &Arc<dyn secrets_store::SecretsStore>,
+    password: &Password,
+) -> Result<(Mnemonic, Password), AppError> {
+    let encrypted = secrets
+        .get_encrypted_mnemonic()
+        .map_err(|err| AppError::Fatal(err.to_string()))?;
 
     encrypted
         .decrypt_mnemonic(password)
