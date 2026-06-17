@@ -207,10 +207,35 @@ password → expect "submitted"`.
 
 ### Phase 3 — Delete the `AppDataDb` global
 
-Introduce `data_stores::AppDataStore` (trait) implemented by the existing `AppDataDb` value (already
-`Clone`, already `Deref<Target = DataBase>`). Per §1a the opened handle lives in the **`Unlocked`
-state** (produced at the `Locked → Unlocked` transition, beside `key`), **not** in `Env`; remove the
-`MAINNET_DB`/`STOKENET_DB` `OnceCell`s. Touch points: `WalletData::{save_resource_data_to_disk,
+Per §1a the opened handle lives in the **`Unlocked` state** (produced at the `Locked → Unlocked`
+transition, beside `key`), **not** in `Env`; remove the `MAINNET_DB`/`STOKENET_DB` `OnceCell`s.
+`AppDataDb`/`DataBase` are `Clone` (Arc-backed `async_sqlite::Client`), so the handle is cheap to
+carry and clone into spawned tasks. A trait (`AppDataStore`) is **not** needed: even under test the
+DB is the real SQLCipher store (just opened under a temp dir via phase 4), so the concrete handle
+can be threaded directly.
+
+**Exact site map (the global lookups to replace):**
+- open/create (keep, but make non-caching `open(network,key)` = `initialize` + create-tables):
+  `login.rs:28` (`get_or_init`), `setup.rs:263` (`load`).
+- `Unlocked` reads (use `self.state.db`): `unlocked.rs:79,122,157,199`, `wallet_data.rs:57,105`.
+- post-login persist: `WalletData::save_resource_data_to_disk` (caller `wallet_data.rs:59` +
+  `setup.rs:223`).
+- read-side sync: `updates.rs:69 update_all_accounts(network)` ← `ledger_reader.rs:63` (thread a
+  `&AppDataDb`); this is the **read connector**, so it widens into `LedgerReader`.
+- service read: `service.rs:143 read_account_transactions(network)` ← `history/mod.rs:51` (pass
+  `wallet.db()`).
+- `app.rs:86 AppDataDb::exists` stays (it's a path check, not a global handle).
+- **Out of scope:** the parallel `IconsDb` global (`get`/`load`/`get_or_init` in `wallet_data`,
+  `login`, `setup`, and `iced_ui` fungibles/non_fungibles) — a separate follow-up.
+
+**⚠ Testability caveat (decides sequencing):** the DB-open / sync / persist paths are **not**
+covered by the hermetic unit suite — they need a real encrypted DB + OS keychain + gateway, i.e.
+the live-run backlog (roadmap V.4). So after this refactor "builds + 161 tests pass" does **not**
+prove login/persistence still works. The change keeps *open semantics identical* (only the handle's
+provenance moves from a global to the `Unlocked` field), which bounds the risk, but it should be
+**landed alongside the phase-5 `.ice` (which exercises an Unlocked, DB-backed flow under a temp
+dir)** or a manual live run — not blind. This is why phases 3–4 are best done together with phase 5
+wiring, with the temp-dir DB harness available to validate them. Touch points: `WalletData::{save_resource_data_to_disk,
 save_resource_icons_to_disk, create_new_account}`, `wallet/unlocked.rs::{transactions_for_account,
 create_persona_handle, update_persona_data, create_new_persona}`, `wallet/login.rs`,
 `wallet/resource_data.rs::{load_resource_data_from_disk, save_persona}`,
