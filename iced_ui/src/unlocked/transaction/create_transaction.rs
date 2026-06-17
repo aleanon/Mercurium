@@ -251,8 +251,16 @@ impl<'a> CreateTransaction {
         // Move the password out so it is dropped (zeroized) once the submit completes.
         let password = std::mem::replace(&mut self.password, Password::new());
 
+        let gateway = wallet::transaction::production_gateway(from_account.network);
+
         Task::perform(
-            wallet::transaction::submit_transfer_with_password(request, from_account, password, 0),
+            wallet::transaction::submit_transfer_with_password(
+                request,
+                from_account,
+                gateway,
+                password,
+                0,
+            ),
             |result| match result {
                 Ok(submitted) => AppMessage::Error(AppError::NonFatal(Notification::Info(
                     format!("Transaction submitted: {}", submitted.intent_hash_id),

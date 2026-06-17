@@ -20,3 +20,7 @@ serde = { workspace = true, features = ["derive"] }
 # bytes = { workspace = true }
 # tokio = { workspace = true }
 # debug_print = { workspace = true }
+
+[dev-dependencies]
+# Enable the in-memory test doubles (FakeGateway) for the transaction-service tests.
+ledger_connector = { path = "../01_ports_and_adapters/ledger_connector", features = ["testing"] }

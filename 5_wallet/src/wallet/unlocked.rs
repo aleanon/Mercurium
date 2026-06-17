@@ -232,9 +232,15 @@ impl Wallet<Unlocked> {
             })?
             .clone();
 
+        // Phase 1: production gateway for the account's network. Phase 2.5 swaps this for
+        // `self.wallet_data.env.gateways.gateway(from_account.network)` (the injected, per-network
+        // provider — see .ai_docs/di_testability_plan.md §1a).
+        let gateway = crate::transaction::service::production_gateway(from_account.network);
+
         crate::transaction::service::submit_transfer_with_password(
             request,
             from_account,
+            gateway,
             password,
             tip_percentage,
         )
