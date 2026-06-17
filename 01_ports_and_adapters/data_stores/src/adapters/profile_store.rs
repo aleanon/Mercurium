@@ -3,18 +3,26 @@
 use deps::*;
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-use types::{AppError, AppPath, Notification, Profile};
+use types::{AppError, AppPathInner, Notification, Profile};
 
 use crate::ports::profile_store::ProfileStore;
 
-/// Stores the profile as pretty-printed JSON at `<config>/profile.json`.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct JsonProfileStore;
+/// Stores the profile as pretty-printed JSON at `<config>/profile.json`. Holds the injected
+/// [`AppPathInner`] (no path global).
+#[derive(Debug, Clone)]
+pub struct JsonProfileStore {
+    paths: Arc<AppPathInner>,
+}
 
 impl JsonProfileStore {
-    fn path() -> PathBuf {
-        let mut path = AppPath::get().config_directory();
+    pub fn new(paths: Arc<AppPathInner>) -> Self {
+        Self { paths }
+    }
+
+    fn path(&self) -> PathBuf {
+        let mut path = self.paths.config_directory();
         path.push("profile.json");
         path
     }
@@ -22,11 +30,11 @@ impl JsonProfileStore {
 
 impl ProfileStore for JsonProfileStore {
     fn load(&self) -> Profile {
-        load_from(Self::path()).unwrap_or_default()
+        load_from(self.path()).unwrap_or_default()
     }
 
     fn save(&self, profile: &Profile) -> Result<(), AppError> {
-        save_to(profile, Self::path())
+        save_to(profile, self.path())
     }
 }
 

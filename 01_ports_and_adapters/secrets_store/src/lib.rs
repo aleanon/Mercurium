@@ -9,37 +9,43 @@ pub use port::SecretsStore;
 
 use std::sync::Arc;
 use types::{
-    AppError,
+    AppError, AppPathInner,
     crypto::{EncryptedMnemonic, Salt},
 };
 
-/// The production secrets store as a shared trait object, for injection into `WalletData`/`Env`.
-pub fn production() -> Arc<dyn SecretsStore> {
-    Arc::new(OsCredentialStore)
+/// The production secrets store (OS-backed, rooted at the injected paths) as a shared trait object.
+pub fn production(paths: Arc<AppPathInner>) -> Arc<dyn SecretsStore> {
+    Arc::new(OsCredentialStore::new(paths))
+}
+
+/// A default-path OS store for the convenience free functions below (which have no injected paths).
+fn default_store() -> Result<OsCredentialStore, AppError> {
+    let paths = Arc::new(AppPathInner::new().map_err(|err| AppError::Fatal(err.to_string()))?);
+    Ok(OsCredentialStore::new(paths))
 }
 
 /// Convenience free functions over the default OS-backed secrets store, for call sites that do
 /// not yet inject the [`SecretsStore`] port.
 pub fn get_db_encryption_salt() -> Result<Salt, AppError> {
-    OsCredentialStore.get_db_encryption_salt()
+    default_store()?.get_db_encryption_salt()
 }
 
 pub fn get_encrypted_mnemonic() -> Result<EncryptedMnemonic, AppError> {
-    OsCredentialStore.get_encrypted_mnemonic()
+    default_store()?.get_encrypted_mnemonic()
 }
 
 pub fn store_db_encryption_salt(salt: Salt) -> Result<(), AppError> {
-    OsCredentialStore.store_db_encryption_salt(salt)
+    default_store()?.store_db_encryption_salt(salt)
 }
 
 pub fn store_encrypted_mnemonic(mnemonic: &EncryptedMnemonic) -> Result<(), AppError> {
-    OsCredentialStore.store_encrypted_mnemonic(mnemonic)
+    default_store()?.store_encrypted_mnemonic(mnemonic)
 }
 
 pub fn delete_salt() -> Result<(), AppError> {
-    OsCredentialStore.delete_db_encryption_salt()
+    default_store()?.delete_db_encryption_salt()
 }
 
 pub fn delete_encrypted_mnemonic() -> Result<(), AppError> {
-    OsCredentialStore.delete_encrypted_mnemonic()
+    default_store()?.delete_encrypted_mnemonic()
 }

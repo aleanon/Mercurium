@@ -2,18 +2,9 @@ use deps::*;
 
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::Lazy;
 use thiserror::Error;
 
-use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
-
-// NOTE: Phase 4 of .ai_docs/di_testability_plan.md will remove this global in favour of an
-// injected `Arc<AppPathInner>` carried in `Env`. The `with_root` constructor below is the
-// building block for that (and for the temp-dir test sandbox); the global remains until the wide,
-// IconsDb-entangled migration lands with live verification.
-static APP_PATH: Lazy<AppPathInner> = Lazy::new(|| {
-    AppPathInner::new().unwrap_unreachable(debug_info!("Unable to establish application directory"))
-});
+use crate::Network;
 
 #[derive(Error, Debug)]
 pub enum AppPathError {
@@ -227,16 +218,6 @@ impl AppPathInner {
                 Ok(app_directory)
             }
         }
-    }
-}
-
-// The use of this type requires the PATH static to be set at program startup and never
-// uninitialized. (Slated for removal in phase 4 — see the note on `APP_PATH` above.)
-pub struct AppPath;
-
-impl AppPath {
-    pub fn get() -> &'static AppPathInner {
-        &APP_PATH
     }
 }
 

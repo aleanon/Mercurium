@@ -48,7 +48,7 @@ impl WalletData {
         icons: HashMap<ResourceAddress, Vec<u8>>,
         db_key: Key<DataBase>,
     ) -> Result<(), DbError> {
-        let db = IconsDb::get_or_init(self.settings.network, db_key).await?;
+        let db = IconsDb::get_or_init(&self.env.paths, self.settings.network, db_key).await?;
         db.upsert_resource_icons(icons).await?;
         Ok(())
     }

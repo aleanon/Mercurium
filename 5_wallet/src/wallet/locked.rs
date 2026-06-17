@@ -55,6 +55,7 @@ impl Wallet<Locked> {
 
         let mut wallet = match crate::wallet::login::perform_login_check(
             &self.wallet_data.env.secrets,
+            &self.wallet_data.env.paths,
             self.wallet_data.settings.network,
             &password,
         )
@@ -70,6 +71,7 @@ impl Wallet<Locked> {
 
         if self.state.is_initial_login {
             let Ok(icons_db) = IconsDb::get_or_init(
+                &wallet.wallet_data.env.paths,
                 wallet.wallet_data.settings.network,
                 wallet.state.key.clone(),
             )
@@ -112,9 +114,10 @@ impl Wallet<Locked> {
 
 impl Default for Wallet<Locked> {
     fn default() -> Self {
+        let paths = types::AppPathInner::new().expect("unable to establish application directory");
         Self::new(
             Locked::new(true),
-            WalletData::new(Settings::load_from_disk_or_default()),
+            WalletData::new(Settings::load_from_disk_or_default(&paths)),
         )
     }
 }

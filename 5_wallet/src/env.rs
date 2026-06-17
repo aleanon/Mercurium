@@ -12,9 +12,12 @@ use std::sync::Arc;
 
 use ledger_connector::{GatewayProvider, RadixGatewayProvider};
 use secrets_store::SecretsStore;
+use types::AppPathInner;
 
 #[derive(Clone)]
 pub struct Env {
+    /// On-disk path set (no global). Production = platform default; tests = a temp-dir root.
+    pub paths: Arc<AppPathInner>,
     /// Secrets store: OS keychain in production, in-memory under test.
     pub secrets: Arc<dyn SecretsStore>,
     /// Per-network transaction-gateway provider (never a single pinned gateway — see §1a).
@@ -22,17 +25,25 @@ pub struct Env {
 }
 
 impl Env {
-    /// The production environment: OS secrets + the Radix gateway.
+    /// The production environment: platform paths + OS secrets + the Radix gateway.
     pub fn production() -> Self {
+        let paths = Arc::new(
+            AppPathInner::new().expect("unable to establish application directory"),
+        );
         Self {
-            secrets: secrets_store::production(),
+            secrets: secrets_store::production(paths.clone()),
+            paths,
             gateways: Arc::new(RadixGatewayProvider),
         }
     }
 
     /// Inject specific capabilities (used by tests / `Preset` boot closures).
-    pub fn new(secrets: Arc<dyn SecretsStore>, gateways: Arc<dyn GatewayProvider>) -> Self {
-        Self { secrets, gateways }
+    pub fn new(
+        paths: Arc<AppPathInner>,
+        secrets: Arc<dyn SecretsStore>,
+        gateways: Arc<dyn GatewayProvider>,
+    ) -> Self {
+        Self { paths, secrets, gateways }
     }
 
     /// The transaction gateway for `network` (convenience over `self.gateways`, so callers don't

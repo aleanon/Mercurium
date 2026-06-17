@@ -13,7 +13,7 @@ pub mod update;
 use std::{collections::HashMap, ops::Deref};
 
 use once_cell::sync::OnceCell;
-use types::{AppPath, Network, address::ResourceAddress, crypto::Key};
+use types::{AppPathInner, Network, address::ResourceAddress, crypto::Key};
 
 use crate::{
     SqliteKey,
@@ -28,8 +28,12 @@ pub struct IconsDb {
 }
 
 impl IconsDb {
-    pub async fn load(network: Network, key: Key<DataBase>) -> Result<&'static Self, DbError> {
-        let icons_db = Self::initialize(network, key).await?;
+    pub async fn load(
+        paths: &AppPathInner,
+        network: Network,
+        key: Key<DataBase>,
+    ) -> Result<&'static Self, DbError> {
+        let icons_db = Self::initialize(paths, network, key).await?;
         icons_db.create_tables_if_not_exist().await?;
 
         debug_println!("IconsDb connection up");
@@ -37,20 +41,24 @@ impl IconsDb {
         Ok(Self::get_static(network).get_or_init(|| icons_db))
     }
 
-    pub async fn initialize(network: Network, key: Key<DataBase>) -> Result<Self, DbError> {
-        let app_path = AppPath::get();
-        let path = app_path.icon_cache_ref(network);
+    pub async fn initialize(
+        paths: &AppPathInner,
+        network: Network,
+        key: Key<DataBase>,
+    ) -> Result<Self, DbError> {
+        let path = paths.icon_cache_ref(network);
         let db = DataBase::load(path, key).await?;
         Ok(Self { db })
     }
 
     pub async fn get_or_init(
+        paths: &AppPathInner,
         network: Network,
         key: Key<DataBase>,
     ) -> Result<&'static Self, DbError> {
         match Self::get(network) {
             Some(db) => Ok(db),
-            None => Self::load(network, key).await,
+            None => Self::load(paths, network, key).await,
         }
     }
 
@@ -80,11 +88,12 @@ pub struct SyncIconsDb;
 
 impl SyncIconsDb {
     pub fn save_icons(
+        paths: &AppPathInner,
         icons: HashMap<ResourceAddress, Vec<u8>>,
         network: Network,
         key: &Key<DataBase>,
     ) -> Result<(), DbError> {
-        let mut connection = Self::open_database_connection(network, key)?;
+        let mut connection = Self::open_database_connection(paths, network, key)?;
         connection.execute(CREATE_TABLE_RESOURCE_IMAGES, [])?;
 
         let tx = connection.transaction()?;
@@ -98,10 +107,11 @@ impl SyncIconsDb {
     }
 
     fn open_database_connection(
+        paths: &AppPathInner,
         network: Network,
         key: &Key<DataBase>,
     ) -> Result<Connection, DbError> {
-        let path = AppPath::get().db_path(network);
+        let path = paths.db_path(network);
         let connection = async_sqlite::rusqlite::Connection::open(path)?;
         connection.pragma_update(None, "key", SqliteKey::from_key(key))?;
         Ok(connection)

@@ -4,7 +4,7 @@ use data_stores::{AppDataDb, DataBase, IconsDb};
 use std::{collections::HashMap, sync::Arc};
 
 use types::{
-    Account, AppError, AppPath, Network, UnwrapUnreachable,
+    Account, AppError, AppPathInner, Network, UnwrapUnreachable,
     address::ResourceAddress,
     collections::AccountsUpdate,
     crypto::Key,
@@ -179,7 +179,8 @@ impl Setup {
     }
 
     pub async fn finalize_setup(mut self) -> Result<Wallet<Unlocked>, SetupError> {
-        let settings = Settings::load_from_disk_or_default();
+        let paths = AppPathInner::new()?;
+        let settings = Settings::load_from_disk_or_default(&paths);
         let wallet_keys = self.get_keys_with_salt().await?;
 
         let password_hash = self
@@ -187,11 +188,12 @@ impl Setup {
             .ok_or(SetupError::NoPasswordProvided)?
             .derive_db_encryption_key_hash_from_salt(wallet_keys.db_key_salt.salt());
 
-        AppPath::get().create_directories_if_not_exists()?;
+        paths.create_directories_if_not_exists()?;
 
         let db_key = wallet_keys.db_key_salt.key().clone();
 
         let db = create_new_wallet_with_accounts(
+            &paths,
             self.get_mnemonic().ok_or(SetupError::NoMnemonicProvided)?,
             self.get_seed_password(),
             wallet_keys.db_key_salt,
@@ -212,6 +214,7 @@ impl Setup {
         );
 
         save_icons_to_resource_data_and_disk(
+            &paths,
             self.get_icons().await,
             Arc::make_mut(&mut wallet_data.resource_data),
             db_key.clone(),
@@ -238,6 +241,7 @@ impl WalletState for Setup {}
 /// Encrypts the mnemonic and stores it using the OS credentials system.
 /// It also makes the initial creation of the database and stores the passed in accounts
 pub async fn create_new_wallet_with_accounts(
+    paths: &AppPathInner,
     mnemonic: &Mnemonic,
     seed_password: Option<&str>,
     mut db_key_salt: KeySaltPair<DataBase>,
@@ -258,7 +262,7 @@ pub async fn create_new_wallet_with_accounts(
 
     secrets_store::store_db_encryption_salt(db_key_salt.take_salt())?;
 
-    let db = AppDataDb::open(network, db_key_salt.take_key())
+    let db = AppDataDb::open(paths, network, db_key_salt.take_key())
         .await
         .map_err(|err| AppError::Fatal(err.to_string()))?;
 
@@ -310,6 +314,7 @@ fn save_updated_accounts_to_resource_data(
 }
 
 async fn save_icons_to_resource_data_and_disk(
+    paths: &AppPathInner,
     icons: HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>,
     resource_data: &mut ResourceData,
     db_key: Key<DataBase>,
@@ -325,7 +330,7 @@ async fn save_icons_to_resource_data_and_disk(
 
     resource_data.set_resource_icons(icons_standard.clone()).await;
 
-    let db = IconsDb::get_or_init(network, db_key).await?;
+    let db = IconsDb::get_or_init(paths, network, db_key).await?;
     db.upsert_resource_icons(icons_standard).await?;
     Ok(())
 }

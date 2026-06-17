@@ -4,7 +4,7 @@ use deps::{
     serde::{Deserialize, Serialize},
     serde_json,
 };
-use types::{AppPath, Network};
+use types::{AppPathInner, Network};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -22,8 +22,8 @@ impl Settings {
         }
     }
 
-    pub fn load_from_disk_or_default() -> Self {
-        match File::open(AppPath::get().settings_path_ref()) {
+    pub fn load_from_disk_or_default(paths: &AppPathInner) -> Self {
+        match File::open(paths.settings_path_ref()) {
             Ok(file) => {
                 let content = BufReader::new(file);
                 serde_json::from_reader::<_, Self>(content).unwrap_or(Self::new())

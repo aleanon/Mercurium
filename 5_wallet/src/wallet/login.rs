@@ -7,7 +7,7 @@ use futures::TryFutureExt;
 use data_stores::{AppDataDb, IconsDb};
 use secrets_store::SecretsStore;
 use types::{
-    AppError, Network,
+    AppError, AppPathInner, Network,
     crypto::{Key, Password},
 };
 
@@ -18,6 +18,7 @@ use types::{
 /// `.ai_docs/di_testability_plan.md` §1a).
 pub async fn perform_login_check(
     secrets: &Arc<dyn SecretsStore>,
+    paths: &AppPathInner,
     network: Network,
     password: &Password,
 ) -> Result<AppDataDb, AppError> {
@@ -28,7 +29,7 @@ pub async fn perform_login_check(
 
     debug_println!("Key created");
 
-    let db = AppDataDb::open(network, key.clone())
+    let db = AppDataDb::open(paths, network, key.clone())
         .await
         .map_err(|err| AppError::NonFatal(types::Notification::Info(err.to_string())))?;
 
@@ -41,7 +42,7 @@ pub async fn perform_login_check(
 
     if password_hash == target_hash {
         debug_println!("Correct password");
-        IconsDb::load(network, key)
+        IconsDb::load(paths, network, key)
             .map_err(|err| AppError::Fatal(err.to_string()))
             .await?;
         Ok(db)

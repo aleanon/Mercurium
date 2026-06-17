@@ -5,8 +5,10 @@
 
 use deps::*;
 
+use std::sync::Arc;
+
 use types::{
-    AppError,
+    AppError, AppPathInner,
     crypto::{EncryptedMnemonic, Salt},
 };
 use zeroize::Zeroize;
@@ -23,19 +25,28 @@ const SALT_TARGET_NAME: &'static str = "db_salt.json";
 #[cfg(unix)]
 const ENCRYPTED_MNEMONIC_TARGET_NAME: &'static str = "mnemonic.json";
 
-/// The default OS-backed secrets store (stateless).
-#[derive(Debug, Clone, Copy, Default)]
-pub struct OsCredentialStore;
+/// The default OS-backed secrets store. Holds the injected [`AppPathInner`] (used on Unix to
+/// locate the config directory; ignored on Windows, which uses the Credential Manager).
+#[derive(Debug, Clone)]
+pub struct OsCredentialStore {
+    paths: Arc<AppPathInner>,
+}
+
+impl OsCredentialStore {
+    pub fn new(paths: Arc<AppPathInner>) -> Self {
+        Self { paths }
+    }
+}
 
 impl SecretsStore for OsCredentialStore {
     fn get_db_encryption_salt(&self) -> Result<Salt, AppError> {
-        let blob = platform::get_blob(SALT_TARGET_NAME)?;
+        let blob = platform::get_blob(&self.paths, SALT_TARGET_NAME)?;
         blob.try_into()
             .map_err(|err| AppError::Fatal(format!("Failed to get Salt: {err}")))
     }
 
     fn get_encrypted_mnemonic(&self) -> Result<EncryptedMnemonic, AppError> {
-        let blob = platform::get_blob(ENCRYPTED_MNEMONIC_TARGET_NAME)?;
+        let blob = platform::get_blob(&self.paths, ENCRYPTED_MNEMONIC_TARGET_NAME)?;
         serde_json::from_slice(&blob).map_err(|err| {
             AppError::Fatal(format!("Failed to parse blob to Encrypted Mnemonic: {err}"))
         })
@@ -43,7 +54,7 @@ impl SecretsStore for OsCredentialStore {
 
     fn store_db_encryption_salt(&self, salt: Salt) -> Result<(), AppError> {
         let mut salt = salt.to_inner();
-        let result = platform::store_blob(&salt, SALT_TARGET_NAME)
+        let result = platform::store_blob(&self.paths, &salt, SALT_TARGET_NAME)
             .map_err(|err| AppError::Fatal(format!("Failed to store salt, {err}")));
         salt.zeroize();
         result
@@ -52,42 +63,46 @@ impl SecretsStore for OsCredentialStore {
     fn store_encrypted_mnemonic(&self, mnemonic: &EncryptedMnemonic) -> Result<(), AppError> {
         let mut blob = serde_json::to_vec(mnemonic)
             .map_err(|err| AppError::Fatal(format!("Failed to parse Encrypted Mnemonic, {err}")))?;
-        let result = platform::store_blob(&blob, ENCRYPTED_MNEMONIC_TARGET_NAME)
+        let result = platform::store_blob(&self.paths, &blob, ENCRYPTED_MNEMONIC_TARGET_NAME)
             .map_err(|err| AppError::Fatal(format!("Failed to save EncryptedMnemonic, {err}")));
         blob.zeroize();
         result
     }
 
     fn delete_db_encryption_salt(&self) -> Result<(), AppError> {
-        platform::delete_blob(SALT_TARGET_NAME)
+        platform::delete_blob(&self.paths, SALT_TARGET_NAME)
     }
 
     fn delete_encrypted_mnemonic(&self) -> Result<(), AppError> {
-        platform::delete_blob(ENCRYPTED_MNEMONIC_TARGET_NAME)
+        platform::delete_blob(&self.paths, ENCRYPTED_MNEMONIC_TARGET_NAME)
     }
 }
 
 #[cfg(unix)]
 mod platform {
     use super::*;
-    use types::{AppPath, Notification};
+    use types::Notification;
 
-    pub fn get_blob(target_name: &str) -> Result<Vec<u8>, AppError> {
-        let mut config_file = AppPath::get().config_directory();
+    pub fn get_blob(paths: &AppPathInner, target_name: &str) -> Result<Vec<u8>, AppError> {
+        let mut config_file = paths.config_directory();
         config_file.push(target_name);
         std::fs::read(config_file)
             .map_err(|err| AppError::NonFatal(Notification::Warn(err.to_string())))
     }
 
-    pub fn store_blob(blob: &[u8], target_name: &str) -> Result<(), AppError> {
-        let mut config_file = AppPath::get().config_directory();
+    pub fn store_blob(
+        paths: &AppPathInner,
+        blob: &[u8],
+        target_name: &str,
+    ) -> Result<(), AppError> {
+        let mut config_file = paths.config_directory();
         config_file.push(target_name);
         std::fs::write(config_file, blob)
             .map_err(|err| AppError::NonFatal(Notification::Warn(err.to_string())))
     }
 
-    pub fn delete_blob(target_name: &str) -> Result<(), AppError> {
-        let mut config_file = AppPath::get().config_directory();
+    pub fn delete_blob(paths: &AppPathInner, target_name: &str) -> Result<(), AppError> {
+        let mut config_file = paths.config_directory();
         config_file.push(target_name);
         std::fs::remove_file(config_file)
             .map_err(|err| AppError::NonFatal(Notification::Warn(err.to_string())))
@@ -108,7 +123,10 @@ mod platform {
         core::{PCWSTR, PWSTR},
     };
 
-    pub fn get_blob(target_name: &str) -> Result<Vec<u8>, AppError> {
+    pub fn get_blob(
+        _paths: &types::AppPathInner,
+        target_name: &str,
+    ) -> Result<Vec<u8>, AppError> {
         let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
         target_name.push(0);
 
@@ -143,7 +161,11 @@ mod platform {
         result.map_err(|err| AppError::Fatal(format!("Failed to get credentials blob: {err}")))
     }
 
-    pub fn store_blob(blob: &[u8], target_name: &str) -> Result<(), AppError> {
+    pub fn store_blob(
+        _paths: &types::AppPathInner,
+        blob: &[u8],
+        target_name: &str,
+    ) -> Result<(), AppError> {
         let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
         target_name.push(0);
         let mut blob = blob.to_vec();
@@ -163,7 +185,7 @@ mod platform {
         result.map_err(|err| AppError::Fatal(err.to_string()))
     }
 
-    pub fn delete_blob(target_name: &str) -> Result<(), AppError> {
+    pub fn delete_blob(_paths: &types::AppPathInner, target_name: &str) -> Result<(), AppError> {
         let mut target_name = target_name.encode_utf16().collect::<Vec<u16>>();
         target_name.push(0);
 
@@ -178,10 +200,10 @@ mod tests {
 
     #[test]
     fn salt_store_get_delete_roundtrip() {
-        use types::AppPath;
-        AppPath::get().create_directories_if_not_exists().ok();
+        let paths = Arc::new(AppPathInner::new().unwrap());
+        paths.create_directories_if_not_exists().ok();
 
-        let store = OsCredentialStore;
+        let store = OsCredentialStore::new(paths);
         let salt = Salt::new().unwrap();
 
         store.store_db_encryption_salt(salt.clone()).unwrap();

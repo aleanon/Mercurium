@@ -7,7 +7,7 @@ pub mod update;
 
 use crate::database::{DataBase, DbError};
 use std::ops::Deref;
-use types::{AppPath, Network, crypto::Key};
+use types::{AppPathInner, Network, crypto::Key};
 
 #[derive(Clone)]
 pub struct AppDataDb {
@@ -20,8 +20,12 @@ impl AppDataDb {
     /// No process-global caching: the returned handle is **owned by the caller** — it lives in the
     /// `Unlocked` wallet state (produced at the `Locked → Unlocked` transition) and is cloned into
     /// any spawned task that needs it. See `.ai_docs/di_testability_plan.md` §1a.
-    pub async fn open(network: Network, key: Key<DataBase>) -> Result<Self, DbError> {
-        let app_data_db = Self::initialize(network, key).await?;
+    pub async fn open(
+        paths: &AppPathInner,
+        network: Network,
+        key: Key<DataBase>,
+    ) -> Result<Self, DbError> {
+        let app_data_db = Self::initialize(paths, network, key).await?;
         app_data_db.create_tables_if_not_exist().await?;
 
         debug_println!("AppDataDb connection up");
@@ -29,15 +33,18 @@ impl AppDataDb {
         Ok(app_data_db)
     }
 
-    pub async fn initialize(network: Network, key: Key<DataBase>) -> Result<Self, DbError> {
-        let app_path = AppPath::get();
-        let path = app_path.db_path_ref(network);
+    pub async fn initialize(
+        paths: &AppPathInner,
+        network: Network,
+        key: Key<DataBase>,
+    ) -> Result<Self, DbError> {
+        let path = paths.db_path_ref(network);
         let db = DataBase::load(path, key).await?;
         Ok(Self { db })
     }
 
-    pub fn exists(network: Network) -> bool {
-        AppPath::get().db_path_ref(network).exists()
+    pub fn exists(paths: &AppPathInner, network: Network) -> bool {
+        paths.db_path_ref(network).exists()
     }
 }
 

@@ -77,13 +77,13 @@ impl App {
     /// `Env::production()`; iced_test `Preset` closures call it with a fake env to get a
     /// reproducible, offline app. See `.ai_docs/di_testability_plan.md`.
     pub fn new_with(env: Env) -> (Self, Task<AppMessage>) {
-        let settings = wallet::Settings::load_from_disk_or_default();
+        let settings = wallet::Settings::load_from_disk_or_default(&env.paths);
 
         let app_state =
             match crate::bootstrap::initialize_statics(settings.network) {
                 Err(err) => AppState::Error(err.to_string()),
                 Ok(_) => {
-                    if AppDataDb::exists(settings.network) {
+                    if AppDataDb::exists(&env.paths, settings.network) {
                         AppState::Locked(
                             LoginScreen::new(true),
                             Wallet::new(
@@ -110,7 +110,7 @@ impl App {
             notification: Notification::None,
             preferences: Preferences::default(),
             profile: <data_stores::JsonProfileStore as data_stores::ProfileStore>::load(
-                &data_stores::JsonProfileStore,
+                &data_stores::JsonProfileStore::new(env.paths.clone()),
             ),
             env,
         };
@@ -234,7 +234,7 @@ impl App {
                 self.profile.app_preferences.security.is_developer_mode_enabled = enabled
             }
             Action::ExportBackup(password) => {
-                let mut path = types::AppPath::get().config_directory();
+                let mut path = self.env.paths.config_directory();
                 path.push("profile_backup.bin");
                 match wallet::profile_backup::save_to_file(&self.profile, &password, &path) {
                     Ok(()) => {
@@ -248,13 +248,13 @@ impl App {
                 return;
             }
             Action::ImportBackup(password) => {
-                let mut path = types::AppPath::get().config_directory();
+                let mut path = self.env.paths.config_directory();
                 path.push("profile_backup.bin");
                 match wallet::profile_backup::load_from_file(&path, &password) {
                     Ok(profile) => {
                         self.profile = profile;
                         let _ = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
-                            &data_stores::JsonProfileStore,
+                            &data_stores::JsonProfileStore::new(self.env.paths.clone()),
                             &self.profile,
                         );
                         self.notification = Notification::Info("Backup restored".to_string());
@@ -265,7 +265,7 @@ impl App {
             }
         }
         if let Err(err) = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
-            &data_stores::JsonProfileStore,
+            &data_stores::JsonProfileStore::new(self.env.paths.clone()),
             &self.profile,
         ) {
             self.handle_error(err);

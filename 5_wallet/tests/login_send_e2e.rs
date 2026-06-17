@@ -19,7 +19,7 @@ use types::address::{AccountAddress, ResourceAddress};
 use types::crypto::{
     Bip32Entity, Bip32KeyKind, Ed25519KeyPair, EncryptedMnemonic, KeySaltPair, Password,
 };
-use types::{Account, AppPath, Network};
+use types::{Account, AppPathInner, Network};
 
 use wallet::transaction::{FungibleTransfer, RecipientTransfer, TransferRequest};
 use wallet::wallet::Wallet;
@@ -40,11 +40,11 @@ fn login_then_send_transfer_end_to_end() {
         let network = Network::Stokenet;
         let password = Password::from("correct horse battery staple");
 
-        // Sandbox every on-disk path (DB, icon cache, config) in a fresh temp dir. Set before any
-        // `AppPath::get()` so the lazy global initializes against the sandbox.
+        // Sandbox every on-disk path (DB, icon cache, config) in a fresh temp dir — first-class via
+        // the injected `AppPathInner::with_root`, no global / env-var hack.
         let tmp = tempfile::tempdir().unwrap();
-        unsafe { std::env::set_var("XDG_DATA_HOME", tmp.path()) };
-        AppPath::get().create_directories_if_not_exists().unwrap();
+        let paths = Arc::new(AppPathInner::with_root(tmp.path().to_path_buf()).unwrap());
+        paths.create_directories_if_not_exists().unwrap();
 
         // Derive the account (public API; `create_account_from_mnemonic` is crate-private).
         let (signer, path) = Ed25519KeyPair::new(
@@ -78,7 +78,7 @@ fn login_then_send_transfer_end_to_end() {
 
         // Create the encrypted DB in the sandbox with the password hash + the account.
         {
-            let db = AppDataDb::open(network, key.clone()).await.unwrap();
+            let db = AppDataDb::open(&paths, network, key.clone()).await.unwrap();
             db.upsert_password_hash(password_hash).await.unwrap();
             db.upsert_account(account.clone()).await.unwrap();
         }
@@ -87,7 +87,7 @@ fn login_then_send_transfer_end_to_end() {
         let secrets = Arc::new(InMemorySecretsStore::seeded(encrypted_mnemonic, salt));
         let provider = FakeGatewayProvider::new(FakeGateway::committed());
         let fake = provider.gateway_ref();
-        let env = Env::new(secrets, Arc::new(provider));
+        let env = Env::new(paths.clone(), secrets, Arc::new(provider));
 
         let mut settings = Settings::new();
         settings.set_network(network);
