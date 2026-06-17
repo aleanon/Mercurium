@@ -245,10 +245,38 @@ and handed around.
 ### Phase 4 — Delete the `AppPath` global
 
 Replace the `Lazy<AppPathInner>` static + `AppPath::get()` with an `Arc<AppPathInner>` constructed at
-boot and carried in `Env`. Widest blast radius: every `AppPath::get()` (data_stores DB/icon paths,
-`app.rs` backup export/import, settings store). `AppPathInner::new()` already does all the work;
-add `AppPathInner::with_root(PathBuf)` for the temp-dir test root. This kills global #2 and makes
-`Env::test()`'s sandbox first-class.
+boot and carried in `Env`. Add `AppPathInner::with_root(PathBuf)` (refactor `new()` = `with_root(
+default_root)`); derive `Clone`.
+
+**Exact `AppPath::get()` site map (compile-enforced once the global is removed):**
+- `data_stores`: `app_data_db.rs:33,40` (initialize/exists), `icons_db.rs:41,104`,
+  `adapters/settings_store.rs:18,26`, `adapters/profile_store.rs:17` → take a `&AppPathInner`
+  (DB/icons via `paths`, network) or hold it on the JSON adapters.
+- `secrets_store`: `os_credential_store.rs:76,83,90` (unix `config_directory`) → **`OsCredentialStore`
+  changes from a ZST to holding `Arc<AppPathInner>`**; `production()` then needs paths.
+- `5_wallet`: `settings.rs:26` (`Settings::load_from_disk_or_default` → take `&AppPathInner`),
+  `setup.rs:190` (`create_directories_if_not_exists`).
+- `iced_ui`: `app.rs:237,251` (backup export/import → `self.env.paths`), `bootstrap.rs:11`
+  (construct `AppPathInner`, hand to `Env`).
+- `Env` gains `paths: Arc<AppPathInner>`; `Env::production()` builds it and the path-bearing
+  adapters.
+
+**⚠ Complications found (why this is the riskiest phase, do with a live run):**
+1. **`OsCredentialStore` becomes stateful** (holds the config dir). This is the *secrets* adapter —
+   a wrong path means the wallet can't find its mnemonic/salt. Not covered by the hermetic suite.
+2. **Boot-ordering / pre-`Env` callers.** `Settings::load_from_disk_or_default()` (also called in
+   `locked.rs` `Default for Wallet<Locked>` and `setup.rs` finalize) and `AppDataDb::exists()`
+   (`app.rs:86`) run *before* a wallet exists. `App::new_with(env)` has `env.paths`, so reorder to
+   build paths first; the `Default`/setup callers without an env fall back to a fresh
+   `AppPathInner::new()`.
+3. **Parallel, unused `app_path` crate** (`01_ports_and_adapters/app_path`: `AppPathInner::new(root)`,
+   `LocalAppData`, its own `OnceLock`). The *live* code uses `types::AppPath` — do **not** confuse
+   the two; either ignore the crate or adopt it deliberately (larger change).
+
+Like phase 3 this is compile-enforced (semantics preserved: paths come from the same
+`AppPathInner::new()` computation, only provenance moves global → injected), but it rewires the
+secrets adapter and every on-disk path with no runtime coverage, so it should land **with the
+phase-5 temp-dir integration test green and/or a manual live run** — not blind.
 
 ---
 
