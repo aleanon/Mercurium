@@ -178,19 +178,32 @@ New test adapter — `secrets_store`, `testing` feature:
 `InMemorySecretsStore` seeded with a known mnemonic + salt (reuse the test mnemonic already used in
 `wallet.rs`/`factors` tests). Now login + signing run headless with a deterministic seed.
 
-### Phase 2.5 — Boot seam + first tests  *(the payoff of "prove the loop first")*
+### Phase 2.5 — Boot seam + first Simulator test  *(the payoff of "prove the loop first")*
 
-- Add `App::new_with(env: Env) -> (Self, Task<AppMessage>)`; make `App::new` call
-  `App::new_with(Env::production(settings.network))`. Relocate `bootstrap::initialize_statics`'s
-  `AppPathInner::new()` into `Env::production` (return the value instead of discarding it).
-- **Simulator tests** for the send screen (`iced_ui/src/unlocked/transaction/create_transaction.rs`):
-  assert the review summary renders and the confirm button emits the submit message.
-- **First `.ice`** under `mercurium/tests/flows/send.ice` with a `Preset::new("SendFlow", ||
-  App::new_with(Env::test()))` registered on the `application(...)` builder, driving:
-  `click "Send" → typewrite amount → click "Confirm" → typewrite password → expect "submitted"`.
+**Status: done.** Delivered:
+- `Env { secrets, gateways }` (+ `production()`, `new()`, `gateway(network)`), carried on
+  `WalletData` (replacing the bare `secrets` field). `App::new_with(env)`;
+  `App::new() = App::new_with(Env::production())`.
+- `iced_test` 0.14.0 dev-dependency + a **Simulator test** driving the real login screen headlessly
+  (`iced_ui/src/locked/loginscreen.rs`): renders the prompt, clicks `Login`, asserts
+  `Message::Login` is emitted. This proves the view↔message harness in-repo.
 
-At this point the full click-through works on top of the still-global `AppDataDb`/`AppPath`,
-sandboxed via `Env::test()`'s temp dir.
+**Reordering note:** the full async **send-transaction `.ice` Emulator** click-through is moved to
+**after phases 3–4** (tracked as the new final step below). Rationale: the Emulator runs the real
+`update` + `Task`s, so it needs a logged-in (`Unlocked`) wallet backed by a *sandboxed* DB. That
+sandbox is only clean once `AppPath` is injectable (phase 4: `AppPathInner::with_root(temp_dir)`),
+so building the e2e `.ice` before then would mean leaning on `XDG_DATA_HOME` env-var hacks that
+phase 4 deletes anyway. The Simulator already covers the view/reducer layer in the meantime.
+
+### Phase 5 — Send-transaction `.ice` end-to-end *(after phases 3–4)*
+
+Add `Env::test_in_memory()` (behind a `wallet/testing` feature enabling `secrets_store/testing` +
+`ledger_connector/testing`): `InMemorySecretsStore` seeded with a known mnemonic/salt +
+`FakeGatewayProvider`, with `paths` pointed at a `tempfile::TempDir` (phase 4) so the real SQLCipher
+DB is created under the sandbox and pre-seeded with an account. Register
+`Preset::new("SendFlow", || App::new_with(Env::test_in_memory()))` and drive
+`mercurium/tests/flows/send.ice`: `click "Send" → typewrite amount → click "Confirm" → typewrite
+password → expect "submitted"`.
 
 ### Phase 3 — Delete the `AppDataDb` global
 
