@@ -211,12 +211,13 @@ impl Setup {
             Arc::make_mut(&mut wallet_data.resource_data),
         );
 
-        // save_icons_to_resource_data_and_disk(
-        //     self.get_icons().await,
-        //     Arc::make_mut(&mut wallet_data.resource_data),
-        //     db_key.clone(),
-        //     wallet_data.settings.network
-        // ).await?;
+        save_icons_to_resource_data_and_disk(
+            self.get_icons().await,
+            Arc::make_mut(&mut wallet_data.resource_data),
+            db_key.clone(),
+            wallet_data.settings.network,
+        )
+        .await?;
 
         wallet_data
             .save_resource_data_to_disk(db_key.clone())
@@ -315,12 +316,15 @@ async fn save_icons_to_resource_data_and_disk(
     db_key: Key<DataBase>,
     network: Network,
 ) -> Result<(), SetupError> {
-    let (icons_small, icons_standard) = icons
+    // The standard (display-sized) variant is what gets persisted *and* held in memory, so the
+    // first run shows the same icons as a later run (which loads the standard variant from
+    // `IconsDb`). The small variant is currently unused on the reload path.
+    let icons_standard: HashMap<ResourceAddress, Vec<u8>> = icons
         .into_iter()
-        .map(|(address, (small, standard))| ((address.clone(), small), (address, standard)))
-        .unzip();
+        .map(|(address, (_small, standard))| (address, standard))
+        .collect();
 
-    resource_data.set_resource_icons(icons_small).await;
+    resource_data.set_resource_icons(icons_standard.clone()).await;
 
     let db = IconsDb::get_or_init(network, db_key).await?;
     db.upsert_resource_icons(icons_standard).await?;
