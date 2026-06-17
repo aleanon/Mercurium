@@ -8,6 +8,9 @@ pub const CREATE_TABLE_TRANSACTIONS: &'static str = "CREATE TABLE IF NOT EXISTS
     )
 ";
 
+/// A single transaction by its primary-key `id`.
+pub const SELECT_TRANSACTION_BY_ID: &'static str = "SELECT * FROM transactions WHERE id = ?";
+
 pub const UPSERT_TRANSACTION: &'static str = "INSERT INTO
     transactions (
         id,

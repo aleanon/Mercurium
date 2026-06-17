@@ -11,6 +11,7 @@ use types::{
     crypto::HashedPassword,
 };
 
+use super::statements::{balance_changes, transaction};
 use crate::DbError;
 
 use super::AppDataDb;
@@ -212,7 +213,7 @@ impl AppDataDb {
         balance_changes: Vec<BalanceChange>,
     ) -> Option<Transaction> {
         self.query_row(
-            "SELECT * FROM transactions WHERE transaction_id = ?",
+            transaction::SELECT_TRANSACTION_BY_ID,
             [transaction_id],
             |row| Self::get_transaction_from_row(row, balance_changes),
         )
@@ -225,7 +226,7 @@ impl AppDataDb {
         account_address: AccountAddress,
     ) -> Result<HashMap<TransactionId, Vec<BalanceChange>>, DbError> {
         self.prepare_cached_statement(
-            "SELECT * FROM balance_changes WHERE account_address = ?",
+            balance_changes::SELECT_BALANCE_CHANGES_BY_ACCOUNT,
             |cached_stmt| {
                 let balance_changes = cached_stmt
                     .query_map(
@@ -269,7 +270,7 @@ impl AppDataDb {
         T: FromIterator<BalanceChange> + Default + Send + 'static,
     {
         self.query_map(
-            "SELECT * FROM balance_changes WHERE transaction_id = ?",
+            balance_changes::SELECT_BALANCE_CHANGES_BY_TX_ID,
             [transaction_id],
             Self::get_balance_change_from_row,
         )

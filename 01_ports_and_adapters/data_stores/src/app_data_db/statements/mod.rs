@@ -139,4 +139,25 @@ mod test {
             })
             .expect("the transaction/balance-change statements match the schema");
     }
+
+    #[test]
+    fn transaction_and_balance_change_read_queries_are_valid_sql() {
+        use deps::async_sqlite::ClientBuilder;
+
+        // Preparing a query validates its table/column references against the schema, so this
+        // catches column-name drift (e.g. `account_address` vs `account`, `transaction_id` vs
+        // `tx_id`/`id`) that previously surfaced only at runtime as "no such column".
+        let client = ClientBuilder::new().open_blocking().unwrap();
+        client
+            .conn_blocking(|conn| {
+                conn.execute(super::transaction::CREATE_TABLE_TRANSACTIONS, [])?;
+                conn.execute(super::balance_changes::CREATE_TABLE_BALANCE_CHANGES, [])?;
+
+                conn.prepare(super::transaction::SELECT_TRANSACTION_BY_ID)?;
+                conn.prepare(super::balance_changes::SELECT_BALANCE_CHANGES_BY_ACCOUNT)?;
+                conn.prepare(super::balance_changes::SELECT_BALANCE_CHANGES_BY_TX_ID)?;
+                Ok(())
+            })
+            .expect("the transaction/balance-change read queries match the schema");
+    }
 }
