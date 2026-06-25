@@ -94,7 +94,7 @@ impl<'a> AddRecipient {
             .height(Length::Shrink)
             .align_x(iced::alignment::Horizontal::Center);
 
-        let space = widget::Space::new(Length::Fill, 50);
+        let space = widget::space::horizontal().height(50);
 
         let text_input = widget::text_input("Enter recipient address", &self.recipient_input)
             .width(Length::Fill)
@@ -109,7 +109,7 @@ impl<'a> AddRecipient {
             ..Padding::ZERO
         });
 
-        let space2 = widget::Space::new(Length::Fill, 20);
+        let space2 = widget::space::horizontal().height(20);
 
         let mut buttons = column!().align_x(Horizontal::Center).width(Length::Fill);
 
@@ -136,7 +136,7 @@ impl<'a> AddRecipient {
                 .size(10)
                 .width(Length::Shrink);
             let name_and_address = column![account_name, account_address].spacing(2);
-            let space = widget::Space::new(Length::Fill, 1);
+            let space = widget::space::horizontal();
             let radio = widget::radio(String::new(), i, selected, |_| AppMessage::None)
                 .width(Length::Shrink)
                 .size(20);

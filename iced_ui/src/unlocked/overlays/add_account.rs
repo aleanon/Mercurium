@@ -1,8 +1,13 @@
-use deps::*;
+use std::iter::Take;
+
+use deps::{
+    iced::{advanced::widget::operation::focusable::focus, widget::Id},
+    *,
+};
 
 use iced::{
-    widget::{self, button, column, row, text, text_input, Space},
     Element, Length, Task,
+    widget::{self, Space, button, column, row, text, text_input},
 };
 use types::crypto::Password;
 use wallet::{Unlocked, Wallet};
@@ -55,9 +60,9 @@ impl<'a> AddAccount {
             view: View::InputAccountName,
         };
 
-        let task = text_input::focus(text_input::Id::new(INPUT_ACCOUNT_NAME));
+        // let task = focus(Id::from(INPUT_ACCOUNT_NAME));
 
-        (add_account_view, task)
+        (add_account_view, Task::none())
     }
 
     pub fn update(&mut self, message: Message, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
@@ -87,7 +92,6 @@ impl<'a> AddAccount {
     fn back(&mut self) -> Task<AppMessage> {
         if let View::InputPassword = self.view {
             self.view = View::InputAccountName;
-            return text_input::focus(text_input::Id::new(INPUT_ACCOUNT_NAME));
         }
         Task::none()
     }
@@ -98,7 +102,6 @@ impl<'a> AddAccount {
                 if self.account_name.len() > 0 {
                     self.notification.clear();
                     self.view = View::InputPassword;
-                    return text_input::focus(text_input::Id::new(INPUT_PASSWORD));
                 } else {
                     self.notification = "Account name cannot be empty".to_string();
                 }
@@ -109,68 +112,13 @@ impl<'a> AddAccount {
     }
 
     fn submit(&mut self, wallet: &mut Wallet<Unlocked>) -> Task<AppMessage> {
-        let mut task = Task::none();
-        // let account =
-        //     handles::credentials::get_encrypted_mnemonic().and_then(|encrypted_mnemonic| {
-        //         encrypted_mnemonic
-        //             .decrypt_mnemonic(&self.password)
-        //             .and_then(|(mnemonic, password)| {
-        //                 let mut id = 0;
-        //                 let mut new_account_index = 0;
-
-        //                 for (_, account) in wallet.accounts().iter() {
-        //                     if account.id >= id {
-        //                         id = account.id + 1
-        //                     };
-        //                     let account_index = account.derivation_index();
-        //                     if account_index >= new_account_index {
-        //                         new_account_index = account_index + 1
-        //                     };
-        //                 }
-        //                 let account = handles::wallet::create_account_from_mnemonic(
-        //                     &mnemonic,
-        //                     Some(password.as_str()),
-        //                     id,
-        //                     new_account_index,
-        //                     self.account_name.clone(),
-        //                     wallet.settings().network,
-        //                 );
-        //                 Ok(account)
-        //             })
-        //             .map_err(|err| {
-        //                 types::AppError::NonFatal(types::Notification::Warn(err.to_string()))
-        //             })
-        //     });
-        // match account {
-        //     Ok(account) => {
-        //         wallet
-        //             .accounts_mut()
-        //             .insert(account.address.clone(), account.clone());
-
-        //         let network = wallet.settings().network;
-        //         let resources = wallet.resources().clone();
-        //     }
-        // Task::perform(
-        //         async move {
-        //             let accounts_update = handles::radix_dlt::updates::update_accounts(
-        //                 network,
-        //                 Arc::new(resources),
-        //                 vec![account],
-        //             )
-        //             .await;
-        //             Ok(accounts_update)
-        //         },
-        //         |result| match result {
-        //             Ok(accounts_update) => {
-        //                 external_task_response::Message::AccountsUpdated(accounts_update).into()
-        //             }
-        //             Err(err) => external_task_response::Message::Error(err).into(),
-        //         },
-        //     )
-        // }
-        //     Err(err) => self.notification = format!("Unable to create account: {err}"),
-        // }
-        task
+        // let Ok(join_handle) = wallet.create_new_account(account_name, password) else {
+        //     return Task::none();
+        // };
+        // Task::perform(async move { join_handle.await }, |result| match result {
+        //     Ok(account) => )}
+        // })
+        Task::none()
     }
 
     pub fn view(&'a self) -> Element<'a, AppMessage> {
@@ -197,7 +145,7 @@ impl<'a> AddAccount {
             .align_x(iced::alignment::Horizontal::Center)
             .align_y(iced::alignment::Vertical::Center);
 
-        let top_space = Space::with_height(Length::Fill);
+        let top_space = widget::space::vertical();
 
         let account_name_input = {
             let label = text("Account name");
@@ -205,7 +153,7 @@ impl<'a> AddAccount {
                 .style(styles::text_input::general_input)
                 .on_submit(Message::Continue.into())
                 .on_input(|input| Message::InputAccountName(input).into())
-                .id(text_input::Id::new(INPUT_ACCOUNT_NAME))
+                .id(Id::from(INPUT_ACCOUNT_NAME))
                 .padding(10);
 
             let notification = text(&self.notification).size(11);
@@ -213,7 +161,7 @@ impl<'a> AddAccount {
             column!(label, account_name_input, notification).spacing(10)
         };
 
-        let bottom_space = Space::with_height(Length::Fill);
+        let bottom_space = widget::space::vertical();
         let continue_button = button("continue").on_press_maybe(if !self.account_name.is_empty() {
             Some(Message::Continue.into())
         } else {
@@ -239,7 +187,7 @@ impl<'a> AddAccount {
                 .style(styles::text_input::general_input)
                 .on_input(|input| Message::InputPassword(input).into())
                 .on_submit(Message::Submit.into())
-                .id(text_input::Id::new(INPUT_PASSWORD))
+                .id(Id::from(INPUT_PASSWORD))
                 .secure(true)
                 .padding(10);
 
@@ -248,7 +196,7 @@ impl<'a> AddAccount {
             column![label, password_input, notification].spacing(10)
         };
 
-        let space = Space::with_height(Length::Fill);
+        let space = widget::space::vertical();
         let back_button = button("Back").on_press(Message::Back.into());
         let submit_button = button("Submit").on_press_maybe(if self.password.is_empty() {
             None
@@ -257,10 +205,10 @@ impl<'a> AddAccount {
         });
 
         let buttons_row = row!(
-            Space::with_width(Length::Fill),
+            widget::space::horizontal(),
             back_button,
             submit_button,
-            Space::with_width(Length::Fill)
+            widget::space::horizontal(),
         )
         .spacing(30);
 

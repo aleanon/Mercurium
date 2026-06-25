@@ -49,3 +49,47 @@ impl Ord for FungibleAsset {
         self.resource_address.cmp(&other.resource_address)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    const ACCOUNT: &str =
+        "account_tdx_2_12y0kpp2nhn8f36gt2ppqmxeltj6n2r446s0jlh4l7yxttpfeahjn66";
+    const RESOURCE: &str =
+        "resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc";
+
+    fn asset(amount: &str) -> FungibleAsset {
+        FungibleAsset::new(
+            &AccountAddress::from_str(ACCOUNT).unwrap(),
+            amount.to_string(),
+            ResourceAddress::from_str(RESOURCE).unwrap(),
+        )
+    }
+
+    #[test]
+    fn new_sets_amount_and_resource() {
+        let a = asset("100");
+        assert_eq!(a.amount, "100");
+        assert_eq!(a.resource_address, ResourceAddress::from_str(RESOURCE).unwrap());
+    }
+
+    #[test]
+    fn update_changes_amount_only() {
+        let mut a = asset("100");
+        let resource = a.resource_address.clone();
+        a.update_with_new_amount("250".to_string());
+        assert_eq!(a.amount, "250");
+        assert_eq!(a.resource_address, resource);
+    }
+
+    #[test]
+    fn equality_compares_all_fields() {
+        // Same account + resource + amount are equal; a different amount is not.
+        // (Full serde round-trips aren't valid here: AssetId deserializes from borrowed
+        // SQLite blob bytes, not from owned serde_json input.)
+        assert_eq!(asset("5"), asset("5"));
+        assert_ne!(asset("5"), asset("6"));
+    }
+}

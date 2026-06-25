@@ -1,6 +1,6 @@
 use deps::*;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LedgerState {
@@ -8,5 +8,5 @@ pub struct LedgerState {
     state_version: u64,
     proposer_round_timestamp: String,
     epoch: u64,
-    round: u32
+    round: u32,
 }

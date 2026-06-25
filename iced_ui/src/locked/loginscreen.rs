@@ -5,8 +5,8 @@ use std::mem;
 use debug_print::debug_println;
 use font_and_icons::images::MENU_LOGO;
 use iced::{
-    widget::{self, image::Handle},
     Element, Length, Task,
+    widget::{self, image::Handle},
 };
 use types::crypto::Password;
 use wallet::{Locked, LoginResponse, Wallet};
@@ -116,7 +116,7 @@ impl<'a> LoginScreen {
 
         let info_text = widget::text("Enter password to continue").size(15);
 
-        let space = widget::vertical_space().height(15);
+        let space = widget::space().height(15);
 
         let password_input = password_input(
             "Enter Password",
@@ -125,7 +125,8 @@ impl<'a> LoginScreen {
             Message::ToggleShowPassword,
             Message::PasswordInput,
             Message::Login,
-        );
+        )
+        .width(200);
 
         let login_button = widget::Button::new(
             widget::text("Login")

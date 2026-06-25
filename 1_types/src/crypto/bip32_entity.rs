@@ -1,6 +1,5 @@
 use super::derivation_path_indexes::{BIP32_ENTITY_ACCOUNT, BIP32_ENTITY_IDENTITY};
 
-
 #[derive(Debug)]
 pub enum Bip32Entity {
     Account,
@@ -13,5 +12,16 @@ impl Bip32Entity {
             Bip32Entity::Account => BIP32_ENTITY_ACCOUNT,
             Bip32Entity::Identity => BIP32_ENTITY_IDENTITY,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn entity_path_indexes() {
+        assert_eq!(Bip32Entity::Account.path_index(), 525);
+        assert_eq!(Bip32Entity::Identity.path_index(), 618);
     }
 }

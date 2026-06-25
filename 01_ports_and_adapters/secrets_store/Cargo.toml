@@ -1,0 +1,8 @@
+[package]
+name = "secrets_store"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+deps = { path = "../../0_deps" }
+types = { path = "../../1_types" }

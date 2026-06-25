@@ -6,15 +6,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
 
 use super::{
-    address::{AccountAddress, Address, ResourceAddress},
     Network,
+    address::{AccountAddress, Address, ResourceAddress},
 };
 use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 #[derive(Debug, Clone, Eq)]
 pub struct Account {
     pub address: AccountAddress,
-    pub id: usize,
+    pub id: i64,
     pub name: String,
     pub network: Network,
     //Stored the derivation path as bytes for serialization in the database
@@ -29,7 +29,7 @@ pub struct Account {
 
 impl Account {
     pub fn new(
-        id: usize,
+        id: i64,
         name: String,
         network: Network,
         derivation_path: [u32; 6],
@@ -98,17 +98,18 @@ impl Account {
 
 impl Default for Account {
     fn default() -> Self {
-        Self { 
-            address: AccountAddress::default(), 
-            id: 0, 
-            name: String::new(), 
-            network: Network::Mainnet, 
-            derivation_path: [0;24], 
-            public_key: Ed25519PublicKey([0;Ed25519PublicKey::LENGTH]), 
-            hidden: true, 
-            settings: Settings::default(), 
-            balances_last_updated: None, 
-            transactions_last_updated: None }
+        Self {
+            address: AccountAddress::default(),
+            id: 0,
+            name: String::new(),
+            network: Network::Mainnet,
+            derivation_path: [0; 24],
+            public_key: Ed25519PublicKey([0; Ed25519PublicKey::LENGTH]),
+            hidden: true,
+            settings: Settings::default(),
+            balances_last_updated: None,
+            transactions_last_updated: None,
+        }
     }
 }
 

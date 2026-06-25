@@ -12,11 +12,11 @@ use {
     },
     crate::{app::App, app::AppMessage},
     iced::{
-        widget::{self, text::LineHeight, Button},
         Element, Length, Task,
+        widget::{self, Button, text::LineHeight},
     },
     types::AppError,
-    wallet::{wallet::Wallet, Unlocked},
+    wallet::{Unlocked, wallet::Wallet},
 };
 
 #[derive(Clone)]
@@ -88,7 +88,7 @@ impl<'a> Setup {
                             wallet.reset();
                         }
                         restore_from_seed::Action::Task(task) => {
-                            return Ok(task.map(Message::RestoreFromSeedMessage))
+                            return Ok(task.map(Message::RestoreFromSeedMessage));
                         }
                         Action::None => {}
                     }
@@ -103,7 +103,7 @@ impl<'a> Setup {
 
     pub fn view(&'a self, app: &'a App, wallet: &Wallet<wallet::Setup>) -> Element<'a, Message> {
         match self {
-            Setup::SelectSetup => self.select_creation_view(),
+            Setup::SelectSetup => self.select_setup(),
             Setup::RestoreFromBackup(restore_from_backup) => restore_from_backup
                 .view(app)
                 .map(Message::RestoreFromBackupMessage),
@@ -117,7 +117,7 @@ impl<'a> Setup {
         }
     }
 
-    fn select_creation_view(&self) -> Element<'_, Message> {
+    fn select_setup(&self) -> Element<'_, Message> {
         let new_wallet = Self::creation_button("Create new wallet").on_press(Message::NewWallet);
 
         let restore_from_backup =
@@ -149,7 +149,7 @@ impl<'a> Setup {
                 .align_y(iced::alignment::Vertical::Center)
                 .width(Length::Fill)
                 .height(Length::Shrink),
-            widget::Space::new(Length::Fill, Length::Fill)
+            widget::space().width(Length::Fill)
         ])
         .style(styles::button::setup_selection)
         .width(400)

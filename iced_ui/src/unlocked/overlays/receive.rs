@@ -1,13 +1,14 @@
 use deps::*;
 
-use font_and_icons::{Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap};
 use iced::{
-    widget::{self, button, column, container, qr_code, row, text},
     Element, Length, Task,
+    widget::{self, button, column, container, qr_code, row, text},
 };
 use types::{
+    UnwrapUnreachable,
     address::{AccountAddress, Address},
-    debug_info, UnwrapUnreachable,
+    debug_info,
 };
 
 use crate::{app::AppMessage, styles, unlocked::app_view};
@@ -89,11 +90,11 @@ impl<'a> Receive {
 
         let notification_box: Element<'a, AppMessage> = {
             match &self.notification {
-                Notification::None => widget::Space::new(Length::Fill, 50).into(),
+                Notification::None => widget::space::horizontal().width(50).into(),
                 Notification::Success(string) => container(
                     column!(
                         text(string),
-                        widget::Space::new(Length::Fill, 1),
+                        widget::space::horizontal(),
                         text(Bootstrap::XLg).font(BOOTSTRAP_FONT)
                     )
                     .padding(5),
@@ -105,7 +106,7 @@ impl<'a> Receive {
                 Notification::Error(string) => container(
                     column!(
                         text(string),
-                        widget::Space::new(Length::Fill, 1),
+                        widget::space::horizontal(),
                         text(Bootstrap::XLg).font(BOOTSTRAP_FONT)
                     )
                     .padding(5),

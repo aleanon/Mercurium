@@ -13,7 +13,7 @@ pub use address_validator::*;
 pub use resource_address::*;
 pub use transaction_address::*;
 
-use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
 pub enum AddressType {
     Account,
@@ -145,5 +145,50 @@ pub trait Address: Sized + FromStr {
 
     fn address_type(&self) -> AddressType {
         Self::ADDRESS_TYPE
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::address::AccountAddress;
+
+    const MAINNET_ACCOUNT: &str =
+        "account_rdx128ykx9agh0maq8nw6h6pzmltmaexts0xf24sledqp44x5cdec0uqjj";
+
+    fn account() -> AccountAddress {
+        AccountAddress::from_str(MAINNET_ACCOUNT).unwrap()
+    }
+
+    #[test]
+    fn as_str_roundtrips_and_network_is_detected() {
+        let address = account();
+        assert_eq!(address.as_str(), MAINNET_ACCOUNT);
+        assert_eq!(address.network(), Network::Mainnet);
+    }
+
+    #[test]
+    fn checksum_is_last_six_chars() {
+        let address = account();
+        let checksum = address.checksum_as_str();
+        assert_eq!(checksum.len(), 6);
+        assert!(MAINNET_ACCOUNT.ends_with(checksum));
+    }
+
+    #[test]
+    fn truncate_keeps_prefix_dots_and_checksum() {
+        let address = account();
+        let truncated = address.truncate();
+        assert!(truncated.starts_with("acco"));
+        assert!(truncated.contains("..."));
+        assert!(truncated.ends_with(address.checksum_as_str()));
+    }
+
+    #[test]
+    fn truncate_long_uses_a_longer_prefix() {
+        let address = account();
+        let truncated = address.truncate_long();
+        assert!(truncated.starts_with("account_rdx1"));
+        assert!(truncated.ends_with(address.checksum_as_str()));
     }
 }

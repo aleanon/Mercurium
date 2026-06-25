@@ -1,4 +1,4 @@
-use store::DbError;
+use data_stores::DbError;
 use thiserror::Error;
 use types::{
     AppPathError,

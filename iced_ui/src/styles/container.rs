@@ -1,8 +1,8 @@
 use deps::iced;
-use iced::{border::Radius, widget::container::Style, Background, Border, Color, Shadow, Vector};
+use iced::{Background, Border, Color, Shadow, Vector, border::Radius, widget::container::Style};
 
-use crate::styles::colors;
 use crate::Theme;
+use crate::styles::colors;
 
 pub fn primary_layer_1_opaque(theme: &Theme) -> Style {
     let mut style = Style::default();

@@ -4,7 +4,7 @@
 mod modal_overlay;
 mod style;
 
-use deps::*;
+use deps::{iced::theme::Base, *};
 
 use modal_overlay::ModalOverlay;
 
@@ -17,7 +17,7 @@ use iced::{
         renderer,
         widget::{Operation, Tree},
     },
-    alignment, event,
+    alignment,
     mouse::{self, Cursor},
 };
 
@@ -82,13 +82,16 @@ where
     pub fn new(
         underlay: impl Into<Element<'a, Message, Theme, Renderer>>,
         overlay: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
+    ) -> Self
+    where
+        Theme: Base,
+    {
         Modal {
             underlay: underlay.into(),
             overlay: overlay.map(Into::into),
             backdrop: None,
             esc: None,
-            style: <Theme as Catalog>::Style::default(),
+            style: <Theme as Base>::default(iced::theme::Mode::None),
             horizontal_alignment: alignment::Horizontal::Center,
             vertical_alignment: alignment::Vertical::Center,
         }
@@ -164,9 +167,9 @@ where
         self.underlay.as_widget().size()
     }
 
-    fn layout(&self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
         self.underlay
-            .as_widget()
+            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, limits)
     }
 
@@ -278,22 +281,25 @@ where
     }
 
     fn operate<'b>(
-        &'b self,
+        &'b mut self,
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
         operation: &mut dyn Operation<()>,
     ) {
-        if let Some(overlay) = &self.overlay {
+        if let Some(overlay) = &mut self.overlay {
             overlay.as_widget().diff(&mut state.children[1]);
 
             overlay
-                .as_widget()
+                .as_widget_mut()
                 .operate(&mut state.children[1], layout, renderer, operation);
         } else {
-            self.underlay
-                .as_widget()
-                .operate(&mut state.children[0], layout, renderer, operation);
+            self.underlay.as_widget_mut().operate(
+                &mut state.children[0],
+                layout,
+                renderer,
+                operation,
+            );
         }
     }
 }

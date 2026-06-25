@@ -1,23 +1,26 @@
 use deps::*;
 
-use font_and_icons::{images::MENU_LOGO, Bootstrap, BOOTSTRAP_FONT};
+use font_and_icons::{BOOTSTRAP_FONT, Bootstrap, images::MENU_LOGO};
 use iced::{
-    widget::{self, button, image::Handle, row, text, Row, Text},
     Element, Length, Task,
+    widget::{self, Row, Text, button, image::Handle, row, text},
 };
 use std::{collections::HashMap, str::FromStr};
-use types::{address::ResourceAddress, Account, Decimal, RadixDecimal};
+use types::{Account, Decimal, RadixDecimal, address::ResourceAddress};
 use wallet::{Unlocked, Wallet};
 
-use crate::{app::AppMessage, styles, App};
+use crate::{App, app::AppMessage, styles};
 
 use super::{
     accounts::{self, accounts_view::AccountsView},
+    history::{self, HistoryView},
     overlays::{
         add_account::AddAccount,
         overlay::{self, Overlay, SpawnOverlay},
         receive::Receive,
     },
+    personas::{self, PersonasView},
+    settings::{self, SettingsView},
     transaction::{self, create_transaction::CreateTransaction},
 };
 
@@ -30,6 +33,9 @@ pub enum Message {
     SpawnOverlay(SpawnOverlay),
     CloseOverlay,
     OverlayMessage(overlay::Message),
+    PersonasViewMessage(personas::Message),
+    HistoryViewMessage(history::Message),
+    SettingsViewMessage(settings::Message),
 }
 
 impl Into<AppMessage> for Message {
@@ -42,12 +48,18 @@ impl Into<AppMessage> for Message {
 pub enum ActiveTab {
     Accounts(accounts::AccountsView),
     Transfer(CreateTransaction),
+    Personas(PersonasView),
+    History(HistoryView),
+    Settings(SettingsView),
 }
 
 #[derive(Debug, Clone)]
 pub enum TabId {
     Accounts,
     Transfer,
+    Personas,
+    History,
+    Settings,
 }
 
 #[derive(Debug)]
@@ -96,6 +108,21 @@ impl<'a> AppView {
                     return overlay.update(overlay_message, wallet);
                 }
             }
+            Message::PersonasViewMessage(personas_message) => {
+                if let ActiveTab::Personas(view) = &mut self.active_tab {
+                    return view.update(personas_message, wallet);
+                }
+            }
+            Message::HistoryViewMessage(history_message) => {
+                if let ActiveTab::History(view) = &mut self.active_tab {
+                    return view.update(history_message, wallet);
+                }
+            }
+            Message::SettingsViewMessage(settings_message) => {
+                if let ActiveTab::Settings(view) = &mut self.active_tab {
+                    view.update(settings_message);
+                }
+            }
         }
 
         Task::none()
@@ -107,6 +134,9 @@ impl<'a> AppView {
             TabId::Transfer => {
                 self.active_tab = ActiveTab::Transfer(CreateTransaction::new(None, None))
             }
+            TabId::Personas => self.active_tab = ActiveTab::Personas(PersonasView::new()),
+            TabId::History => self.active_tab = ActiveTab::History(HistoryView::new()),
+            TabId::Settings => self.active_tab = ActiveTab::Settings(SettingsView::new()),
         }
     }
 
@@ -148,6 +178,13 @@ impl<'a> AppView {
             ActiveTab::Transfer(ref transaction_view) => {
                 widget::container(transaction_view.view(wallet))
             }
+            ActiveTab::Personas(ref personas_view) => {
+                widget::container(personas_view.view(wallet))
+            }
+            ActiveTab::History(ref history_view) => {
+                widget::container(history_view.view(wallet))
+            }
+            ActiveTab::Settings(ref settings_view) => widget::container(settings_view.view(app)),
         }
         .padding(10)
         .style(styles::container::center_panel)
@@ -170,19 +207,19 @@ impl<'a> AppView {
 
         let appview = widget::container(panels).style(styles::container::main_window);
 
-        let overlay = self
-            .overlay
-            .as_ref()
-            .and_then(|overlay| Some(overlay.view(wallet)));
+        // let overlay = self
+        //     .overlay
+        //     .as_ref()
+        //     .and_then(|overlay| Some(overlay.view(wallet)));
 
-        widgets::Modal::new(appview, overlay)
-            .on_esc(Message::CloseOverlay.into())
-            .backdrop(Message::CloseOverlay.into())
-            .into()
-        // appview.into()
+        // widgets::Modal::new(appview, overlay)
+        //     .on_esc(Message::CloseOverlay.into())
+        //     .backdrop(Message::CloseOverlay.into())
+        //     .into()
+        appview.into()
     }
 
-    fn menu(&self, wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
+    fn menu(&self, _wallet: &'a Wallet<Unlocked>, app: &'a App) -> Element<'a, AppMessage> {
         let logo = widget::image(Handle::from_bytes(MENU_LOGO))
             .width(100)
             .height(50);
@@ -213,6 +250,27 @@ impl<'a> AppView {
         };
         let mut transaction_button = Self::menu_button(transaction_icon, "Send", message);
 
+        let personas_icon = text(Bootstrap::PersonBadge).font(BOOTSTRAP_FONT);
+        let mut personas_button = Self::menu_button(
+            personas_icon,
+            "Personas",
+            Message::SelectTab(TabId::Personas).into(),
+        );
+
+        let history_icon = text(Bootstrap::ClockHistory).font(BOOTSTRAP_FONT);
+        let mut history_button = Self::menu_button(
+            history_icon,
+            "History",
+            Message::SelectTab(TabId::History).into(),
+        );
+
+        let settings_icon = text(Bootstrap::Gear).font(BOOTSTRAP_FONT);
+        let mut settings_button = Self::menu_button(
+            settings_icon,
+            "Settings",
+            Message::SelectTab(TabId::Settings).into(),
+        );
+
         match self.active_tab {
             ActiveTab::Accounts(_) => {
                 accounts_button = accounts_button.style(styles::button::selected_menu_button)
@@ -220,13 +278,25 @@ impl<'a> AppView {
             ActiveTab::Transfer(_) => {
                 transaction_button = transaction_button.style(styles::button::selected_menu_button)
             }
+            ActiveTab::Personas(_) => {
+                personas_button = personas_button.style(styles::button::selected_menu_button)
+            }
+            ActiveTab::History(_) => {
+                history_button = history_button.style(styles::button::selected_menu_button)
+            }
+            ActiveTab::Settings(_) => {
+                settings_button = settings_button.style(styles::button::selected_menu_button)
+            }
         }
 
         let buttons = widget::column![
             logo_container,
             toggle_theme_button,
             accounts_button,
-            transaction_button
+            transaction_button,
+            personas_button,
+            history_button,
+            settings_button
         ]
         .width(Length::Fill)
         .height(Length::Shrink)
@@ -267,7 +337,7 @@ impl<'a> AppView {
     fn notification_widget(content: &'a str) -> Row<'a, AppMessage> {
         let text = text(content).size(12).line_height(2.);
 
-        let space = widget::Space::new(Length::Fill, Length::Shrink);
+        let space = widget::space::horizontal();
 
         let close = widget::container(widget::Button::new("X"))
             .padding(5)

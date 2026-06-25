@@ -1,15 +1,15 @@
-use deps::*;
+use deps::{iced::Background, *};
 
 use iced::{
+    Border,
     border::Radius,
     widget::{
         self,
-        scrollable::{default, Rail, Scroller, Status, Style},
+        scrollable::{Rail, Scroller, Status, Style, default},
     },
-    Border,
 };
 
-use crate::{styles::colors, Theme};
+use crate::{Theme, styles::colors};
 
 pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
     match status {
@@ -29,7 +29,7 @@ pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
                             width: 3.5,
                             color: palette.background.weakest.color,
                         },
-                        color: palette.background.strongest.color,
+                        background: Background::Color(palette.background.strongest.color),
                     },
                     background: None,
                     border: Border::default(),
@@ -65,7 +65,7 @@ pub fn vertical_scrollable_secondary(theme: &Theme, status: Status) -> Style {
                             width: border_width,
                             color: palette.background.strongest.color,
                         },
-                        color,
+                        background: Background::Color(color),
                     },
                     background: None,
                     border: Border::default(),
@@ -108,7 +108,7 @@ pub fn vertical_scrollable_primary(theme: &Theme, status: Status) -> Style {
                             width: 3.5,
                             color: palette.background.base.color,
                         },
-                        color: palette.background.weakest.color,
+                        background: Background::Color(palette.background.weakest.color),
                     },
                     background: None,
                     border: Border::default(),
@@ -144,7 +144,7 @@ pub fn vertical_scrollable_primary(theme: &Theme, status: Status) -> Style {
                             width: border_width,
                             color: palette.background.weakest.color,
                         },
-                        color,
+                        background: Background::Color(color),
                     },
                     background: None,
                     border: Border::default(),

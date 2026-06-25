@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::crypto::derivation_path_indexes::{BIP32_NETWORK_ID_MAINNET, BIP32_NETWORK_ID_STOKENET};
 
-
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Network {
     #[default]
@@ -72,5 +71,43 @@ impl rusqlite::types::ToSql for Network {
         Ok(rusqlite::types::ToSqlOutput::Owned(
             rusqlite::types::Value::Integer(self.id() as i64),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_id_maps_known_networks() {
+        assert_eq!(Network::from_id(1), Ok(Network::Mainnet));
+        assert_eq!(Network::from_id(2), Ok(Network::Stokenet));
+        assert_eq!(Network::from_id(99), Err(99));
+    }
+
+    #[test]
+    fn id_and_from_id_roundtrip() {
+        for network in [Network::Mainnet, Network::Stokenet] {
+            assert_eq!(Network::from_id(network.id()), Ok(network));
+        }
+    }
+
+    #[test]
+    fn prefixes_and_ids() {
+        assert_eq!(Network::Mainnet.id(), 1);
+        assert_eq!(Network::Stokenet.id(), 2);
+        assert_eq!(Network::Mainnet.prefix(), "rdx1");
+        assert_eq!(Network::Stokenet.prefix(), "tdx_2_1");
+    }
+
+    #[test]
+    fn default_is_mainnet() {
+        assert_eq!(Network::default(), Network::Mainnet);
+    }
+
+    #[test]
+    fn definition_id_matches() {
+        assert_eq!(Network::Mainnet.definition().id, 1);
+        assert_eq!(Network::Stokenet.definition().id, 2);
     }
 }

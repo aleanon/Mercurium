@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
+use crate::app_path_inner::AppPathInner;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Unable to establish app directory, source: {0}")]
@@ -10,10 +12,12 @@ pub enum Error {
     UnableToCreateDirectory(std::io::Error),
 }
 
-pub trait AppPath: Sized {
-    type Network;
+type Network = types::Network;
 
-    fn new() -> Self;
+pub trait AppPath {
+    fn get() -> &'static Self
+    where
+        Self: Sized;
 
     fn app_directory(&self) -> &Box<Path>;
 
@@ -23,9 +27,9 @@ pub trait AppPath: Sized {
 
     fn db_directory(&self) -> &Box<Path>;
 
-    fn db_path(&self, network: Self::Network) -> &Box<Path>;
+    fn db_path(&self, network: Network) -> &Box<Path>;
 
     fn icons_directory(&self) -> &Box<Path>;
 
-    fn icon_cache(&self, network: Self::Network) -> &Box<Path>;
+    fn icon_cache(&self, network: Network) -> &Box<Path>;
 }

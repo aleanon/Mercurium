@@ -1,11 +1,20 @@
 use deps::*;
 
-use iced::{widget::{self, column}, Element, Length, Task};
-use types::{crypto::{Password, SeedPhrase}, AppError, Notification};
-use wallet::{wallet::Wallet, Setup};
+use iced::{
+    Element, Length, Task,
+    widget::{self, column},
+};
+use types::{
+    AppError, Notification,
+    crypto::{Password, SeedPhrase},
+};
+use wallet::{Setup, wallet::Wallet};
 use zeroize::Zeroize;
 
-use crate::{common_elements, components, initial::common::{nav_button, nav_row}};
+use crate::{
+    common_elements, components,
+    initial::common::{nav_button, nav_row},
+};
 
 #[derive(Clone)]
 pub enum Message {
@@ -17,7 +26,6 @@ pub enum Message {
     ToggleSeedPassword,
     InputSeedPassword(String),
 }
-
 
 #[derive(Debug)]
 pub struct ViewSeedPhrase {
@@ -52,15 +60,21 @@ impl ViewSeedPhrase {
             Message::ToggleSeedPassword => self.toggle_seed_password(wallet),
             Message::InputSeedPassword(input) => self.input_seed_password(input),
             Message::None => {}
-            Message::Back | Message::Next => {/*Handled in parent*/}
+            Message::Back | Message::Next => { /*Handled in parent*/ }
         }
         Task::none()
     }
 
-    fn update_multiple_words_in_seed_phrase_from_index(&mut self, mut word_index: usize, mut input: String) {
+    fn update_multiple_words_in_seed_phrase_from_index(
+        &mut self,
+        mut word_index: usize,
+        mut input: String,
+    ) {
         let mut words = input.split_ascii_whitespace();
 
-        while let Some(word) = words.next() && word_index < self.seed_phrase.nr_of_words() {
+        while let Some(word) = words.next()
+            && word_index < self.seed_phrase.nr_of_words()
+        {
             self.seed_phrase.update_word(word_index, &word);
             word_index += 1;
         }
@@ -71,7 +85,7 @@ impl ViewSeedPhrase {
     fn toggle_seed_password(&mut self, wallet: &Wallet<Setup>) {
         self.seed_password = match self.seed_password {
             Some(_) => None,
-            None => Some(Password::from(wallet.seed_password().unwrap_or("")))
+            None => Some(Password::from(wallet.seed_password().unwrap_or(""))),
         };
     }
 
@@ -83,7 +97,8 @@ impl ViewSeedPhrase {
     }
 
     pub fn save_to_wallet(&mut self, wallet: &mut Wallet<Setup>) -> Result<(), AppError> {
-        wallet.set_seed_phrase_and_password(self.seed_phrase.phrase(), self.seed_password.clone())
+        wallet
+            .set_seed_phrase_and_password(self.seed_phrase.phrase(), self.seed_password.clone())
             .map_err(|err| AppError::NonFatal(types::Notification::Info(err.to_string())))
     }
 }
@@ -94,9 +109,11 @@ impl<'a> ViewSeedPhrase {
 
         let notification = components::notification::notification(&self.notification);
 
-        let input_seed = components::enter_seedphrase::input_seed(&self.seed_phrase,
-            |_,_| Message::None,
-            |_,_| Message::None);
+        let input_seed = components::enter_seedphrase::input_seed(
+            &self.seed_phrase,
+            |_, _| Message::None,
+            |_, _| Message::None,
+        );
 
         let content = widget::column![header, notification, input_seed]
             .width(Length::Shrink)

@@ -1,11 +1,17 @@
 use deps::*;
 
-use iced::{widget::{self, column}, Element, Length, Task};
-use types::{crypto::SeedPhrase, Notification};
-use wallet::{wallet::Wallet, Setup};
+use iced::{
+    Element, Length, Task,
+    widget::{self, column},
+};
+use types::{Notification, crypto::SeedPhrase};
+use wallet::{Setup, wallet::Wallet};
 use zeroize::Zeroize;
 
-use crate::{common_elements, components, initial::common::{nav_button, nav_row}};
+use crate::{
+    common_elements, components,
+    initial::common::{nav_button, nav_row},
+};
 
 #[derive(Clone)]
 pub enum Message {
@@ -14,7 +20,6 @@ pub enum Message {
     InputSeedWord(usize, String),
     PasteSeedWords(usize, String),
 }
-
 
 #[derive(Debug)]
 pub struct VerifySeedPhrase {
@@ -41,8 +46,10 @@ impl VerifySeedPhrase {
     pub fn update(&mut self, message: Message, wallet: &mut Wallet<Setup>) -> Task<Message> {
         match message {
             Message::InputSeedWord(index, input) => self.input_seed_word(index, input),
-            Message::PasteSeedWords(index, input) => self.update_multiple_words_in_seed_phrase_from_index(index, input),
-            Message::Back | Message::Next => {/*Handled in parent*/}
+            Message::PasteSeedWords(index, input) => {
+                self.update_multiple_words_in_seed_phrase_from_index(index, input)
+            }
+            Message::Back | Message::Next => { /*Handled in parent*/ }
         }
         Task::none()
     }
@@ -52,10 +59,16 @@ impl VerifySeedPhrase {
         input.zeroize();
     }
 
-    fn update_multiple_words_in_seed_phrase_from_index(&mut self, mut word_index: usize, mut input: String) {
+    fn update_multiple_words_in_seed_phrase_from_index(
+        &mut self,
+        mut word_index: usize,
+        mut input: String,
+    ) {
         let mut words = input.split_ascii_whitespace();
 
-        while let Some(word) = words.next() && word_index < self.seed_phrase.nr_of_words() {
+        while let Some(word) = words.next()
+            && word_index < self.seed_phrase.nr_of_words()
+        {
             self.seed_phrase.update_word(word_index, &word);
             word_index += 1;
         }
@@ -69,7 +82,6 @@ impl VerifySeedPhrase {
     pub fn notify_input_state(&mut self) {
         self.notification = Notification::Info("Seed phrase does not match".to_string())
     }
-
 }
 
 impl<'a> VerifySeedPhrase {
@@ -79,9 +91,10 @@ impl<'a> VerifySeedPhrase {
         let notification = components::notification::notification(&self.notification);
 
         let input_seed = components::enter_seedphrase::input_seed(
-            &self.verify_seed_phrase, 
+            &self.verify_seed_phrase,
             Message::PasteSeedWords,
-            Message::PasteSeedWords);
+            Message::PasteSeedWords,
+        );
 
         let content = widget::column![header, notification, input_seed]
             .width(Length::Shrink)

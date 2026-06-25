@@ -6,7 +6,7 @@ use deps::*;
 
 use super::style::Catalog;
 use iced::{
-    Alignment, Border, Color, Element, Event, Rectangle, Shadow, Size, Vector,
+    Alignment, Border, Color, Element, Event, Shadow, Size, Vector,
     advanced::{
         Clipboard, Layout, Overlay, Shell,
         layout::{Limits, Node},
@@ -79,7 +79,7 @@ where
         let limits = Limits::new(Size::ZERO, bounds);
         let mut content = self
             .content
-            .as_widget()
+            .as_widget_mut()
             .layout(self.state, renderer, &limits);
         let max_size = limits.max();
 
@@ -249,7 +249,7 @@ where
             .expect("Native: Layout should have a content layout.");
 
         self.content
-            .as_widget()
+            .as_widget_mut()
             .operate(self.state, content_layout, renderer, operation);
     }
 }

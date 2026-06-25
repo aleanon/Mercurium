@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Theme {
     Light,
     #[default]
@@ -88,36 +88,36 @@ impl From<Theme> for iced::Theme {
             Theme::Oxocarbon => iced::Theme::Oxocarbon,
             Theme::Ferra => iced::Theme::Ferra,
             Theme::Custom => iced::Theme::Dark,
+        }
     }
-}
 
-// fn into(self) -> iced::Theme {
-//     match self {
-//         Theme::Light => iced::Theme::Light,
-//         Theme::Dark => iced::Theme::Dark,
-//         Theme::Dracula => iced::Theme::Dracula,
-//         Theme::Nord => iced::Theme::Nord,
-//         Theme::SolarizedLight => iced::Theme::SolarizedLight,
-//         Theme::SolarizedDark => iced::Theme::SolarizedDark,
-//         Theme::GruvboxLight => iced::Theme::GruvboxLight,
-//         Theme::GruvboxDark => iced::Theme::GruvboxDark,
-//         Theme::CatppuccinLatte => iced::Theme::CatppuccinLatte,
-//         Theme::CatppuccinFrappe => iced::Theme::CatppuccinFrappe,
-//         Theme::CatppuccinMacchiato => iced::Theme::CatppuccinMacchiato,
-//         Theme::CatppuccinMocha => iced::Theme::CatppuccinMocha,
-//         Theme::TokyoNight => iced::Theme::TokyoNight,
-//         Theme::TokyoNightStorm => iced::Theme::TokyoNightStorm,
-//         Theme::TokyoNightLight => iced::Theme::TokyoNightLight,
-//         Theme::KanagawaWave => iced::Theme::KanagawaWave,
-//         Theme::KanagawaDragon => iced::Theme::KanagawaDragon,
-//         Theme::KanagawaLotus => iced::Theme::KanagawaLotus,
-//         Theme::Moonfly => iced::Theme::Moonfly,
-//         Theme::Nightfly => iced::Theme::Nightfly,
-//         Theme::Oxocarbon => iced::Theme::Oxocarbon,
-//         Theme::Ferra => iced::Theme::Ferra,
-//         Theme::Custom => iced::Theme::Dark,
-//     }
-//     }
+    // fn into(self) -> iced::Theme {
+    //     match self {
+    //         Theme::Light => iced::Theme::Light,
+    //         Theme::Dark => iced::Theme::Dark,
+    //         Theme::Dracula => iced::Theme::Dracula,
+    //         Theme::Nord => iced::Theme::Nord,
+    //         Theme::SolarizedLight => iced::Theme::SolarizedLight,
+    //         Theme::SolarizedDark => iced::Theme::SolarizedDark,
+    //         Theme::GruvboxLight => iced::Theme::GruvboxLight,
+    //         Theme::GruvboxDark => iced::Theme::GruvboxDark,
+    //         Theme::CatppuccinLatte => iced::Theme::CatppuccinLatte,
+    //         Theme::CatppuccinFrappe => iced::Theme::CatppuccinFrappe,
+    //         Theme::CatppuccinMacchiato => iced::Theme::CatppuccinMacchiato,
+    //         Theme::CatppuccinMocha => iced::Theme::CatppuccinMocha,
+    //         Theme::TokyoNight => iced::Theme::TokyoNight,
+    //         Theme::TokyoNightStorm => iced::Theme::TokyoNightStorm,
+    //         Theme::TokyoNightLight => iced::Theme::TokyoNightLight,
+    //         Theme::KanagawaWave => iced::Theme::KanagawaWave,
+    //         Theme::KanagawaDragon => iced::Theme::KanagawaDragon,
+    //         Theme::KanagawaLotus => iced::Theme::KanagawaLotus,
+    //         Theme::Moonfly => iced::Theme::Moonfly,
+    //         Theme::Nightfly => iced::Theme::Nightfly,
+    //         Theme::Oxocarbon => iced::Theme::Oxocarbon,
+    //         Theme::Ferra => iced::Theme::Ferra,
+    //         Theme::Custom => iced::Theme::Dark,
+    //     }
+    //     }
 }
 
 impl From<iced::Theme> for Theme {
@@ -153,5 +153,43 @@ impl From<iced::Theme> for Theme {
 impl Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_is_dark() {
+        assert_eq!(Theme::default().as_str(), "Dark");
+    }
+
+    #[test]
+    fn as_str_and_display_agree() {
+        assert_eq!(Theme::SolarizedLight.as_str(), "Solarized Light");
+        assert_eq!(format!("{}", Theme::Nord), "Nord");
+    }
+
+    #[test]
+    fn roundtrips_through_iced_theme() {
+        for theme in [Theme::Light, Theme::Dark, Theme::Dracula, Theme::Nord, Theme::Ferra] {
+            let back: Theme = iced::Theme::from(theme).into();
+            assert_eq!(back.as_str(), theme.as_str());
+        }
+    }
+
+    #[test]
+    fn custom_falls_back_to_dark_in_iced() {
+        let iced_theme: iced::Theme = Theme::Custom.into();
+        let back: Theme = iced_theme.into();
+        assert_eq!(back.as_str(), "Dark");
+    }
+
+    #[test]
+    fn serde_roundtrip() {
+        let json = deps::serde_json::to_string(&Theme::GruvboxDark).unwrap();
+        let back: Theme = deps::serde_json::from_str(&json).unwrap();
+        assert_eq!(back.as_str(), "Gruvbox Dark");
     }
 }

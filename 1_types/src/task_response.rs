@@ -1,18 +1,18 @@
-
-
 #[derive(Debug, Clone)]
 pub struct TaskResponse<T> {
     task_id: u8,
-    data: Option<T>
+    data: Option<T>,
 }
 
 impl<T: Clone> TaskResponse<T> {
     pub fn new(task_id: u8, data: Option<T>) -> Self {
-        Self { task_id, data}
+        Self { task_id, data }
     }
 
     pub fn new_response(&mut self, new_response: TaskResponse<T>) {
-        if self.task_id <= new_response.task_id {*self = new_response}
+        if self.task_id <= new_response.task_id {
+            *self = new_response
+        }
     }
 
     pub fn ref_data(&self) -> Option<&T> {
@@ -28,7 +28,7 @@ impl<T: Clone> TaskResponse<T> {
     }
 
     pub fn discard_data(&mut self) {
-        self.data = None;   
+        self.data = None;
     }
 
     pub fn new_task_id(&mut self) -> u8 {

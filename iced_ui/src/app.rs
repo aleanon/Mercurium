@@ -1,20 +1,19 @@
-use deps::hot_ice::HotMessage;
-use deps::iced::Application;
-use deps::*;
-use no_mangle_if_debug::no_mangle_if_debug;
-use std::borrow::Cow;
-use std::fmt::Debug;
+#[cfg(feature = "reload")]
+use deps::hot_ice;
 
-use debug_print::debug_println;
-use font_and_icons::BOOTSTRAP_FONT_BYTES;
-use font_and_icons::images::WINDOW_LOGO;
-use iced::time;
-use iced::widget::{container, text};
-use iced::{Length, Settings, Size, application, window};
-use iced::{Subscription, Task};
-use store::AppDataDb;
+use deps::{
+    debug_print::debug_println,
+    hot_ice::hot_fn,
+    iced::{
+        self, Length, Task, Theme,
+        widget::{container, text},
+    },
+};
+
+use std::fmt::Debug;
+use data_stores::AppDataDb;
 use types::AppError;
-use types::{Network, Notification, Theme};
+use types::{Network, Notification, Theme as AppTheme};
 use wallet::wallet::Wallet;
 use wallet::{Locked, Unlocked, WalletData};
 
@@ -25,9 +24,6 @@ use crate::locked::loginscreen::{self, LoginScreen};
 use crate::unlocked;
 use crate::unlocked::app_view::AppView;
 
-//Reexport for hot reloading
-pub use iced::Element;
-
 #[derive(Clone)]
 pub enum AppMessage {
     Setup(setup::Message),
@@ -36,6 +32,7 @@ pub enum AppMessage {
     Error(AppError),
     Common(Message),
     ToggleTheme,
+    Settings(crate::unlocked::settings::Action),
     None,
 }
 
@@ -47,7 +44,7 @@ impl Debug for AppMessage {
 
 #[derive(Default)]
 pub struct Preferences {
-    pub theme: Theme,
+    pub theme: AppTheme,
 }
 // #[derive(Debug)]
 pub enum AppState {
@@ -63,26 +60,17 @@ pub struct App {
     pub appview: AppView,
     pub notification: Notification,
     pub preferences: Preferences,
+    /// The live wallet profile (gateways, preferences, authorized dApps, factor-source metadata).
+    pub profile: types::Profile,
 }
 
 impl App {
-    #[cfg(debug_assertions)]
-    pub fn new() -> (Self, Task<HotMessage>) {
-        let (app, task) = Self::inner_new();
-        (app, task.map(HotMessage::from_message))
-    }
-
-    #[cfg(not(debug_assertions))]
+    #[hot_fn(feature = "reload")]
     pub fn new() -> (Self, Task<AppMessage>) {
-        let (app, task) = Self::inner_new();
-        (app, task)
-    }
-
-    pub fn inner_new() -> (Self, Task<AppMessage>) {
         let settings = wallet::Settings::load_from_disk_or_default();
 
         let app_state =
-            match handles::statics::initialize_statics::initialize_statics(settings.network) {
+            match crate::bootstrap::initialize_statics(settings.network) {
                 Err(err) => AppState::Error(err.to_string()),
                 Ok(_) => {
                     if AppDataDb::exists(settings.network) {
@@ -105,24 +93,16 @@ impl App {
             appview: AppView::new(),
             notification: Notification::None,
             preferences: Preferences::default(),
+            profile: <data_stores::JsonProfileStore as data_stores::ProfileStore>::load(
+                &data_stores::JsonProfileStore,
+            ),
         };
 
         (app, Task::none())
     }
 
-    #[unsafe(no_mangle)]
-    #[cfg(debug_assertions)]
-    pub fn update(&mut self, message: HotMessage) -> Task<HotMessage> {
-        let message = message.into_message().unwrap();
-        self.inner_update(message).map(HotMessage::from_message)
-    }
-
-    #[cfg(not(debug_assertions))]
+    #[hot_fn(feature = "reload")]
     pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
-        self.inner_update(message)
-    }
-
-    pub fn inner_update(&mut self, message: AppMessage) -> Task<AppMessage> {
         let mut task = Task::none();
         match message {
             AppMessage::Setup(message) => match message {
@@ -158,25 +138,15 @@ impl App {
             }
             AppMessage::Common(common_message) => return common_message.process(self),
             AppMessage::ToggleTheme => self.toggle_theme(),
+            AppMessage::Settings(action) => self.apply_settings(action),
             AppMessage::Error(err) => self.handle_error(err),
             AppMessage::None => {}
         }
         task
     }
 
-    #[unsafe(no_mangle)]
-    #[cfg(debug_assertions)]
-    pub fn view(&self) -> iced::Element<HotMessage> {
-        self.inner_view().map(HotMessage::from_message)
-    }
-
-    #[cfg(not(debug_assertions))]
-    pub fn view(&self) -> iced::Element<AppMessage> {
-        self.inner_view()
-    }
-
-    #[no_mangle_if_debug]
-    pub fn inner_view(&self) -> iced::Element<AppMessage> {
+    #[hot_fn(feature = "reload")]
+    pub fn view(&self) -> iced::Element<'_, AppMessage> {
         match &self.app_state {
             AppState::Initial(setup, wallet) => setup.view(self, wallet).map(|message| {
                 if let setup::Message::Error(err) = message {
@@ -194,15 +164,14 @@ impl App {
         }
     }
 
-    #[cfg(debug_assertions)]
-    pub fn subscription(&self) -> Subscription<AppMessage> {
-        Subscription::batch([
-            time::every(time::Duration::from_millis(500)).map(|_| AppMessage::None)
-        ])
+    #[hot_fn(feature = "reload")]
+    pub fn theme(&self) -> Option<Theme> {
+        Some(self.preferences.theme.into())
     }
 
-    pub fn theme(&self) -> iced::Theme {
-        self.preferences.theme.into()
+    #[hot_fn(feature = "reload")]
+    pub fn title(&self) -> String {
+        types::consts::APPLICATION_NAME.to_string()
     }
 
     pub fn handle_error(&mut self, err: AppError) {
@@ -216,11 +185,81 @@ impl App {
         }
     }
 
+    /// Applies a settings change to the live profile and persists it.
+    fn apply_settings(&mut self, action: crate::unlocked::settings::Action) {
+        use crate::unlocked::settings::Action;
+        match action {
+            Action::SwitchGateway(gateway) => self.profile.gateways.switch_to(gateway),
+            Action::SetAppLockEnabled(enabled) => {
+                let security = &mut self.profile.app_preferences.security;
+                security.is_app_lock_enabled = enabled;
+                // Disabling the lock discards the stored PIN hash; enabling only flips the flag,
+                // leaving the UI to prompt for a PIN via `SetPin`.
+                if !enabled {
+                    security.app_lock = None;
+                }
+            }
+            Action::SetPin(pin) => {
+                match types::AppLock::new(&pin) {
+                    Ok(lock) => {
+                        let security = &mut self.profile.app_preferences.security;
+                        security.app_lock = Some(lock);
+                        security.is_app_lock_enabled = true;
+                        self.notification = Notification::Info("PIN set".to_string());
+                    }
+                    Err(err) => {
+                        self.notification = Notification::Warn(err.to_string());
+                        return;
+                    }
+                }
+            }
+            Action::SetDeveloperMode(enabled) => {
+                self.profile.app_preferences.security.is_developer_mode_enabled = enabled
+            }
+            Action::ExportBackup(password) => {
+                let mut path = types::AppPath::get().config_directory();
+                path.push("profile_backup.bin");
+                match wallet::profile_backup::save_to_file(&self.profile, &password, &path) {
+                    Ok(()) => {
+                        self.notification = Notification::Info(format!(
+                            "Encrypted backup saved to {}",
+                            path.display()
+                        ))
+                    }
+                    Err(err) => self.notification = Notification::Warn(err.to_string()),
+                }
+                return;
+            }
+            Action::ImportBackup(password) => {
+                let mut path = types::AppPath::get().config_directory();
+                path.push("profile_backup.bin");
+                match wallet::profile_backup::load_from_file(&path, &password) {
+                    Ok(profile) => {
+                        self.profile = profile;
+                        let _ = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
+                            &data_stores::JsonProfileStore,
+                            &self.profile,
+                        );
+                        self.notification = Notification::Info("Backup restored".to_string());
+                    }
+                    Err(err) => self.notification = Notification::Warn(err.to_string()),
+                }
+                return;
+            }
+        }
+        if let Err(err) = <data_stores::JsonProfileStore as data_stores::ProfileStore>::save(
+            &data_stores::JsonProfileStore,
+            &self.profile,
+        ) {
+            self.handle_error(err);
+        }
+    }
+
     fn toggle_theme(&mut self) {
         match self.preferences.theme {
-            Theme::Dark => self.preferences.theme = Theme::Light,
-            Theme::Light => self.preferences.theme = Theme::Dark,
-            _ => self.preferences.theme = Theme::Dark,
+            AppTheme::Dark => self.preferences.theme = AppTheme::Light,
+            AppTheme::Light => self.preferences.theme = AppTheme::Dark,
+            _ => self.preferences.theme = AppTheme::Dark,
         }
         // match self.preferences.theme {
         //     Theme::CatppuccinFrappe => self.preferences.theme = Theme::CatppuccinLatte,
@@ -258,6 +297,7 @@ impl App {
         }
     }
 
+    #[hot_fn(feature = "reload")]
     pub fn style(&self, theme: &iced::Theme) -> iced::theme::Style {
         let palette = theme.extended_palette();
 

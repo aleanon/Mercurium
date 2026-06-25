@@ -1,10 +1,9 @@
 use deps::iced::{
-    advanced::graphics::color,
-    widget::pick_list::{Status, Style},
     Background, Border,
+    widget::pick_list::{Status, Style},
 };
 
-use crate::{styles::colors, Theme};
+use crate::{Theme, styles::colors};
 
 pub fn from_account(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();

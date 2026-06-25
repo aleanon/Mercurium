@@ -28,3 +28,25 @@ impl Display for AccountSummary {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn has_summary_only_for_summary_variant() {
+        assert!(AccountSummary::Summary { nr_of_fungibles: 1, nr_of_non_fungibles: 2 }.has_summary());
+        assert!(!AccountSummary::NoUpdateReceived.has_summary());
+        assert!(!AccountSummary::NoLedgerPresense.has_summary());
+    }
+
+    #[test]
+    fn display_formats_each_variant() {
+        assert_eq!(format!("{}", AccountSummary::NoUpdateReceived), "No update");
+        assert_eq!(format!("{}", AccountSummary::NoLedgerPresense), "None");
+        assert_eq!(
+            format!("{}", AccountSummary::Summary { nr_of_fungibles: 3, nr_of_non_fungibles: 4 }),
+            "7 Assets"
+        );
+    }
+}

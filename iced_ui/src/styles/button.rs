@@ -1,13 +1,13 @@
-use deps::iced::{self, theme::Palette, widget::container::background};
+use deps::iced::{self};
 
 use iced::{
+    Background, Border, Color, Shadow, Vector,
     border::Radius,
     widget::button::{Status, Style},
-    Background, Border, Color, Shadow, Vector,
 };
 
-use crate::styles::colors;
 use crate::Theme;
+use crate::styles::colors;
 
 pub fn setup_selection(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
@@ -16,7 +16,7 @@ pub fn setup_selection(theme: &Theme, status: Status) -> Style {
             background: Some(Background::Color(palette.primary.strong.color)),
             text_color: palette.primary.weak.text,
             border: Border {
-                radius: Radius::from(3),
+                radius: Radius::from(10),
                 ..Default::default()
             },
             shadow: Shadow {

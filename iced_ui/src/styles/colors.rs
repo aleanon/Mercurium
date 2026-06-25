@@ -1,4 +1,4 @@
-use deps::iced::{theme::palette::Extended, Color};
+use deps::iced::{Color, theme::palette::Extended};
 
 pub fn shadow(background_color: Color, is_dark: bool) -> Color {
     if is_dark {

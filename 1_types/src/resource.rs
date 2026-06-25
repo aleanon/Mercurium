@@ -73,3 +73,25 @@ impl rusqlite::types::ToSql for Tags {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tags_from_deref_and_into() {
+        let tags = Tags::from(vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(tags.len(), 2); // Deref to Vec
+        assert_eq!(&tags[0], "a");
+        let vec: Vec<String> = tags.into();
+        assert_eq!(vec, vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn tags_serde_roundtrip() {
+        let tags = Tags::from(vec!["defi".to_string(), "meme".to_string()]);
+        let json = deps::serde_json::to_string(&tags).unwrap();
+        let restored: Tags = deps::serde_json::from_str(&json).unwrap();
+        assert_eq!(*restored, vec!["defi".to_string(), "meme".to_string()]);
+    }
+}

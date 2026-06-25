@@ -66,3 +66,29 @@ impl rusqlite::types::ToSql for Decimal {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_and_into_radix_decimal() {
+        let radix = RadixDecimal::from(5);
+        let decimal: Decimal = radix.into();
+        assert_eq!(*decimal, RadixDecimal::from(5));
+        let back: RadixDecimal = decimal.into();
+        assert_eq!(back, RadixDecimal::from(5));
+    }
+
+    #[test]
+    fn display_matches_inner_value() {
+        let decimal = Decimal(RadixDecimal::from_str("123.45").unwrap());
+        assert_eq!(format!("{decimal}"), "123.45");
+    }
+
+    #[test]
+    fn deref_exposes_inner_decimal() {
+        let decimal = Decimal(RadixDecimal::from(10));
+        assert_eq!(*decimal, RadixDecimal::from(10));
+    }
+}

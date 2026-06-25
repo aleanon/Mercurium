@@ -1,4 +1,4 @@
 mod bootstrap;
 pub mod images;
 
-pub use bootstrap::{Bootstrap, BOOTSTRAP_FONT, BOOTSTRAP_FONT_BYTES};
+pub use bootstrap::{BOOTSTRAP_FONT, BOOTSTRAP_FONT_BYTES, Bootstrap};

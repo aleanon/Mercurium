@@ -4,17 +4,19 @@ use std::fmt::Debug;
 
 use bip39::{Mnemonic, Seed};
 use ed25519_dalek_fiat::{PublicKey, SecretKey};
-use scrypto::{
-    address::AddressBech32Encoder, crypto::Ed25519PublicKey,
-    types::ComponentAddress,
-};
+use scrypto::{address::AddressBech32Encoder, crypto::Ed25519PublicKey, types::ComponentAddress};
 use slip10_ed25519::derive_ed25519_private_key;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
-use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable, Network};
+use radix_common::crypto::{Ed25519PrivateKey, Ed25519Signature, Hash};
 
-use super::{bip32_entity::Bip32Entity, bip32_key_kind::Bip32KeyKind, derivation_path_indexes::{BIP32_COIN_TYPE_RADIX, BIP32_LEAD_WORD}};
+use crate::{Network, debug_info, unwrap_unreachable::UnwrapUnreachable};
 
+use super::{
+    bip32_entity::Bip32Entity,
+    bip32_key_kind::Bip32KeyKind,
+    derivation_path_indexes::{BIP32_COIN_TYPE_RADIX, BIP32_LEAD_WORD},
+};
 
 ///A key-pair from the dalek_ed25519_fiat crate.
 #[derive(ZeroizeOnDrop)]
@@ -29,7 +31,6 @@ pub struct Ed25519KeyPair {
     #[zeroize(skip)]
     key_kind: Bip32KeyKind,
 }
-
 
 impl Ed25519KeyPair {
     pub fn new(
@@ -79,17 +80,44 @@ impl Ed25519KeyPair {
         Ed25519PublicKey(self.public_key.to_bytes().to_owned())
     }
 
-    pub fn bech32_address(&self) -> String {
-        let network_definition= self.network.definition(); 
+    /// Returns the radix-common Ed25519 private key for this account.
+    ///
+    /// This type implements `radix_transactions::signing::Signer`, so it can be passed
+    /// directly to a `TransactionBuilder`'s `sign`/`notarize` methods. The intermediate
+    /// 32-byte buffer is wrapped in `Zeroizing` so the secret is wiped from the stack.
+    pub fn radix_private_key(&self) -> Ed25519PrivateKey {
+        let bytes = Zeroizing::new(self.secret_key.to_bytes());
+        Ed25519PrivateKey::from_bytes(bytes.as_ref())
+            .unwrap_unreachable(debug_info!("Invalid ed25519 private key length"))
+    }
 
-        let virtual_account_address =
-            ComponentAddress::preallocated_account_from_public_key(&self.radixdlt_public_key());
+    /// Signs a pre-computed message hash (e.g. a transaction intent hash), returning a
+    /// radix Ed25519 signature. Transaction building normally goes through
+    /// [`Self::radix_private_key`] + the builder; this is for standalone signing such as ROLA.
+    pub fn sign_hash(&self, hash: &Hash) -> Ed25519Signature {
+        self.radix_private_key().sign(hash)
+    }
+
+    pub fn bech32_address(&self) -> String {
+        let network_definition = self.network.definition();
+
+        // The virtual (pre-allocated) global address depends on the entity kind: an account
+        // key derives an `account_` address, an identity (persona) key an `identity_` address.
+        let public_key = self.radixdlt_public_key();
+        let virtual_address = match &self.entity {
+            Bip32Entity::Account => {
+                ComponentAddress::preallocated_account_from_public_key(&public_key)
+            }
+            Bip32Entity::Identity => {
+                ComponentAddress::preallocated_identity_from_public_key(&public_key)
+            }
+        };
 
         // TODO! Lag en lazy static for address encoder
         let encoder = AddressBech32Encoder::new(&network_definition);
         //We know the data we pass to encode is of type ComponentAddress, this will always be a valid Bech32 address so we call unwrap
         let address = encoder
-            .encode(virtual_account_address.as_ref())
+            .encode(virtual_address.as_ref())
             .unwrap_unreachable(debug_info!("invalid Bech32 address"));
 
         address
@@ -101,10 +129,7 @@ impl Debug for Ed25519KeyPair {
         write!(
             f,
             "Ed25519KeyPair {{ secret_key: *, public_key: {:?}, network: {:?}, entity: {:?}, key_kind: {:?} }}",
-            self.public_key,
-            self.network,
-            self.entity,
-            self.key_kind
+            self.public_key, self.network, self.entity, self.key_kind
         )
     }
 }
@@ -190,5 +215,74 @@ mod test {
             account_address2.as_str(),
             "account_tdx_2_12866llg04px7q2wee02yxcxtdwgtpzdc8n75fermd070u64t98jtnj"
         );
+    }
+
+    #[test]
+    fn test_identity_address_differs_from_account_address() {
+        let mnemonic = Mnemonic::from_phrase(
+            "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis",
+            Language::English,
+        )
+        .unwrap();
+
+        let (account_keypair, _) = Ed25519KeyPair::new(
+            &mnemonic,
+            None,
+            0,
+            Network::Mainnet,
+            Bip32Entity::Account,
+            Bip32KeyKind::TransactionSigning,
+        );
+        let (identity_keypair, _) = Ed25519KeyPair::new(
+            &mnemonic,
+            None,
+            0,
+            Network::Mainnet,
+            Bip32Entity::Identity,
+            Bip32KeyKind::TransactionSigning,
+        );
+
+        let account_address = account_keypair.bech32_address();
+        let identity_address = identity_keypair.bech32_address();
+
+        assert!(account_address.starts_with("account_rdx"));
+        assert!(
+            identity_address.starts_with("identity_rdx"),
+            "got: {identity_address}"
+        );
+        assert_ne!(account_address, identity_address);
+    }
+
+    #[test]
+    fn test_sign_and_verify_hash() {
+        use radix_common::crypto::{hash, verify_ed25519};
+
+        let mnemonic = Mnemonic::from_phrase(
+            "toward point obtain quit degree route beauty magnet hidden cereal reform increase limb measure guide skirt nominee faint shoulder win deal april error axis",
+            Language::English,
+        )
+        .unwrap();
+
+        let (keypair, _) = Ed25519KeyPair::new(
+            &mnemonic,
+            None,
+            0,
+            Network::Mainnet,
+            Bip32Entity::Account,
+            Bip32KeyKind::TransactionSigning,
+        );
+
+        // The radix private key's public key must match the address-deriving public key.
+        let radix_pub = keypair.radix_private_key().public_key();
+        assert_eq!(radix_pub, keypair.radixdlt_public_key());
+
+        // Sign a hash and verify it against that public key.
+        let message_hash = hash(b"mercurium transaction intent");
+        let signature = keypair.sign_hash(&message_hash);
+        assert!(verify_ed25519(&message_hash, &radix_pub, &signature));
+
+        // A different message must not verify against the same signature.
+        let other_hash = hash(b"a different message");
+        assert!(!verify_ed25519(&other_hash, &radix_pub, &signature));
     }
 }

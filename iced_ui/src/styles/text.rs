@@ -2,8 +2,8 @@ use deps::{iced::advanced::graphics::color, *};
 
 use iced::widget::text::Style;
 
-use crate::styles::colors;
 use crate::Theme;
+use crate::styles::colors;
 
 pub fn primary(theme: &Theme) -> Style {
     Style {

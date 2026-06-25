@@ -1,8 +1,8 @@
-use deps::*;
+use deps::{iced::widget::Id, *};
 
 use iced::{
-    widget::{self, text::LineHeight, text_input::Id, Column},
     Length,
+    widget::{self, Column, text::LineHeight},
 };
 use types::crypto::SeedPhrase;
 
@@ -39,7 +39,7 @@ where
             .size(16)
             .width(Length::Fill)
             .line_height(LineHeight::Relative(2.))
-            .id(Id::new(format!("{index}")))
+            .id(Id::from(format!("{index}")))
             .style(styles::text_input::seed_word_input)
             .on_input(move |input| on_input(index, input))
             .on_paste(move |input| on_paste(index, input));

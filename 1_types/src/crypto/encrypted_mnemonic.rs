@@ -6,7 +6,7 @@ use std::num::NonZeroU32;
 use super::{Key, KeySaltPair, KeyType, Password, Salt};
 use bip39::Mnemonic;
 use ring::aead::{
-    Aad, BoundKey, Nonce, NonceSequence, OpeningKey, UnboundKey, AES_256_GCM, NONCE_LEN,
+    AES_256_GCM, Aad, BoundKey, NONCE_LEN, Nonce, NonceSequence, OpeningKey, UnboundKey,
 };
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
@@ -74,7 +74,6 @@ pub struct EncryptedMnemonic {
 }
 
 impl EncryptedMnemonic {
-
     /// Slow constructor, the key derivation uses a high iteration count, it may stall for a significant amount of time.
     /// This should be run as an async operation
     pub fn new(
@@ -137,7 +136,6 @@ impl EncryptedMnemonic {
             .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
 
         //TODO: See if there is a way to zeroize the sealing key
-        
 
         Ok(Self {
             encrypted_seed_phrase: mnemonic_encrypted,
