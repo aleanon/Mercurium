@@ -162,3 +162,14 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
   implementation remains on the signing path.
 - **Consequence:** One fewer unmaintained crypto dependency; the pinned mainnet/stokenet
   account+identity address vectors are byte-for-byte unchanged, proving derivation is identical.
+
+## 2026-07-10 — Defer physical `crypto` crate extraction (hardening plan 2a)
+- **Context:** Plan Phase 2 aimed to move all cryptography into a standalone crate so `ring` is
+  importable nowhere else. The security goal (nonce reuse inexpressible) was delivered in place
+  via `crypto::sealed`.
+- **Decision:** Defer the physical crate move. A clean split hits a `types` ↔ crypto dependency
+  cycle (ed25519 derivation uses `types::Network`; `types::account`/`persona` use crypto), so it
+  would also have to relocate `Network` and would ripple through `iced_ui` (being replaced).
+- **Consequence:** `ring::aead` is confined to three reviewed fresh-nonce-per-seal sites and the
+  misuse-prone `NonceSequence` pattern is gone, but "ring nowhere else" is not yet compiler-
+  enforced. Revisit after Phase 3 (per-crate deps) or the GUI swap.

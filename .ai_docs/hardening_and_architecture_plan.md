@@ -150,6 +150,18 @@ Commits: (2a) extract crypto crate (move, no behaviour change), (2b) misuse-resi
 `seal`/`SealedBlob` + version field, (2c) rewrite EncryptedMnemonic with two nonces,
 (2d) property tests, (2e) ed25519 dep decision.
 
+**Status (2026-07-10): 2b–2e done in place; 2a (physical crate extraction)
+deferred.** The security objective is met without the move: the `crypto::sealed`
+module is the sole `ring::aead` user with a nonce-reuse-proof API, the
+`NonceSequence`/`SealingKey` misuse pattern is gone from the codebase, and the
+two remaining `ring::aead` sites (`profile_backup`, `radix_connect::relay`)
+already seal with a fresh nonce per call. Extracting a standalone `crypto` crate
+is blocked by a `types` ↔ crypto cycle (ed25519 derivation references
+`types::Network`, while `types::account`/`persona` use crypto), so a clean split
+also has to relocate `Network` and ripples through `iced_ui` (which is being
+replaced). Deferred until after Phase 3 (killing `0_deps` makes per-crate deps
+explicit) or the GUI swap, whichever comes first. Tracked in `decision_log.md`.
+
 ---
 
 ## Phase 3 — Dependency direction: kill `0_deps`, de-leak iced, dedup
