@@ -9,6 +9,7 @@ pub(crate) mod key_salt_pair;
 pub(crate) mod password;
 pub(crate) mod public_key;
 pub(crate) mod salt;
+pub(crate) mod sealed;
 pub(crate) mod seedphrase;
 
 pub use bip32_entity::Bip32Entity;

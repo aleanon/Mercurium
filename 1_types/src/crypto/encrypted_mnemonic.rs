@@ -3,145 +3,98 @@ use deps::*;
 use core::str;
 use std::num::NonZeroU32;
 
-use super::{Key, KeySaltPair, KeyType, Password, Salt};
+use super::sealed::{self, SealedBlob};
+use super::{KeySaltPair, KeyType, Password, Salt};
 use bip39::Mnemonic;
-use ring::aead::{
-    AES_256_GCM, Aad, BoundKey, NONCE_LEN, Nonce, NonceSequence, OpeningKey, UnboundKey,
-};
-use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zeroize::Zeroize;
+
+/// Layout version of the [`EncryptedMnemonic`] struct itself (independent of the
+/// AEAD [`SealedBlob`] version). Forward-looking hook; there is no stored data
+/// to migrate today.
+const ENCRYPTED_MNEMONIC_VERSION: u16 = 1;
 
 #[derive(Error, Debug)]
 pub enum EncryptedMnemonicError {
     #[error("Failed to create random value")]
     FailedToCreateRandomValue,
-    #[error("Failed to create unbound key")]
-    FailedToCreateUnboundKey,
     #[error("Failed to encrypt mnemonic")]
     FailedToEncryptData,
     #[error("Failed to decrypt mnemonic")]
     FailedToDecryptData,
     #[error("Failed to parse, invalid utf-8")]
     InvalidUtf8,
-    #[error("Failed to parse EncryptedMnemonic")]
-    FailedToParseEncryptedMnemonic,
-    #[error("Failed to save mnemonic, {0}")]
-    FailedToSaveCredentials(String),
-    #[error("Failed to retrieve Credentials: {0}")]
-    FailedToRetrieveCredentials(String),
-    #[error("Failed to delete Credentials: {0}")]
-    FailedToDeleteCredentials(String),
+    #[error("Unsupported EncryptedMnemonic version: {0}")]
+    UnsupportedVersion(u16),
     #[error("Failed to construct mnemonic")]
     FailedToConstructMnemonic,
 }
 
-struct MnemonicNonceSequence(Nonce);
-
-impl MnemonicNonceSequence {
-    pub fn new() -> Result<Self, EncryptedMnemonicError> {
-        let mut nonce_bytes = [0u8; NONCE_LEN];
-        SystemRandom::new()
-            .fill(&mut nonce_bytes)
-            .map_err(|_| EncryptedMnemonicError::FailedToCreateRandomValue)?;
-
-        Ok(Self(Nonce::assume_unique_for_key(nonce_bytes)))
-    }
-
-    pub fn with_nonce(nonce: &Nonce) -> Self {
-        Self(Nonce::assume_unique_for_key(*nonce.as_ref()))
-    }
-
-    pub fn get_current_as_bytes(&self) -> [u8; NONCE_LEN] {
-        *self.0.as_ref()
+impl From<sealed::SealError> for EncryptedMnemonicError {
+    fn from(err: sealed::SealError) -> Self {
+        match err {
+            sealed::SealError::Rng => Self::FailedToCreateRandomValue,
+            sealed::SealError::Seal | sealed::SealError::KeyInit => Self::FailedToEncryptData,
+            sealed::SealError::Open => Self::FailedToDecryptData,
+            sealed::SealError::UnsupportedVersion(v) => Self::UnsupportedVersion(v),
+        }
     }
 }
 
-impl NonceSequence for MnemonicNonceSequence {
-    fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
-        let nonce = Nonce::assume_unique_for_key(self.get_current_as_bytes());
-        Ok(nonce)
-    }
-}
-
+/// The seed phrase and its optional seed password, each encrypted independently
+/// under the same password-derived key. Each field is its own [`SealedBlob`]
+/// with its **own** fresh nonce, so the two ciphertexts never share a
+/// (key, nonce) pair.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedMnemonic {
-    encrypted_seed_phrase: Vec<u8>,
-    encrypted_seed_password: Vec<u8>,
+    format_version: u16,
+    seed_phrase: SealedBlob,
+    seed_password: SealedBlob,
     salt: Salt,
-    nonce_bytes: [u8; NONCE_LEN],
 }
 
 impl EncryptedMnemonic {
-    /// Slow constructor, the key derivation uses a high iteration count, it may stall for a significant amount of time.
-    /// This should be run as an async operation
+    /// Slow constructor: derives a fresh key+salt from `password` (high PBKDF2
+    /// iteration count — run this off the UI thread).
     pub fn new(
         mnemonic: &Mnemonic,
         seed_password: &str,
         password: &Password,
     ) -> Result<Self, EncryptedMnemonicError> {
-        let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
-        let mut seed_password_encrypted: Vec<u8> = seed_password.into();
         let key_and_salt: KeySaltPair<EncryptedMnemonic> = KeySaltPair::new(password.as_str())
             .map_err(|_err| EncryptedMnemonicError::FailedToCreateRandomValue)?;
-
-        let nonce_sequence = MnemonicNonceSequence::new()?;
-        let nonce = nonce_sequence.get_current_as_bytes();
-
-        let unbound_key = UnboundKey::new(&AES_256_GCM, key_and_salt.key().as_bytes())
-            .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
-        let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
-
-        sealing_key
-            .seal_in_place_append_tag(Aad::empty(), &mut mnemonic_encrypted)
-            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
-
-        sealing_key
-            .seal_in_place_append_tag(Aad::empty(), &mut seed_password_encrypted)
-            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
-
-        //TODO: Investigate zeroizing of the sealing key.
-
-        Ok(Self {
-            encrypted_seed_phrase: mnemonic_encrypted,
-            encrypted_seed_password: seed_password_encrypted,
-            salt: key_and_salt.into_salt(),
-            nonce_bytes: nonce,
-        })
+        Self::seal_with_key_and_salt(mnemonic, seed_password, key_and_salt)
     }
 
-    /// Fast constructor with a pre generated encryption key
+    /// Fast constructor with a pre-generated encryption key + salt.
     pub fn new_with_key_and_salt(
         mnemonic: &Mnemonic,
         seed_password: &str,
         encryption_key_salt: KeySaltPair<EncryptedMnemonic>,
     ) -> Result<Self, EncryptedMnemonicError> {
-        let mut mnemonic_encrypted: Vec<u8> = mnemonic.phrase().into();
-        let mut seed_password_encrypted: Vec<u8> = seed_password.into();
+        Self::seal_with_key_and_salt(mnemonic, seed_password, encryption_key_salt)
+    }
 
-        let nonce_sequence = MnemonicNonceSequence::new()?;
-        let nonce = nonce_sequence.get_current_as_bytes();
+    fn seal_with_key_and_salt(
+        mnemonic: &Mnemonic,
+        seed_password: &str,
+        key_and_salt: KeySaltPair<EncryptedMnemonic>,
+    ) -> Result<Self, EncryptedMnemonicError> {
+        let key = key_and_salt.key().as_bytes();
 
-        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key_salt.key().as_bytes())
-            .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
-        let mut sealing_key = ring::aead::SealingKey::new(unbound_key, nonce_sequence);
+        // Two independent seals, each generating its own fresh nonce internally.
+        let phrase_bytes: Vec<u8> = mnemonic.phrase().into();
+        let seed_phrase = sealed::seal(key, phrase_bytes)?;
 
-        sealing_key
-            .seal_in_place_append_tag(Aad::empty(), &mut mnemonic_encrypted)
-            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
-
-        sealing_key
-            .seal_in_place_append_tag(Aad::empty(), &mut seed_password_encrypted)
-            .map_err(|_| EncryptedMnemonicError::FailedToEncryptData)?;
-
-        //TODO: See if there is a way to zeroize the sealing key
+        let seed_password_bytes: Vec<u8> = seed_password.into();
+        let seed_password = sealed::seal(key, seed_password_bytes)?;
 
         Ok(Self {
-            encrypted_seed_phrase: mnemonic_encrypted,
-            encrypted_seed_password: seed_password_encrypted,
-            salt: encryption_key_salt.into_salt(),
-            nonce_bytes: nonce,
+            format_version: ENCRYPTED_MNEMONIC_VERSION,
+            seed_phrase,
+            seed_password,
+            salt: key_and_salt.into_salt(),
         })
     }
 
@@ -149,42 +102,32 @@ impl EncryptedMnemonic {
         &self,
         password: &Password,
     ) -> Result<(Mnemonic, Password), EncryptedMnemonicError> {
-        let encryption_key: Key<EncryptedMnemonic> = Key::new(password.as_str(), &self.salt);
-        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key.as_bytes())
-            .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
-        let nonce_sequence = MnemonicNonceSequence::with_nonce(&Nonce::assume_unique_for_key(
-            self.nonce_bytes,
-        ));
-        let mut opening_key = OpeningKey::new(unbound_key, nonce_sequence);
+        if self.format_version != ENCRYPTED_MNEMONIC_VERSION {
+            return Err(EncryptedMnemonicError::UnsupportedVersion(
+                self.format_version,
+            ));
+        }
 
-        let mut mnemonic_encrypted = self.encrypted_seed_phrase.clone();
+        let key = KeySaltPair::<EncryptedMnemonic>::from_salt(password.as_str(), self.salt.clone());
+        let key_bytes = key.key().as_bytes();
 
-        let phrase = opening_key
-            .open_in_place(Aad::empty(), &mut mnemonic_encrypted)
-            .map_err(|_| EncryptedMnemonicError::FailedToDecryptData)?;
-
-        let mut phrase =
-            String::from_utf8(phrase.to_vec()).map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
-
+        let mut phrase_bytes = sealed::open(key_bytes, &self.seed_phrase)?;
+        let mut phrase = String::from_utf8(phrase_bytes.clone())
+            .map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
         let mnemonic = Mnemonic::from_phrase(&phrase, bip39::Language::English)
             .map_err(|_| EncryptedMnemonicError::FailedToConstructMnemonic)?;
 
-        let mut seed_password_encrypted = self.encrypted_seed_password.clone();
+        let mut seed_password_bytes = sealed::open(key_bytes, &self.seed_password)?;
+        let seed_password = {
+            let s = str::from_utf8(&seed_password_bytes)
+                .map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
+            Password::from(s)
+        };
 
-        let seed_password_slice = opening_key
-            .open_in_place(Aad::empty(), &mut seed_password_encrypted)
-            .map_err(|_| EncryptedMnemonicError::FailedToDecryptData)?;
-
-        let seed_pw_as_str = std::str::from_utf8(seed_password_slice)
-            .map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
-
-        let seed_password = Password::from(seed_pw_as_str);
-
-        //Zeroize the plaintext mnemonic and encryption key before dropping it
-        //Todo: Investigate zeroizing of the opening key
-        mnemonic_encrypted.zeroize();
-        seed_password_encrypted.zeroize();
+        // Wipe the plaintext copies before returning.
         phrase.zeroize();
+        phrase_bytes.zeroize();
+        seed_password_bytes.zeroize();
 
         Ok((mnemonic, seed_password))
     }
@@ -199,25 +142,15 @@ impl KeyType for EncryptedMnemonic {
 mod test {
     use super::*;
 
-    impl EncryptedMnemonic {
-        pub fn get_cypher_text(&self) -> Vec<u8> {
-            self.encrypted_seed_phrase.clone()
-        }
-    }
-
     #[test]
     fn test_create_encrypted_mnemonic() {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = Password::from("password99");
-        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic.clone(), "", &password)
-            .unwrap_or_else(|err| panic!("{err}"));
+        let encrypted_mnemonic =
+            EncryptedMnemonic::new(&mnemonic, "", &password).unwrap_or_else(|err| panic!("{err}"));
 
-        println!("{:?}\n{:?}", mnemonic, encrypted_mnemonic.get_cypher_text());
-
-        assert_ne!(
-            mnemonic.clone().into_phrase().as_bytes().to_vec(),
-            encrypted_mnemonic.get_cypher_text()[0..mnemonic.phrase().len()]
-        );
+        let (decrypted, _) = encrypted_mnemonic.decrypt_mnemonic(&password).unwrap();
+        assert_eq!(decrypted.phrase(), mnemonic.phrase());
     }
 
     #[test]
@@ -225,15 +158,8 @@ mod test {
         let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
         let password = Password::from("password99");
         let seed_password = "SomePasswordfor74s33dphrases";
-        let encrypted_mnemonic =
-            EncryptedMnemonic::new(&mnemonic.clone(), seed_password, &password)
-                .unwrap_or_else(|err| panic!("{err}"));
-
-        println!(
-            "{} \n{:?}",
-            mnemonic.phrase(),
-            encrypted_mnemonic.encrypted_seed_phrase
-        );
+        let encrypted_mnemonic = EncryptedMnemonic::new(&mnemonic, seed_password, &password)
+            .unwrap_or_else(|err| panic!("{err}"));
 
         let (decrypted_mnemonic, decrypted_password) = encrypted_mnemonic
             .decrypt_mnemonic(&password)
@@ -241,5 +167,27 @@ mod test {
 
         assert_eq!(mnemonic.phrase(), decrypted_mnemonic.phrase());
         assert_eq!(seed_password, decrypted_password.as_str());
+    }
+
+    #[test]
+    fn seed_phrase_and_seed_password_use_distinct_nonces() {
+        // Regression test for the GCM nonce-reuse bug: the two blobs must never
+        // share a nonce, even when both plaintexts happen to be identical.
+        let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
+        let password = Password::from("password99");
+        let em = EncryptedMnemonic::new(&mnemonic, mnemonic.phrase(), &password).unwrap();
+        let json = serde_json::to_value(&em).unwrap();
+        assert_ne!(
+            json["seed_phrase"]["nonce"], json["seed_password"]["nonce"],
+            "the two seals must use distinct nonces"
+        );
+    }
+
+    #[test]
+    fn wrong_password_fails_to_decrypt() {
+        let mnemonic = Mnemonic::new(bip39::MnemonicType::Words24, bip39::Language::English);
+        let em =
+            EncryptedMnemonic::new(&mnemonic, "", &Password::from("correct-horse")).unwrap();
+        assert!(em.decrypt_mnemonic(&Password::from("wrong-horse")).is_err());
     }
 }
