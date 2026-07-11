@@ -80,7 +80,7 @@ impl DataBase {
         self.client
             .conn(f)
             .await
-            .map_err(|err| DbError::AsyncSqliteError(err))
+            .map_err(DbError::AsyncSqliteError)
     }
 
     pub(crate) async fn conn_mut<T, F>(&self, f: F) -> Result<T, DbError>
@@ -91,7 +91,7 @@ impl DataBase {
         self.client
             .conn_mut(f)
             .await
-            .map_err(|err| DbError::AsyncSqliteError(err))
+            .map_err(DbError::AsyncSqliteError)
     }
 
     pub(crate) async fn execute_batch(&self, stmt: &'static str) -> Result<(), DbError> {
@@ -146,7 +146,7 @@ impl DataBase {
         self.client
             .conn(move |conn| conn.prepare_cached(stmt)?.query_row(params, f))
             .await
-            .map_err(|err| DbError::AsyncSqliteError(err))
+            .map_err(DbError::AsyncSqliteError)
     }
 
     pub(crate) async fn query_map<T, U, P, F>(
@@ -167,7 +167,7 @@ impl DataBase {
                     .collect()
             })
             .await
-            .map_err(|err| DbError::AsyncSqliteError(err))
+            .map_err(DbError::AsyncSqliteError)
     }
 }
 
@@ -184,7 +184,7 @@ impl KeyType for DataBase {
 
 #[cfg(test)]
 pub mod test {
-    use std::{fs::File, io::Write};
+    use std::fs::File;
 
     use types::crypto::{KeySaltPair, Password};
 

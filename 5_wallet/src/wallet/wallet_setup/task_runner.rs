@@ -110,7 +110,4 @@ where
         }
     }
 
-    pub fn into_task_state(&mut self) -> TaskState<T, E> {
-        std::mem::replace(&mut self.state, TaskState::NotStarted)
-    }
 }

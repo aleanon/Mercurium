@@ -1,4 +1,4 @@
-pub const CREATE_TABLE_RESOURCES: &'static str = "CREATE TABLE IF NOT EXISTS
+pub const CREATE_TABLE_RESOURCES: &str = "CREATE TABLE IF NOT EXISTS
         resources (
             address BLOB NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
@@ -10,7 +10,7 @@ pub const CREATE_TABLE_RESOURCES: &'static str = "CREATE TABLE IF NOT EXISTS
         )
     ";
 
-pub const UPSERT_RESOURCE: &'static str = "INSERT INTO
+pub const UPSERT_RESOURCE: &str = "INSERT INTO
     resources (
         address,
         name,

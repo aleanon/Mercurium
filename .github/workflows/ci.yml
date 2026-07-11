@@ -52,6 +52,7 @@ jobs:
           -A clippy::partialeq_ne_impl
           -A clippy::non_canonical_partial_ord_impl
           -A clippy::match_like_matches_macro
+          -A clippy::manual_try_fold
 
   # Supply-chain gate. licenses is intentionally omitted; see deny.toml.
   cargo-deny:

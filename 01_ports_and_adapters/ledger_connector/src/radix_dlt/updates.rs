@@ -18,10 +18,6 @@ use types::{
 pub enum UpdateError {
     #[error("Error connecting to gateway\n ∟{0}")]
     GatewayError(#[from] radix_gateway_sdk::Error),
-    #[error("Error parsing response")]
-    ResponseParseError,
-    #[error("Error parsing address")]
-    AddressParseError,
     #[error("No assets found")]
     EmptyResponse,
 }

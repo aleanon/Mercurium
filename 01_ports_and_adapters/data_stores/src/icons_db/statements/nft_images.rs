@@ -1,4 +1,4 @@
-pub const CREATE_TABLE_NFT_IMAGES: &'static str = "CREATE TABLE IF NOT EXISTS
+pub const CREATE_TABLE_NFT_IMAGES: &str = "CREATE TABLE IF NOT EXISTS
     nft_images (
         nfid TEXT NOT NULL PRIMARY KEY,
         image_data BLOB NOT NULL,
@@ -7,7 +7,7 @@ pub const CREATE_TABLE_NFT_IMAGES: &'static str = "CREATE TABLE IF NOT EXISTS
     )
 ";
 
-pub const UPSERT_NFT_IMAGE: &'static str = "INSERT INTO
+pub const UPSERT_NFT_IMAGE: &str = "INSERT INTO
     nft_images (
         nfid,
         image_data,

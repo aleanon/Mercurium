@@ -5,7 +5,7 @@ pub mod resource_images;
 
 use self::{nft_images::CREATE_TABLE_NFT_IMAGES, resource_images::CREATE_TABLE_RESOURCE_IMAGES};
 
-pub const CREATE_ALL_ICONCACHE_TABLES_BATCH: &'static str = const_format::formatcp!(
+pub const CREATE_ALL_ICONCACHE_TABLES_BATCH: &str = const_format::formatcp!(
     "BEGIN;
     {CREATE_TABLE_RESOURCE_IMAGES};
     {CREATE_TABLE_NFT_IMAGES};

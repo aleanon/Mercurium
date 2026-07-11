@@ -17,7 +17,7 @@ use self::{
     resources::CREATE_TABLE_RESOURCES, transaction::CREATE_TABLE_TRANSACTIONS,
 };
 
-pub const CREATE_ALL_MAIN_DB_TABLES_BATCH: &'static str = const_format::formatcp!(
+pub const CREATE_ALL_MAIN_DB_TABLES_BATCH: &str = const_format::formatcp!(
     "BEGIN;
     {CREATE_TABLE_PASSWORD_HASH};
     {CREATE_TABLE_ACCOUNTS};

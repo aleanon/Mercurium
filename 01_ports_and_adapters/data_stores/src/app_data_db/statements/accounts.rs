@@ -1,4 +1,4 @@
-pub const CREATE_TABLE_ACCOUNTS: &'static str = "CREATE TABLE IF NOT EXISTS 
+pub const CREATE_TABLE_ACCOUNTS: &str = "CREATE TABLE IF NOT EXISTS 
     accounts (
         address BLOB NOT NULL PRIMARY KEY,
         id INTEGER NOT NULL,
@@ -13,7 +13,7 @@ pub const CREATE_TABLE_ACCOUNTS: &'static str = "CREATE TABLE IF NOT EXISTS
     )
 ";
 
-pub const UPSERT_ACCOUNT: &'static str = "INSERT INTO 
+pub const UPSERT_ACCOUNT: &str = "INSERT INTO 
     accounts (
         address,
         id,

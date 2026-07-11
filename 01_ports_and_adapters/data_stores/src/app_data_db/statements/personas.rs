@@ -1,4 +1,4 @@
-pub const CREATE_TABLE_PERSONAS: &'static str = "CREATE TABLE IF NOT EXISTS
+pub const CREATE_TABLE_PERSONAS: &str = "CREATE TABLE IF NOT EXISTS
     personas (
         identity_address TEXT NOT NULL PRIMARY KEY,
         id INTEGER NOT NULL,
@@ -11,7 +11,7 @@ pub const CREATE_TABLE_PERSONAS: &'static str = "CREATE TABLE IF NOT EXISTS
     )
 ";
 
-pub const UPSERT_PERSONA: &'static str = "INSERT INTO
+pub const UPSERT_PERSONA: &str = "INSERT INTO
     personas (
         identity_address,
         id,

@@ -1,7 +1,7 @@
 //! Transaction-submission port and its Radix gateway adapter.
 //!
-//! This is the write-side of the ledger connector (the read-side `LedgerConnector` trait lives
-//! in `port.rs`). It is the hexagonal seam for committing transactions: the wallet depends on
+//! This is the write-side of the ledger connector (the read-side lives in `ledger_reader.rs`
+//! and `radix_dlt`). It is the hexagonal seam for committing transactions: the wallet depends on
 //! the [`TransactionGateway`] trait, and [`RadixGateway`] is the concrete adapter backed by the
 //! Radix Gateway API.
 

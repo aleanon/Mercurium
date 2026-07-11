@@ -25,7 +25,7 @@ impl AppDataDb {
         self.transaction(accounts::UPSERT_ACCOUNT, move |cached_stmt| {
             cached_stmt.execute(params![
                 account.address,
-                account.id as i64,
+                { account.id },
                 account.name,
                 account.network,
                 account.derivation_path,
@@ -48,7 +48,7 @@ impl AppDataDb {
             for account in accounts {
                 cached_stmt.execute(params![
                     account.address,
-                    account.id as i64,
+                    { account.id },
                     account.name,
                     account.network,
                     account.derivation_path,
@@ -68,7 +68,7 @@ impl AppDataDb {
         self.transaction(personas::UPSERT_PERSONA, move |cached_stmt| {
             cached_stmt.execute(params![
                 persona.identity_address,
-                persona.id as i64,
+                { persona.id },
                 persona.label,
                 persona.network,
                 persona.derivation_path,
@@ -89,7 +89,7 @@ impl AppDataDb {
             for persona in personas {
                 cached_stmt.execute(params![
                     persona.identity_address,
-                    persona.id as i64,
+                    { persona.id },
                     persona.label,
                     persona.network,
                     persona.derivation_path,
@@ -243,7 +243,7 @@ impl AppDataDb {
                     transaction.id,
                     transaction.transaction_address,
                     transaction.timestamp,
-                    transaction.state_version as i64,
+                    { transaction.state_version },
                 ])?;
             }
             Ok(())
@@ -265,7 +265,7 @@ impl AppDataDb {
                         transaction.id,
                         transaction.transaction_address,
                         transaction.timestamp,
-                        transaction.state_version as i64,
+                        { transaction.state_version },
                     ])?;
 
                     for balance_change in &transaction.balance_changes {
@@ -281,7 +281,7 @@ impl AppDataDb {
                 }
             }
 
-            tx.commit().map_err(|err| err.into())
+            tx.commit()
         })
         .await
     }

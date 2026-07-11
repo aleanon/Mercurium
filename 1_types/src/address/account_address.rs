@@ -6,17 +6,9 @@ use crate::{Network, debug_info};
 
 use super::{Address, AddressError, AddressType};
 use async_sqlite::rusqlite;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use std::str::FromStr;
-
-static MAINNET_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(AccountAddress::MAINNET_REGEX_PATTERN).unwrap());
-
-static STOKENET_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(AccountAddress::STOKENET_REGEX_PATTERN).unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AccountAddress {

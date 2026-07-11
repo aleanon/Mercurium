@@ -1,7 +1,6 @@
 #![forbid(unsafe_code)]
 
 pub mod ledger_reader;
-mod port;
 mod radix_dlt;
 pub mod transaction_gateway;
 

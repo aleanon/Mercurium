@@ -21,10 +21,9 @@ impl AppDataDb {
         self.query_row(
             "SELECT password FROM password_hash WHERE id = 1",
             [],
-            |row| Ok(row.get(0)?),
+            |row| row.get(0),
         )
         .await
-        .map_err(|err| err.into())
     }
 
     pub async fn get_account(&self, account_address: AccountAddress) -> Result<Account, DbError> {
@@ -34,14 +33,13 @@ impl AppDataDb {
             Self::get_account_from_row,
         )
         .await
-        .map_err(|err| err.into())
     }
 
     pub async fn get_account_addresses<T>(&self) -> Result<T, DbError>
     where
         T: FromIterator<AccountAddress> + Send + 'static,
     {
-        self.query_map("SELECT address FROM accounts", [], |row| Ok(row.get(0)?))
+        self.query_map("SELECT address FROM accounts", [], |row| row.get(0))
             .await
     }
 
@@ -369,7 +367,7 @@ impl AppDataDb {
         (transaction_id, balance_change): (TransactionId, BalanceChange),
     ) -> HashMap<TransactionId, Vec<BalanceChange>> {
         map.entry(transaction_id)
-            .or_insert(Vec::new())
+            .or_default()
             .push(balance_change);
         map
     }

@@ -44,9 +44,9 @@ impl SqliteKey {
 }
 
 impl async_sqlite::rusqlite::ToSql for SqliteKey {
-    fn to_sql<'a>(
-        &'a self,
-    ) -> Result<async_sqlite::rusqlite::types::ToSqlOutput, async_sqlite::rusqlite::Error> {
+    fn to_sql(
+        &self,
+    ) -> Result<async_sqlite::rusqlite::types::ToSqlOutput<'_>, async_sqlite::rusqlite::Error> {
         Ok(async_sqlite::rusqlite::types::ToSqlOutput::Borrowed(
             async_sqlite::rusqlite::types::ValueRef::Text(&self.0),
         ))

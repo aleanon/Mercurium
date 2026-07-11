@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use data_stores::{DataBase, IconsDb};
-use secrets_store::SecretsStore;
 use thiserror::Error;
 use types::crypto::{Key, Password};
 

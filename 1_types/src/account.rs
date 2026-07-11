@@ -179,6 +179,9 @@ impl rusqlite::types::ToSql for Settings {
     }
 }
 
+// Radix account deposit-rules model (third-party deposit allow/deny lists).
+// Complete and tested, but not yet wired into a UI flow; kept because the
+// wallet will need it. Remove the allow once it has a consumer.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DepositRules {
     accept_deposits: AcceptDeposits,
@@ -187,6 +190,7 @@ pub struct DepositRules {
     allow_depositors: Option<BTreeSet<AccountAddress>>,
 }
 
+#[allow(dead_code)]
 impl DepositRules {
     pub fn new() -> Self {
         Self::default()
