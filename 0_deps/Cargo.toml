@@ -67,7 +67,6 @@ image = { workspace = true }
 fast_image_resize = { workspace = true }
 tiny-bip39 = { workspace = true }
 slip10_ed25519 = { workspace = true }
-ed25519-dalek-fiat = { workspace = true }
 ring = { workspace = true }
 rand = { workspace = true }
 zeroize = { workspace = true, features = ["zeroize_derive"] }

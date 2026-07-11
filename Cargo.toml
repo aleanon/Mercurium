@@ -81,11 +81,10 @@ bytes = "1.11"
 image = "0.25"
 fast_image_resize = { version = "5.1.3", features = ["image"] }
 # Security-critical crates are pinned to exact versions for reproducible builds.
-# See .ai_docs/hardening_and_architecture_plan.md Phase 0. ed25519-dalek-fiat is
-# revisited in Phase 2 (keep vs. mainstream ed25519-dalek).
+# See .ai_docs/hardening_and_architecture_plan.md Phase 0. (ed25519-dalek-fiat was
+# removed in Phase 2 — ed25519 now goes through radix_common; see decision_log.md.)
 tiny-bip39 = "=2.0.0"
 slip10_ed25519 = "=0.1.3"
-ed25519-dalek-fiat = "=0.1.0"
 rand = "=0.10.1"
 ring = "=0.17.14"
 debug_print = "1.0"

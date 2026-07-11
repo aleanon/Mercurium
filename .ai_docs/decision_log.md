@@ -152,3 +152,13 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
   had no `Cargo.toml` on disk and was never tracked in git.
 - **Decision:** Remove `gpui` from the workspace members in the root `Cargo.toml`.
 - **Consequence:** The workspace builds again; this was the sole blocker, not pervasive breakage.
+
+## 2026-07-10 — Removed `ed25519-dalek-fiat`; ed25519 via `radix_common`
+- **Context:** Hardening plan Phase 2e flagged the unusual `ed25519-dalek-fiat` fork on the
+  wallet's key path. Inspection showed it was used only to derive the public key from the
+  derived secret bytes; signing already went through `radix_common::Ed25519PrivateKey`.
+- **Decision:** Drop the fork. Store the derived secret as `Zeroizing<[u8; 32]>` and derive the
+  public key via `Ed25519PrivateKey::from_bytes(..).public_key()`. No third-party ed25519
+  implementation remains on the signing path.
+- **Consequence:** One fewer unmaintained crypto dependency; the pinned mainnet/stokenet
+  account+identity address vectors are byte-for-byte unchanged, proving derivation is identical.

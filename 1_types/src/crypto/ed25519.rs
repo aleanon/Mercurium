@@ -3,10 +3,9 @@ use deps::*;
 use std::fmt::Debug;
 
 use bip39::{Mnemonic, Seed};
-use ed25519_dalek_fiat::{PublicKey, SecretKey};
 use scrypto::{address::AddressBech32Encoder, crypto::Ed25519PublicKey, types::ComponentAddress};
 use slip10_ed25519::derive_ed25519_private_key;
-use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use radix_common::crypto::{Ed25519PrivateKey, Ed25519Signature, Hash};
 
@@ -18,12 +17,14 @@ use super::{
     derivation_path_indexes::{BIP32_COIN_TYPE_RADIX, BIP32_LEAD_WORD},
 };
 
-///A key-pair from the dalek_ed25519_fiat crate.
+/// An Ed25519 key-pair. The secret is held as raw derived bytes (zeroized on
+/// drop); signing and public-key derivation go through `radix_common`, so no
+/// third-party ed25519 implementation is on the signing path.
 #[derive(ZeroizeOnDrop)]
 pub struct Ed25519KeyPair {
-    secret_key: SecretKey,
+    secret_key: Zeroizing<[u8; 32]>,
     #[zeroize(skip)]
-    public_key: PublicKey,
+    public_key: Ed25519PublicKey,
     #[zeroize(skip)]
     network: Network,
     #[zeroize(skip)]
@@ -54,19 +55,18 @@ impl Ed25519KeyPair {
         ];
 
         //The derive_ed25519_private_key function treats all indexes as hardened
-        let mut priv_key = derive_ed25519_private_key(seed.as_bytes(), derivation_path.as_slice());
+        let priv_key = derive_ed25519_private_key(seed.as_bytes(), derivation_path.as_slice());
 
-        //SecretKey::from_bytes() will only fail if the &[u8] is not of length 32 which it always will be, so unwrap is called
-        let secret_key = SecretKey::from_bytes(&priv_key)
-            .unwrap_unreachable(debug_info!("Invalid secret key length"));
-
-        let public_key = PublicKey::from(&secret_key);
-
-        priv_key.zeroize();
+        // Derive the public key via radix_common (from_bytes only fails on a
+        // wrong length, which cannot happen here), then move the secret bytes
+        // into a Zeroizing buffer so they are wiped on drop.
+        let public_key = Ed25519PrivateKey::from_bytes(&priv_key)
+            .unwrap_unreachable(debug_info!("Invalid ed25519 private key length"))
+            .public_key();
 
         (
             Self {
-                secret_key,
+                secret_key: Zeroizing::new(priv_key),
                 public_key,
                 network,
                 entity,
@@ -77,7 +77,7 @@ impl Ed25519KeyPair {
     }
 
     pub fn radixdlt_public_key(&self) -> Ed25519PublicKey {
-        Ed25519PublicKey(self.public_key.to_bytes().to_owned())
+        self.public_key
     }
 
     /// Returns the radix-common Ed25519 private key for this account.
@@ -86,8 +86,7 @@ impl Ed25519KeyPair {
     /// directly to a `TransactionBuilder`'s `sign`/`notarize` methods. The intermediate
     /// 32-byte buffer is wrapped in `Zeroizing` so the secret is wiped from the stack.
     pub fn radix_private_key(&self) -> Ed25519PrivateKey {
-        let bytes = Zeroizing::new(self.secret_key.to_bytes());
-        Ed25519PrivateKey::from_bytes(bytes.as_ref())
+        Ed25519PrivateKey::from_bytes(self.secret_key.as_ref())
             .unwrap_unreachable(debug_info!("Invalid ed25519 private key length"))
     }
 
