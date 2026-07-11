@@ -19,9 +19,9 @@ impl From<RadixDecimal> for Decimal {
     }
 }
 
-impl Into<RadixDecimal> for Decimal {
-    fn into(self) -> RadixDecimal {
-        self.0
+impl From<Decimal> for RadixDecimal {
+    fn from(val: Decimal) -> Self {
+        val.0
     }
 }
 

@@ -11,6 +11,12 @@ pub struct AppSettings {
     pub network: Network,
 }
 
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppSettings {
     const MAX_LOGIN_ATTEMPTS_DEFAULT: usize = 1000;
 

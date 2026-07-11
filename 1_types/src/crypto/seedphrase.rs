@@ -8,6 +8,12 @@ use crate::{debug_info, unwrap_unreachable::UnwrapUnreachable};
 #[derive(Debug, Clone, ZeroizeOnDrop, Zeroize, PartialEq, Eq)]
 pub struct SeedPhrase([[u8; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT]);
 
+impl Default for SeedPhrase {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SeedPhrase {
     ///24 words with max length of 8 plus whitespaces, including a trailing whitespace
     const MAX_PHRASE_LENGTH: usize = 216;
@@ -104,6 +110,12 @@ impl SeedPhrase {
 #[derive(Debug, ZeroizeOnDrop)]
 pub struct Phrase(String);
 
+impl Default for Phrase {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Phrase {
     //The Phrase is created with SeedPhrase max length to avoid possible re-allocations
     //as this can interfere with the ZeroizeOnDrop trait
@@ -117,7 +129,7 @@ impl Phrase {
 
     pub fn push_str(&mut self, str: &str) {
         self.0
-            .push_str(&str[..SeedPhrase::MAX_PHRASE_LENGTH - &self.0.len()])
+            .push_str(&str[..SeedPhrase::MAX_PHRASE_LENGTH - self.0.len()])
     }
 }
 

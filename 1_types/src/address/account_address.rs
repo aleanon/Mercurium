@@ -162,7 +162,7 @@ impl<'de> Deserialize<'de> for AccountAddress {
         use serde::de::Error;
         let slice: &[u8] = Deserialize::deserialize(deserializer)?;
 
-        Ok(Self::try_from(slice).map_err(|err| Error::custom(err))?)
+        Self::try_from(slice).map_err(Error::custom)
     }
 }
 
@@ -180,7 +180,7 @@ impl rusqlite::types::FromSql for AccountAddress {
 impl rusqlite::types::ToSql for AccountAddress {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Borrowed(
-            rusqlite::types::ValueRef::Blob(&self.as_bytes()),
+            rusqlite::types::ValueRef::Blob(self.as_bytes()),
         ))
     }
 }

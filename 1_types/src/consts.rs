@@ -1,1 +1,1 @@
-pub const APPLICATION_NAME: &'static str = "Mercurium";
+pub const APPLICATION_NAME: &str = "Mercurium";

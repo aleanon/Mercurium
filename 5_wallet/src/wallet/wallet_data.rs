@@ -61,7 +61,7 @@ impl WalletData {
         &mut self,
         account_name: String,
         password: Password,
-        key: Key<DataBase>,
+        _key: Key<DataBase>,
         db: AppDataDb,
     ) -> JoinHandle<Result<Account, AppError>> {
         let (id, derivation_index) = self.resource_data.accounts.values().fold(

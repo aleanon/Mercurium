@@ -116,11 +116,11 @@ impl Ed25519KeyPair {
         // TODO! Lag en lazy static for address encoder
         let encoder = AddressBech32Encoder::new(&network_definition);
         //We know the data we pass to encode is of type ComponentAddress, this will always be a valid Bech32 address so we call unwrap
-        let address = encoder
-            .encode(virtual_address.as_ref())
-            .unwrap_unreachable(debug_info!("invalid Bech32 address"));
+        
 
-        address
+        encoder
+            .encode(virtual_address.as_ref())
+            .unwrap_unreachable(debug_info!("invalid Bech32 address"))
     }
 }
 
@@ -279,10 +279,10 @@ mod test {
         // Sign a hash and verify it against that public key.
         let message_hash = hash(b"mercurium transaction intent");
         let signature = keypair.sign_hash(&message_hash);
-        assert!(verify_ed25519(&message_hash, &radix_pub, &signature));
+        assert!(verify_ed25519(message_hash, &radix_pub, &signature));
 
         // A different message must not verify against the same signature.
         let other_hash = hash(b"a different message");
-        assert!(!verify_ed25519(&other_hash, &radix_pub, &signature));
+        assert!(!verify_ed25519(other_hash, &radix_pub, &signature));
     }
 }

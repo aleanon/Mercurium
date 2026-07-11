@@ -47,9 +47,9 @@ impl Network {
     }
 }
 
-impl Into<radix_gateway_sdk::Network> for Network {
-    fn into(self) -> radix_gateway_sdk::Network {
-        match self {
+impl From<Network> for radix_gateway_sdk::Network {
+    fn from(val: Network) -> Self {
+        match val {
             Network::Mainnet => radix_gateway_sdk::Network::Mainnet,
             Network::Stokenet => radix_gateway_sdk::Network::Stokenet,
         }

@@ -172,7 +172,7 @@ mod tests {
 
         let message_hash = hash(b"intent");
         let signature = factor.sign_account(&account, &message_hash).unwrap();
-        assert!(verify_ed25519(&message_hash, &public_key, &signature));
+        assert!(verify_ed25519(message_hash, &public_key, &signature));
     }
 
     #[test]

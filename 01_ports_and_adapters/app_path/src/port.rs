@@ -1,8 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use thiserror::Error;
 
-use crate::app_path_inner::AppPathInner;
 
 #[derive(Error, Debug)]
 pub enum Error {

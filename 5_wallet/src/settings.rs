@@ -12,6 +12,12 @@ pub struct Settings {
     pub max_login_attempts: usize,
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Settings {
     const DEFAULT_MAX_LOGIN_ATTEMPTS: usize = 100;
 

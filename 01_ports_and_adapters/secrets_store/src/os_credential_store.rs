@@ -21,9 +21,9 @@ const SALT_TARGET_NAME: &'static str = "l4h4c5aPo1ULu3dLQjCYrq2TJNY3wZiYwGL4jTOZ
 const ENCRYPTED_MNEMONIC_TARGET_NAME: &'static str = "Bk3oMH8tphurhYE3b/U/a4k03oefVrATNCFvWKz6FxA=";
 
 #[cfg(unix)]
-const SALT_TARGET_NAME: &'static str = "db_salt.json";
+const SALT_TARGET_NAME: &str = "db_salt.json";
 #[cfg(unix)]
-const ENCRYPTED_MNEMONIC_TARGET_NAME: &'static str = "mnemonic.json";
+const ENCRYPTED_MNEMONIC_TARGET_NAME: &str = "mnemonic.json";
 
 /// The default OS-backed secrets store. Holds the injected [`AppPathInner`] (used on Unix to
 /// locate the config directory; ignored on Windows, which uses the Credential Manager).

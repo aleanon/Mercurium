@@ -1,4 +1,3 @@
-use deps::*;
 
 use std::path::{Path, PathBuf};
 
@@ -95,18 +94,18 @@ impl AppPathInner {
             std::fs::DirBuilder::new()
                 .recursive(true)
                 .create(&self.db_directory)
-                .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
+                .map_err(AppPathError::UnableToCreateDirectory)?;
         }
 
         if !self.icons_directory.exists() {
             std::fs::DirBuilder::new()
                 .create(&self.icons_directory)
-                .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
+                .map_err(AppPathError::UnableToCreateDirectory)?;
         }
         if !self.config_directory.exists() {
             std::fs::DirBuilder::new()
                 .create(&self.config_directory)
-                .map_err(|err| AppPathError::UnableToCreateDirectory(err))?;
+                .map_err(AppPathError::UnableToCreateDirectory)?;
         }
 
         Ok(self)

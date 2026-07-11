@@ -205,7 +205,7 @@ mod tests {
         );
         let message_hash = radix_common::crypto::hash(payload);
         assert!(verify_ed25519(
-            &message_hash,
+            message_hash,
             &proof.public_key,
             &proof.signature
         ));

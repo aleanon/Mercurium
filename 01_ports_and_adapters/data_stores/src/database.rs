@@ -210,7 +210,7 @@ pub mod test {
 
     #[tokio::test]
     async fn test_set_database_key() {
-        File::create("./mock.db").unwrap().write(&[]).unwrap();
+        File::create("./mock.db").unwrap();
 
         let key = KeySaltPair::new(Password::from("SomePasswordtype").as_str())
             .unwrap()

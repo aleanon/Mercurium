@@ -42,9 +42,9 @@ impl DerefMut for Tags {
     }
 }
 
-impl Into<Vec<String>> for Tags {
-    fn into(self) -> Vec<String> {
-        self.0
+impl From<Tags> for Vec<String> {
+    fn from(val: Tags) -> Self {
+        val.0
     }
 }
 
@@ -58,8 +58,8 @@ impl rusqlite::types::FromSql for Tags {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         let blob = value.as_blob()?;
 
-        Ok(serde_json::from_slice(blob)
-            .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))?)
+        serde_json::from_slice(blob)
+            .map_err(|err| rusqlite::types::FromSqlError::Other(Box::new(err)))
     }
 }
 

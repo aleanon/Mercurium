@@ -56,11 +56,11 @@ impl Persona {
 
     pub fn derivation_path(&self) -> [u32; 6] {
         let mut path = [0u32; 6];
-        for i in 0..path.len() {
+        for (i, slot) in path.iter_mut().enumerate() {
             let bytes = self.derivation_path[i * 4..i * 4 + 4]
                 .try_into()
                 .expect("derivation path slice is 4 bytes");
-            path[i] = u32::from_be_bytes(bytes);
+            *slot = u32::from_be_bytes(bytes);
         }
         path
     }

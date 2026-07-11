@@ -28,7 +28,7 @@ where
     pub fn from_salt(source: &str, salt: Salt) -> Self {
         Self {
             key: Key::new(source, &salt),
-            salt: salt,
+            salt,
         }
     }
 

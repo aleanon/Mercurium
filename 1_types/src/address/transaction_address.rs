@@ -158,7 +158,7 @@ impl<'de> Deserialize<'de> for TransactionAddress {
         use serde::de::Error;
         let slice: &[u8] = Deserialize::deserialize(deserializer)?;
 
-        Ok(Self::try_from(slice).map_err(|err| Error::custom(err))?)
+        Self::try_from(slice).map_err(Error::custom)
     }
 }
 
@@ -176,7 +176,7 @@ impl rusqlite::types::FromSql for TransactionAddress {
 impl rusqlite::types::ToSql for TransactionAddress {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Borrowed(
-            rusqlite::types::ValueRef::Blob(&self.as_bytes()),
+            rusqlite::types::ValueRef::Blob(self.as_bytes()),
         ))
     }
 }

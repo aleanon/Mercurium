@@ -10,7 +10,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use crate::debug_info;
 use crate::unwrap_unreachable::UnwrapUnreachable;
 
-use super::{encryption_error::CryptoError, key::Key, salt::Salt};
+use super::{encryption_error::CryptoError, salt::Salt};
 
 #[derive(Debug, Error)]
 pub enum PasswordError {
@@ -275,7 +275,7 @@ mod tests {
 
         let to_long_password =
             "tolongpasswordthatshouldbecutoffbeforethefullpasswordiscopiedinthshouldbecut";
-        password.push_str(&to_long_password);
+        password.push_str(to_long_password);
 
         assert_eq!(password.len(), Password::MAX_LEN);
         assert_eq!(capacity_before_change, password.0.capacity())

@@ -8,6 +8,12 @@ pub struct NewAssets {
     pub new_non_fungibles: NewNonFungibles,
 }
 
+impl Default for NewAssets {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NewAssets {
     pub fn new() -> Self {
         Self {
@@ -25,6 +31,12 @@ impl NewAssets {
 
 #[derive(Debug)]
 pub struct NewNonFungibles(pub HashMap<ResourceAddress, Vec<String>>);
+
+impl Default for NewNonFungibles {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl NewNonFungibles {
     pub fn new() -> Self {

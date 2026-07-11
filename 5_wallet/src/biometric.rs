@@ -14,7 +14,6 @@
 //!
 //! [`AppLock`]: types::AppLock
 
-use deps::*;
 
 use types::AppLock;
 

@@ -41,11 +41,10 @@ impl PartialOrd for FungibleAsset {
 
 impl Ord for FungibleAsset {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if let ResourceAddress::Mainnet(addr) = other.resource_address {
-            if &addr == XRD {
+        if let ResourceAddress::Mainnet(addr) = other.resource_address
+            && &addr == XRD {
                 return Ordering::Less;
             }
-        }
         self.resource_address.cmp(&other.resource_address)
     }
 }

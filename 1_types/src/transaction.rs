@@ -79,7 +79,7 @@ impl Transaction {
         message: Option<String>,
     ) -> Self {
         Self {
-            id: TransactionId::new(&account_address, &transaction_address),
+            id: TransactionId::new(account_address, &transaction_address),
             transaction_address,
             timestamp,
             state_version,
@@ -219,13 +219,6 @@ impl TimeStamp {
 
     pub fn year(&self) -> u16 {
         self.0[0] as u16 * 100 + self.0[1] as u16
-    }
-
-    pub fn to_string(&self) -> String {
-        format!(
-            "{}{}-{}-{} {}:{}:{}",
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], self.0[6]
-        )
     }
 }
 

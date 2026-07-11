@@ -6,7 +6,7 @@ use fast_image_resize::{
 
 use std::io::{BufWriter, Cursor};
 
-use image::{DynamicImage, ImageEncoder, codecs::png::PngEncoder};
+use image::{DynamicImage, ImageEncoder};
 
 const IMAGE_BIG_WIDTH: u32 = 250;
 const IMAGE_BIG_HEIGHT: u32 = 250;

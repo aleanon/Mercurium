@@ -50,11 +50,11 @@ impl MnemonicNonceSequence {
     }
 
     pub fn with_nonce(nonce: &Nonce) -> Self {
-        Self(Nonce::assume_unique_for_key(nonce.as_ref().clone()))
+        Self(Nonce::assume_unique_for_key(*nonce.as_ref()))
     }
 
     pub fn get_current_as_bytes(&self) -> [u8; NONCE_LEN] {
-        self.0.as_ref().clone()
+        *self.0.as_ref()
     }
 }
 
@@ -150,10 +150,10 @@ impl EncryptedMnemonic {
         password: &Password,
     ) -> Result<(Mnemonic, Password), EncryptedMnemonicError> {
         let encryption_key: Key<EncryptedMnemonic> = Key::new(password.as_str(), &self.salt);
-        let unbound_key = UnboundKey::new(&AES_256_GCM, &encryption_key.as_bytes())
+        let unbound_key = UnboundKey::new(&AES_256_GCM, encryption_key.as_bytes())
             .map_err(|_| EncryptedMnemonicError::FailedToCreateUnboundKey)?;
         let nonce_sequence = MnemonicNonceSequence::with_nonce(&Nonce::assume_unique_for_key(
-            self.nonce_bytes.clone(),
+            self.nonce_bytes,
         ));
         let mut opening_key = OpeningKey::new(unbound_key, nonce_sequence);
 
@@ -175,7 +175,7 @@ impl EncryptedMnemonic {
             .open_in_place(Aad::empty(), &mut seed_password_encrypted)
             .map_err(|_| EncryptedMnemonicError::FailedToDecryptData)?;
 
-        let seed_pw_as_str = std::str::from_utf8(&seed_password_slice)
+        let seed_pw_as_str = std::str::from_utf8(seed_password_slice)
             .map_err(|_| EncryptedMnemonicError::InvalidUtf8)?;
 
         let seed_password = Password::from(seed_pw_as_str);
@@ -226,7 +226,7 @@ mod test {
         let password = Password::from("password99");
         let seed_password = "SomePasswordfor74s33dphrases";
         let encrypted_mnemonic =
-            EncryptedMnemonic::new(&mnemonic.clone(), &seed_password, &password)
+            EncryptedMnemonic::new(&mnemonic.clone(), seed_password, &password)
                 .unwrap_or_else(|err| panic!("{err}"));
 
         println!(

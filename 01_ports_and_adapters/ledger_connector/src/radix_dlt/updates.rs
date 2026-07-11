@@ -130,7 +130,7 @@ async fn update_account(
 ) -> (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>) {
     let balances_last_updated_at_state_version = account.balances_last_updated.unwrap_or(0);
     // TODO get transactions
-    let transactions_last_updated = account.transactions_last_updated;
+    let _transactions_last_updated = account.transactions_last_updated;
 
     // The account address should be used througout tasks and is never mutated or removed from the Account struct.
     // by the end of this function all tasks will be completed, so the UnsafeRef will never be used while the reference is not valid
@@ -157,8 +157,7 @@ async fn update_account(
     });
     let (new_state_version_fungible_balances, fungible_assets, new_fungible_resources) =
         fungible_assets_task
-            .await
-            .and_then(|result| Ok(result.unwrap_or((0, HashMap::new(), HashMap::new()))))
+            .await.map(|result| result.unwrap_or((0, HashMap::new(), HashMap::new())))
             .unwrap_or_else(|err| {
                 debug_println!("Failed to update fungible assets: {}", err);
                 (0, HashMap::new(), HashMap::new())
@@ -166,8 +165,7 @@ async fn update_account(
 
     let (new_state_version_non_fungible_balances, non_fungible_assets, new_non_fungible_resources) =
         non_fungible_assets_task
-            .await
-            .and_then(|result| Ok(result.unwrap_or((0, HashMap::new(), HashMap::new()))))
+            .await.map(|result| result.unwrap_or((0, HashMap::new(), HashMap::new())))
             .unwrap_or_else(|err| {
                 debug_println!("Failed to get Non fungible assets {}", err);
                 (0, HashMap::new(), HashMap::new())
@@ -207,7 +205,7 @@ pub async fn update_resources(
                     .collect::<Vec<_>>();
 
                 let response =
-                    gateway_requests::get_entity_details(network.into(), &addresses).await?;
+                    gateway_requests::get_entity_details(network, &addresses).await?;
 
                 let new_resources = response
                     .items
@@ -265,7 +263,7 @@ pub async fn update_fungible_assets_and_resources_for_account(
         })
         .collect::<Vec<ResourceAddress>>();
 
-    let new_resources = update_resources(network.into(), new_resource_addresses).await;
+    let new_resources = update_resources(network, new_resource_addresses).await;
 
     Ok::<_, UpdateError>((state_version, assets, new_resources))
 }
@@ -294,7 +292,7 @@ pub async fn update_fungible_balances_for_account(
             let parsed = parse_responses::parse_fungible_balances_response(
                 response,
                 last_updated_at_state_version,
-                &account_address,
+                account_address,
             );
             result.1.extend(parsed);
             break;
@@ -315,7 +313,7 @@ pub async fn update_fungible_balances_for_account(
             let parsed = parse_responses::parse_fungible_balances_response(
                 response,
                 last_updated_at_state_version,
-                &account_address,
+                account_address,
             );
             result.1.extend(parsed);
 
@@ -429,7 +427,7 @@ pub async fn update_non_fungible_assets_for_account(
             let parsed = parse_responses::parse_non_fungible_balances_response_without_nfids(
                 response,
                 last_updated_at_state_version,
-                &account_address,
+                account_address,
             );
             result.1.extend(parsed);
             break;
@@ -450,7 +448,7 @@ pub async fn update_non_fungible_assets_for_account(
             let parsed = parse_responses::parse_non_fungible_balances_response_without_nfids(
                 response,
                 last_updated_at_state_version,
-                &account_address,
+                account_address,
             );
             result.1.extend(parsed);
 
@@ -574,7 +572,7 @@ async fn update_non_fungible_ids_for_asset(
                     .non_fungible_ids_collection
                     .items
                     .into_iter()
-                    .map(|id| NFT::new(id)),
+                    .map(NFT::new),
             );
             break;
         } else {
@@ -599,7 +597,7 @@ async fn update_non_fungible_ids_for_asset(
                     .non_fungible_ids_collection
                     .items
                     .into_iter()
-                    .map(|id| NFT::new(id)),
+                    .map(NFT::new),
             );
 
             match next_response.await {
@@ -729,7 +727,7 @@ mod tests {
         let new_non_fungibles = account_entities.non_fungibles;
         let new_resources = updated_accounts_entities.new_resources;
 
-        assert!(new_fungibles.len() != 0);
+        assert!(!new_fungibles.is_empty());
         assert_eq!(
             new_resources.len(),
             new_fungibles.len() + new_non_fungibles.len()

@@ -32,6 +32,12 @@ pub struct Setup {
     pub setup_tasks: Arc<TaskManager>,
 }
 
+impl Default for Setup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Setup {
     pub fn new() -> Self {
         Self {
@@ -143,7 +149,7 @@ impl Setup {
     }
 
     pub async fn get_keys_with_salt(&self) -> Result<WalletEncryptionKeys, SetupError> {
-        if let None = &self.password {
+        if self.password.is_none() {
             return Err(SetupError::NoPasswordProvided);
         };
 
@@ -151,7 +157,7 @@ impl Setup {
     }
 
     pub async fn get_updated_accounts(&self) -> Result<AccountsUpdate, SetupError> {
-        if let None = &self.mnemonic_with_password {
+        if self.mnemonic_with_password.is_none() {
             return Err(SetupError::NoMnemonicProvided);
         };
 
@@ -284,7 +290,7 @@ fn save_updated_accounts_to_resource_data(
         let Some(account_update) = accounts_update
             .account_updates
             .iter_mut()
-            .find(|account_update| &account_update.account.address == &account.address)
+            .find(|account_update| account_update.account.address == account.address)
         else {
             continue;
         };

@@ -184,15 +184,15 @@ pub(crate) fn create_account_from_mnemonic(
     let account_address = AccountAddress::from_str(account_address.as_str())
         .unwrap_unreachable(debug_info!("Invalid account address"));
 
-    let account = Account::new(
+    
+    Account::new(
         id,
         account_name,
         network,
         path,
         account_address,
         radixdlt_pub_key,
-    );
-    account
+    )
 }
 
 #[cfg(test)]

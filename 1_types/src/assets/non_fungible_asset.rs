@@ -34,11 +34,11 @@ impl NonFungibleAsset {
     }
 
     pub fn take_nfts(&mut self) -> NFTs {
-        std::mem::replace(&mut self.nfids, NFTs::new())
+        std::mem::take(&mut self.nfids)
     }
 
     pub fn nft_id_as_string(&mut self) -> Vec<String> {
-        std::mem::replace(&mut self.nfids, NFTs::new())
+        std::mem::take(&mut self.nfids)
             .into_iter()
             .map(|nfid| nfid.id)
             .collect()
@@ -80,6 +80,12 @@ impl Ord for NonFungibleAsset {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NFTs(Vec<NFT>);
+
+impl Default for NFTs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl NFTs {
     pub fn new() -> Self {

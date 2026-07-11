@@ -88,25 +88,25 @@ where
 
     async fn get_result(&mut self) -> Result<T, E> {
         match &mut self.state {
-            TaskState::NotStarted => return Err(TaskError::TaskNotStarted.into()),
+            TaskState::NotStarted => Err(TaskError::TaskNotStarted.into()),
             TaskState::Running(handle) => match handle.await {
                 Ok(result) => match result {
                     Ok(value) => {
                         self.state = TaskState::Complete(value.clone());
-                        return Ok(value);
+                        Ok(value)
                     }
                     Err(err) => {
                         self.state = TaskState::Failed;
-                        return Err(err);
+                        Err(err)
                     }
                 },
                 Err(_) => {
                     self.state = TaskState::Failed;
-                    return Err(TaskError::FailedToJoinTask.into());
+                    Err(TaskError::FailedToJoinTask.into())
                 }
             },
-            TaskState::Complete(value) => return Ok(value.clone()),
-            TaskState::Failed => return Err(TaskError::TaskFailed.into()),
+            TaskState::Complete(value) => Ok(value.clone()),
+            TaskState::Failed => Err(TaskError::TaskFailed.into()),
         }
     }
 

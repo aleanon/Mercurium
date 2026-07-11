@@ -28,8 +28,7 @@ pub fn parse_resource_details_response(
     let (current_supply, divisibility) = response
         .details
         .and_then(|details| {
-            serde_json::from_value::<ResourceDetails>(details.0)
-                .and_then(|details| Ok((details.total_supply, details.divisibility)))
+            serde_json::from_value::<ResourceDetails>(details.0).map(|details| (details.total_supply, details.divisibility))
                 .ok()
         })
         .unwrap_or((String::new(), None));
@@ -117,7 +116,7 @@ pub fn parse_fungible_balances_response(
             let resource_address = ResourceAddress::from_str(&fungible.resource_address).ok()?;
 
             let asset =
-                FungibleAsset::new(&account_address, fungible.amount, resource_address.clone());
+                FungibleAsset::new(account_address, fungible.amount, resource_address.clone());
 
             Some((resource_address, asset))
         })
@@ -147,7 +146,7 @@ pub fn parse_non_fungible_balances_response_without_nfids(
                 ResourceAddress::from_str(collection_item.resource_address.as_str()).ok()?;
 
             // This collection should always return one element
-            if collection_item.vaults.items.len() > 0 {
+            if !collection_item.vaults.items.is_empty() {
                 let vault = collection_item.vaults.items.remove(0);
                 if vault.last_updated_at_state_version < last_updated_at_state_version {
                     return None;
@@ -176,10 +175,7 @@ pub fn parse_non_fungibles_data_response_for_asset(
         .map(|non_fungible| {
             let id = non_fungible.non_fungible_id;
             let nft_data = non_fungible
-                .data
-                .and_then(|data| {
-                    Some(
-                        serde_json::from_value::<NFIdData>(data.programmatic_json.0)
+                .data.map(|data| serde_json::from_value::<NFIdData>(data.programmatic_json.0)
                             .unwrap_or_else(|err| {
                                 debug_println!(
                                     "{}{}:{}",
@@ -188,9 +184,7 @@ pub fn parse_non_fungibles_data_response_for_asset(
                                     err
                                 );
                                 NFIdData { fields: Vec::new() }
-                            }),
-                    )
-                })
+                            }))
                 .unwrap();
 
             NFT::from_nfid_data(id, nft_data.fields)

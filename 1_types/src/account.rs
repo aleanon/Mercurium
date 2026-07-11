@@ -78,11 +78,11 @@ impl Account {
     pub fn derivation_path(&self) -> [u32; 6] {
         let mut path = [0u32; 6];
 
-        for i in 0..path.len() {
+        for (i, slot) in path.iter_mut().enumerate() {
             let bytes = self.derivation_path[i * 4..i * 4 + 4]
                 .try_into()
                 .unwrap_unreachable(debug_info!("Failed to convert derivation path from bytes"));
-            path[i] = u32::from_be_bytes(bytes);
+            *slot = u32::from_be_bytes(bytes);
         }
 
         path
@@ -152,17 +152,11 @@ impl Ord for Account {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub struct Settings {
     pub(super) third_party_deposits: DepositRules,
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            third_party_deposits: DepositRules::default(),
-        }
-    }
-}
 
 impl rusqlite::types::FromSql for Settings {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
@@ -247,7 +241,7 @@ impl DepositRules {
     pub fn remove_depositor(&mut self, depositor_address: AccountAddress) {
         if let Some(ref mut tree) = self.allow_depositors {
             tree.remove(&depositor_address);
-            if tree.len() == 0 {
+            if tree.is_empty() {
                 self.allow_depositors = None
             };
         }
@@ -308,7 +302,7 @@ mod test {
 
     use super::Account;
 
-    use rand;
+    
 
     #[test]
     fn test_derivation_path() {
@@ -320,7 +314,7 @@ mod test {
             0,
             "test".to_owned(),
             super::Network::Mainnet,
-            derivation_path.clone(),
+            derivation_path,
             AccountAddress::empty(super::Network::Mainnet),
             public_key,
         );
@@ -348,7 +342,7 @@ mod test {
                 0,
                 "test".to_owned(),
                 super::Network::Mainnet,
-                derivation_path.clone(),
+                derivation_path,
                 AccountAddress::empty(super::Network::Mainnet),
                 public_key,
             );

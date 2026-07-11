@@ -165,7 +165,7 @@ pub async fn get_non_fungible_data(
             let addresses: Vec<&str> = chunk.iter().map(|address| address.as_str()).collect();
             Client::new(network.into(), None, None)?
                 .get_inner_client()
-                .non_fungible_data(addresses.as_slice(), &*resource_address)
+                .non_fungible_data(addresses.as_slice(), &resource_address)
                 .into_future()
                 .await
         })
@@ -279,7 +279,7 @@ mod tests {
         .unwrap();
 
         let response = match get_fungible_balances_for_entity(
-            network.into(),
+            network,
             account_address.as_str(),
             None,
             None,
@@ -297,7 +297,7 @@ mod tests {
 
         if cursor.is_some() {
             let response = match get_fungible_balances_for_entity(
-                network.into(),
+                network,
                 account_address.as_str(),
                 cursor,
                 ledger_state,

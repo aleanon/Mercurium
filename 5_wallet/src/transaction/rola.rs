@@ -122,7 +122,7 @@ mod tests {
         let payload = rola_payload(&challenge, dapp, origin);
         let message_hash = hash(payload);
         assert!(verify_ed25519(
-            &message_hash,
+            message_hash,
             &signed.public_key,
             &signed.signature
         ));
@@ -131,7 +131,7 @@ mod tests {
         let tampered = rola_payload(&challenge, dapp, "https://evil.com");
         let tampered_hash = hash(tampered);
         assert!(!verify_ed25519(
-            &tampered_hash,
+            tampered_hash,
             &signed.public_key,
             &signed.signature
         ));

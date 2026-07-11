@@ -3,7 +3,6 @@ use deps::{debug_print::debug_println, *};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Debug,
-    sync::Arc,
 };
 
 use debug_print::debug_eprintln;
@@ -45,23 +44,23 @@ impl TaskManager {
     }
 
     pub async fn get_accounts_update(&self) -> Result<AccountsUpdate, SetupError> {
-        Ok(self.accounts_update.get_result().await?)
+        self.accounts_update.get_result().await
     }
 
     pub async fn get_wallet_encryption_keys(&self) -> Result<WalletEncryptionKeys, SetupError> {
-        Ok(self.wallet_keys_and_salt.get_result().await?)
+        self.wallet_keys_and_salt.get_result().await
     }
 
     pub async fn get_accounts_with_summary(
         &self,
     ) -> Result<Vec<(Account, AccountSummary)>, SetupError> {
-        Ok(self.accounts.get_result().await?)
+        self.accounts.get_result().await
     }
 
     pub async fn get_icons_data(
         &self,
     ) -> Result<HashMap<ResourceAddress, (Vec<u8>, Vec<u8>)>, SetupError> {
-        Ok(self.icons_data.get_result().await?)
+        self.icons_data.get_result().await
     }
 
     pub async fn run_task_create_encryption_keys(&self, task_id: u16, password: Password) {
@@ -124,8 +123,7 @@ impl TaskManager {
         network: Network,
     ) -> Vec<Account> {
         let password_as_str = seed_password
-            .as_ref()
-            .and_then(|password| Some(password.as_str()));
+            .as_ref().map(|password| password.as_str());
 
         create_multiple_accounts_from_mnemonic::<Vec<_>>(
             &mnemonic,
@@ -146,7 +144,7 @@ impl TaskManager {
         ledger_connector::radix_transaction_gateway(network)
             .update_accounts(accounts, HashMap::new())
             .await
-            .map_err(|err| SetupError::Unspecified)
+            .map_err(|_err| SetupError::Unspecified)
     }
 
     async fn accounts_with_summaries(
@@ -156,8 +154,8 @@ impl TaskManager {
             .account_updates
             .iter()
             .map(|account_update| {
-                let summary = if account_update.fungibles.len() == 0
-                    && account_update.non_fungibles.len() == 0
+                let summary = if account_update.fungibles.is_empty()
+                    && account_update.non_fungibles.is_empty()
                 {
                     AccountSummary::NoLedgerPresense
                 } else {
