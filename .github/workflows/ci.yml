@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Full workspace build + test on Linux.
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --workspace
+      - name: Test
+        run: cargo test --workspace
+
+  # Strict lint gate. Scoped to the non-GUI crates: iced_ui is being replaced,
+  # so gating its warnings is wasted effort. Add crates here as they are cleaned.
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy (non-GUI crates, deny warnings)
+        run: >
+          cargo clippy
+          -p types -p deps -p data_stores -p secrets_store
+          -p ledger_connector -p icon_provider -p app_path -p wallet
+          --all-targets -- -D warnings
+
+  # Supply-chain gate. licenses is intentionally omitted; see deny.toml.
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans sources advisories
+
+  # The OS credential store has a Windows-only code path that was previously
+  # untested. Exercise it on a real Windows runner.
+  windows-secrets:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - name: Build + test secrets store on Windows
+        run: cargo test -p secrets_store -p types
