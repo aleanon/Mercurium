@@ -144,7 +144,7 @@ mod platform {
                     let cred = &*cred_ptr;
                     let slice = std::slice::from_raw_parts(
                         cred.CredentialBlob,
-                        cred.CredentialBlobSize as usize / 2,
+                        cred.CredentialBlobSize as usize,
                     );
                     let bytes = slice.to_vec();
                     CredFree(cred_ptr as *mut _);
@@ -175,7 +175,9 @@ mod platform {
                 Type: CRED_TYPE_GENERIC,
                 TargetName: PWSTR(target_name.as_mut_ptr()),
                 CredentialBlob: blob.as_mut_ptr(),
-                CredentialBlobSize: (blob.len() * 2) as u32,
+                // CredentialBlob is a raw byte buffer; CredentialBlobSize is its
+                // length in BYTES. It is not UTF-16, so there is no *2 factor.
+                CredentialBlobSize: blob.len() as u32,
                 Persist: CRED_PERSIST_LOCAL_MACHINE,
                 ..Default::default()
             };
@@ -212,5 +214,30 @@ mod tests {
 
         store.delete_db_encryption_salt().unwrap();
         assert!(store.get_db_encryption_salt().is_err());
+    }
+}
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::*;
+
+    // Exercises the real Windows Credential Manager FFI path, which previously
+    // had no test coverage (that is how the CredentialBlobSize length bug went
+    // unnoticed). Uses a unique target name and cleans up after itself.
+    #[test]
+    fn blob_store_get_delete_roundtrip() {
+        let paths = AppPathInner::new().unwrap();
+        // A blob whose exact byte length must be preserved: a wrong size factor
+        // would either truncate, over-read, or return the wrong number of bytes.
+        let blob: Vec<u8> = (0u16..500).map(|b| b as u8).collect();
+        let target = "mercurium-test-blob-roundtrip";
+
+        platform::store_blob(&paths, &blob, target).unwrap();
+        let loaded = platform::get_blob(&paths, target).unwrap();
+        platform::delete_blob(&paths, target).ok();
+
+        assert_eq!(loaded.len(), blob.len(), "round-trip length must match");
+        assert_eq!(loaded, blob, "round-trip bytes must match");
+        assert!(platform::get_blob(&paths, target).is_err());
     }
 }
