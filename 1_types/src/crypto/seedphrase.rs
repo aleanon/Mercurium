@@ -24,6 +24,9 @@ impl SeedPhrase {
         Self([[b' '; Self::MAX_WORD_LENGTH]; Self::WORD_COUNT])
     }
 
+    // Intentionally infallible (unlike std::str::FromStr, which returns Result):
+    // any input is normalised into a fixed 24x8 buffer, never rejected.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(phrase: &str) -> Self {
         let mut seed_phrase = Self::new();
         phrase
@@ -46,13 +49,11 @@ impl SeedPhrase {
     pub fn update_word(&mut self, word_index: usize, input: &str) {
         if word_index < Self::WORD_COUNT {
             self.0[word_index] = [b' '; Self::MAX_WORD_LENGTH];
-            if input.len() <= Self::MAX_WORD_LENGTH {
-                self.0[word_index][..input.len()].copy_from_slice(input.as_bytes());
-                self.0[word_index].make_ascii_lowercase();
-            } else {
-                self.0[word_index].copy_from_slice(input[..Self::MAX_WORD_LENGTH].as_bytes());
-                self.0[word_index].make_ascii_lowercase();
-            }
+            // Copy at most MAX_WORD_LENGTH bytes, cut on a UTF-8 char boundary so
+            // a multi-byte char can never cause a mid-codepoint slice panic.
+            let take = super::floor_char_boundary(input, Self::MAX_WORD_LENGTH);
+            self.0[word_index][..take].copy_from_slice(&input.as_bytes()[..take]);
+            self.0[word_index].make_ascii_lowercase();
         }
     }
 
@@ -128,8 +129,12 @@ impl Phrase {
     }
 
     pub fn push_str(&mut self, str: &str) {
-        self.0
-            .push_str(&str[..SeedPhrase::MAX_PHRASE_LENGTH - self.0.len()])
+        // saturating_sub guards the underflow when the buffer is already full;
+        // floor_char_boundary caps the copy at the remaining capacity on a
+        // UTF-8 boundary (and is a no-op when the whole string fits).
+        let remaining = SeedPhrase::MAX_PHRASE_LENGTH.saturating_sub(self.0.len());
+        let take = super::floor_char_boundary(str, remaining);
+        self.0.push_str(&str[..take])
     }
 }
 
@@ -179,5 +184,26 @@ mod tests {
     #[test]
     fn word_count_is_24() {
         assert_eq!(SeedPhrase::new().nr_of_words(), 24);
+    }
+
+    #[test]
+    fn multibyte_word_does_not_panic_on_truncation() {
+        let mut phrase = SeedPhrase::new();
+        // "€" is 3 bytes; 4 of them = 12 bytes > MAX_WORD_LENGTH (8). A raw
+        // byte slice at 8 would land mid-codepoint and panic.
+        phrase.update_word(0, "€€€€");
+        let w = phrase.reference_word(0).unwrap();
+        assert!(w.len() <= SeedPhrase::MAX_WORD_LENGTH);
+        assert!(std::str::from_utf8(w.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn phrase_push_str_past_capacity_does_not_panic() {
+        let mut phrase = Phrase::new();
+        let huge = "é".repeat(SeedPhrase::MAX_PHRASE_LENGTH); // 2 bytes each
+        phrase.push_str(&huge);
+        // Second push with a full buffer must not underflow.
+        phrase.push_str("more");
+        assert!(phrase.as_str().len() <= SeedPhrase::MAX_PHRASE_LENGTH);
     }
 }

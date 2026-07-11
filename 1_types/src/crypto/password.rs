@@ -33,7 +33,10 @@ impl Password {
     }
 
     pub fn push(&mut self, c: char) {
-        if self.0.len() < Self::MAX_LEN {
+        // Guard on the byte length of the char, not just `< MAX_LEN`, so a
+        // multi-byte char can never push past the pre-allocated capacity and
+        // force a reallocation (which would break the zeroize guarantee).
+        if self.0.len() + c.len_utf8() <= Self::MAX_LEN {
             self.0.push(c)
         }
     }
@@ -54,7 +57,9 @@ impl Password {
             if s.len() <= len_left {
                 self.0.push_str(s);
             } else {
-                self.0.push_str(&s[..len_left]);
+                // Truncate on a UTF-8 char boundary; slicing on a raw byte
+                // offset would panic in the middle of a multi-byte char.
+                self.0.push_str(&s[..super::floor_char_boundary(s, len_left)]);
             }
         }
     }
@@ -117,12 +122,9 @@ impl Default for Password {
 impl From<&str> for Password {
     fn from(value: &str) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
-        match value.len() {
-            len @ 1..=Self::MAX_LEN => string.push_str(&value[..len]),
-            0 => {}
-            _ => string.push_str(&value[..Self::MAX_LEN]),
-        };
-
+        // Truncate on a char boundary; a raw byte slice at MAX_LEN would panic
+        // in the middle of a multi-byte char.
+        string.push_str(&value[..super::floor_char_boundary(value, Self::MAX_LEN)]);
         Self(string)
     }
 }
@@ -130,11 +132,7 @@ impl From<&str> for Password {
 impl From<String> for Password {
     fn from(mut value: String) -> Self {
         let mut string = String::with_capacity(Self::MAX_LEN);
-        match value.len() {
-            len @ 1..=Self::MAX_LEN => string.push_str(&value[..len]),
-            0 => {}
-            _ => string.push_str(&value[..Self::MAX_LEN]),
-        }
+        string.push_str(&value[..super::floor_char_boundary(&value, Self::MAX_LEN)]);
         value.zeroize();
         Self(string)
     }
@@ -279,5 +277,26 @@ mod tests {
 
         assert_eq!(password.len(), Password::MAX_LEN);
         assert_eq!(capacity_before_change, password.0.capacity())
+    }
+
+    #[test]
+    fn multibyte_truncation_does_not_panic_and_stays_within_capacity() {
+        // "é" is 2 bytes; 40 of them = 80 bytes > MAX_LEN (64). Truncating at a
+        // raw byte offset of 64 would be fine here, but "€" (3 bytes) would land
+        // mid-codepoint. Exercise both via From and push_str.
+        let euros = "€".repeat(40); // 120 bytes
+        let password = Password::from(euros.as_str());
+        assert!(password.len() <= Password::MAX_LEN);
+        assert!(std::str::from_utf8(password.as_str().as_bytes()).is_ok());
+
+        let mut p = Password::new();
+        p.push_str(&euros);
+        assert!(p.len() <= Password::MAX_LEN);
+        assert_eq!(p.0.capacity(), Password::MAX_LEN, "must not reallocate");
+
+        // push must also respect the byte capacity with a multi-byte char.
+        let mut p2 = Password::from("€".repeat(21).as_str()); // 63 bytes
+        p2.push('€'); // would make 66 bytes > 64: must be rejected
+        assert!(p2.len() <= Password::MAX_LEN);
     }
 }

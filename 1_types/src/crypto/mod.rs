@@ -23,5 +23,20 @@ pub use public_key::PublicKey;
 pub use salt::Salt;
 pub use seedphrase::{Phrase, SeedPhrase};
 
+/// Largest index `<= max` that lies on a UTF-8 char boundary of `s`
+/// (a stable stand-in for the still-unstable `str::floor_char_boundary`).
+/// Used to truncate secret strings without panicking mid-codepoint.
+pub(crate) fn floor_char_boundary(s: &str, max: usize) -> usize {
+    if max >= s.len() {
+        s.len()
+    } else {
+        let mut i = max;
+        while i > 0 && !s.is_char_boundary(i) {
+            i -= 1;
+        }
+        i
+    }
+}
+
 // Re export
 pub use deps::bip39;
