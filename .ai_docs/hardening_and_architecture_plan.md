@@ -232,6 +232,27 @@ Verification: `cargo tree` shows adapters → `ports` → (nothing back); no
 
 Commits: one per port moved (≈7), plus a final `ports` crate scaffold commit.
 
+**Status (2026-07-10): deferred, coupled to the GUI swap.** Investigation showed
+the blocker is not the trait locations alone but the composition root:
+`Env::production()` (in `5_wallet/src/env.rs`) constructs the concrete adapters
+(`secrets_store::production`, `RadixGatewayProvider`), so `5_wallet` depends on
+the adapter crates for *construction*, not just to name the traits. The wallet
+typestate also legitimately holds concrete `AppDataDb`/`IconsDb` handles (a
+resource, not a swappable port). So the `cargo tree` inversion (`5_wallet` with no
+adapter edges) requires relocating `Env::production()` out of `5_wallet` into the
+binary — which changes every `Env::production()` caller, including `iced_ui`
+(being replaced). Moving only the trait definitions without that relocation
+leaves `5_wallet → adapters` intact, i.e. limited value for real refactor risk.
+This is the plan's highest-risk, no-mainnet-blocker item, so it is best done with
+the GUI swap, when the composition root and `Env` callers are rebuilt anyway.
+
+Recipe when picked up: (1) add a `ports` crate holding the port traits + DTOs;
+(2) adapters depend on `ports` and `impl` them; (3) move `Env::production()`
+(and the concrete-adapter wiring) into `mercurium` (or a `composition` crate),
+leaving `5_wallet` with only `Env::new(paths, secrets, gateways)` over trait
+objects; (4) `5_wallet` then depends on `ports` + `types` only. Tracked in
+`decision_log.md`.
+
 ---
 
 ## Phase 5 — Contract tests + DB schema versioning

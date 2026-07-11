@@ -184,3 +184,15 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
 - **Consequence:** The domain uses zero iced symbols (the real architectural fix), but `cargo tree
   -i iced` still lists it transitively via `0_deps`. Couple the dissolution of `0_deps` to the GUI
   framework swap, when `iced_ui` is rewritten and declares its own deps anyway.
+
+## 2026-07-10 — Defer port-inversion (hardening plan Phase 4) to the GUI swap
+- **Context:** Phase 4 aimed to move the port traits into a `ports` crate so adapters depend
+  inward and `5_wallet` has no adapter edges. Investigation found the real coupling is the
+  composition root: `Env::production()` lives in `5_wallet` and builds the concrete adapters, and
+  the wallet typestate holds concrete `AppDataDb`/`IconsDb` handles.
+- **Decision:** Defer. Achieving the `cargo tree` inversion requires relocating `Env::production()`
+  out of `5_wallet` into the binary, which changes every caller — including `iced_ui`, which is
+  being replaced. Moving only trait definitions (without that relocation) leaves `5_wallet →
+  adapters` and delivers little for the refactor risk.
+- **Consequence:** Best sequenced with the GUI framework swap, when the composition root and `Env`
+  callers are rebuilt regardless. Recipe recorded in the plan doc.
