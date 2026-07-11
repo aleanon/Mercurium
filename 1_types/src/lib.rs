@@ -1,6 +1,7 @@
 // #![feature(generic_const_exprs)]
 // #![feature(generic_const_items)]
 // #![feature(associated_type_defaults)]
+#![forbid(unsafe_code)]
 use deps::*;
 
 pub(crate) mod account;
@@ -20,7 +21,6 @@ pub(crate) mod resource;
 pub(crate) mod task_response;
 pub(crate) mod theme;
 pub(crate) mod transaction;
-pub(crate) mod unsafe_reference;
 pub(crate) mod unwrap_unreachable;
 
 pub use account::Account;
@@ -39,7 +39,6 @@ pub use resource::*;
 pub use task_response::*;
 pub use theme::*;
 pub use transaction::*;
-pub use unsafe_reference::*;
 pub use unwrap_unreachable::*;
 
 // public modules

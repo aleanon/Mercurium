@@ -1,8 +1,9 @@
+#![forbid(unsafe_code)]
+
 pub mod ledger_reader;
 mod port;
 mod radix_dlt;
 pub mod transaction_gateway;
-// mod radix_official_gateway;
 
 pub use ledger_reader::{LedgerReader, LedgerReaderError};
 pub use transaction_gateway::{

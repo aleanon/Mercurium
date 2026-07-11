@@ -8,7 +8,7 @@ use data_stores::AppDataDb;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use types::{
-    Account, AppError, Network, Resource, UnsafeRef,
+    Account, AppError, Network, Resource,
     address::{AccountAddress, Address, ResourceAddress},
     assets::{FungibleAsset, NFT, NonFungibleAsset},
     collections::{AccountUpdate, AccountsUpdate},
@@ -80,12 +80,11 @@ pub async fn update_accounts(
     resources: Arc<HashMap<ResourceAddress, Resource>>,
     accounts: Vec<Account>,
 ) -> AccountsUpdate {
-    // `resources` is inside an Arc to make sure it is valid for the duration of this task.
-    // From this point we know that the resources will be valid until all tasks within this function are finished,
-    // therefore we pass around a non reference counted unsafe reference to resources to sub tasks
-    let resources = unsafe { UnsafeRef::new(&*resources) };
-
+    // `resources` is shared read-only across the per-account tasks. Each task
+    // gets its own Arc handle (a refcount bump), keeping the map alive for the
+    // task's lifetime without copying it.
     let tasks = accounts.into_iter().map(|account| {
+        let resources = resources.clone();
         tokio::spawn(async move { update_account(network, resources, account).await })
     });
 
@@ -125,26 +124,29 @@ fn get_successful_task_value<T, E: Display>(result: Result<T, E>) -> Option<T> {
 
 async fn update_account(
     network: Network,
-    resources: UnsafeRef<HashMap<ResourceAddress, Resource>>,
+    resources: Arc<HashMap<ResourceAddress, Resource>>,
     mut account: Account,
 ) -> (AccountUpdate, HashMap<ResourceAddress, (Resource, String)>) {
     let balances_last_updated_at_state_version = account.balances_last_updated.unwrap_or(0);
     // TODO get transactions
     let _transactions_last_updated = account.transactions_last_updated;
 
-    // The account address should be used througout tasks and is never mutated or removed from the Account struct.
-    // by the end of this function all tasks will be completed, so the UnsafeRef will never be used while the reference is not valid
-    let account_address = unsafe { UnsafeRef::new(&account.address) };
+    // Share the account address across the two spawned tasks via Arc clones.
+    let account_address = Arc::new(account.address.clone());
 
-    let fungible_assets_task = tokio::spawn(async move {
-        update_fungible_assets_and_resources_for_account(
-            network,
-            account_address,
-            resources,
-            balances_last_updated_at_state_version,
-        )
-        .await
-    });
+    let fungible_assets_task = {
+        let account_address = account_address.clone();
+        let resources = resources.clone();
+        tokio::spawn(async move {
+            update_fungible_assets_and_resources_for_account(
+                network,
+                account_address,
+                resources,
+                balances_last_updated_at_state_version,
+            )
+            .await
+        })
+    };
 
     let non_fungible_assets_task = tokio::spawn(async move {
         update_non_fungible_assets_and_resources_for_account(
@@ -234,8 +236,8 @@ pub async fn update_resources(
 
 pub async fn update_fungible_assets_and_resources_for_account(
     network: Network,
-    account_address: UnsafeRef<AccountAddress>,
-    stored_resources: UnsafeRef<HashMap<ResourceAddress, Resource>>,
+    account_address: Arc<AccountAddress>,
+    stored_resources: Arc<HashMap<ResourceAddress, Resource>>,
     last_updated_at_state_version: i64,
 ) -> Result<
     (
@@ -360,8 +362,8 @@ pub async fn update_fungible_balances_for_account(
 
 pub async fn update_non_fungible_assets_and_resources_for_account(
     network: Network,
-    account_address: UnsafeRef<AccountAddress>,
-    stored_resources: UnsafeRef<HashMap<ResourceAddress, Resource>>,
+    account_address: Arc<AccountAddress>,
+    stored_resources: Arc<HashMap<ResourceAddress, Resource>>,
     last_updated_at_state_version: i64,
 ) -> Result<
     (
