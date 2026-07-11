@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 pub mod biometric;
 pub mod env;
 pub mod error;

@@ -1,5 +1,7 @@
 // SQLite store implementation (the encrypted wallet + icons databases), relocated from the
 // former standalone `store` crate.
+#![forbid(unsafe_code)]
+
 mod app_data_db;
 mod database;
 mod icons_db;

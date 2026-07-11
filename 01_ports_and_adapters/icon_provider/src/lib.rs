@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod http_icon_provider;
 mod port;
 mod resize;
