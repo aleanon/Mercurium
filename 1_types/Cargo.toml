@@ -3,6 +3,7 @@
 name = "types"
 version = "0.1.0"
 edition.workspace = true
+publish.workspace = true
 
 
 [lib]

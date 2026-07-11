@@ -6,6 +6,7 @@
 name = "deps"
 version.workspace = true
 edition.workspace = true
+publish.workspace = true
 
 
 [lib]
