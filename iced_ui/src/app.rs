@@ -183,7 +183,7 @@ impl App {
 
     #[hot_fn(feature = "reload")]
     pub fn theme(&self) -> Option<Theme> {
-        Some(self.preferences.theme.into())
+        Some(to_iced_theme(self.preferences.theme))
     }
 
     #[hot_fn(feature = "reload")]
@@ -386,3 +386,34 @@ impl App {
 //             .into(),
 //     }
 // }
+
+/// Maps the framework-neutral `types::Theme` onto iced's built-in theme.
+/// Lives here (not in `types`) so the domain crate carries no iced dependency;
+/// the orphan rule forbids a `From` impl here, hence a free function.
+fn to_iced_theme(theme: AppTheme) -> Theme {
+    match theme {
+        AppTheme::Light => Theme::Light,
+        AppTheme::Dark => Theme::Dark,
+        AppTheme::Dracula => Theme::Dracula,
+        AppTheme::Nord => Theme::Nord,
+        AppTheme::SolarizedLight => Theme::SolarizedLight,
+        AppTheme::SolarizedDark => Theme::SolarizedDark,
+        AppTheme::GruvboxLight => Theme::GruvboxLight,
+        AppTheme::GruvboxDark => Theme::GruvboxDark,
+        AppTheme::CatppuccinLatte => Theme::CatppuccinLatte,
+        AppTheme::CatppuccinFrappe => Theme::CatppuccinFrappe,
+        AppTheme::CatppuccinMacchiato => Theme::CatppuccinMacchiato,
+        AppTheme::CatppuccinMocha => Theme::CatppuccinMocha,
+        AppTheme::TokyoNight => Theme::TokyoNight,
+        AppTheme::TokyoNightStorm => Theme::TokyoNightStorm,
+        AppTheme::TokyoNightLight => Theme::TokyoNightLight,
+        AppTheme::KanagawaWave => Theme::KanagawaWave,
+        AppTheme::KanagawaDragon => Theme::KanagawaDragon,
+        AppTheme::KanagawaLotus => Theme::KanagawaLotus,
+        AppTheme::Moonfly => Theme::Moonfly,
+        AppTheme::Nightfly => Theme::Nightfly,
+        AppTheme::Oxocarbon => Theme::Oxocarbon,
+        AppTheme::Ferra => Theme::Ferra,
+        AppTheme::Custom => Theme::Dark,
+    }
+}
