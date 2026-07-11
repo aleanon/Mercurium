@@ -187,6 +187,20 @@ builds; e2e still green.
 
 Commits: 3a, 3b, 3c (three commits).
 
+**Status (2026-07-10): 3a + 3b done; 3c (retire `0_deps`) deferred.** The
+meaningful leak is closed — the domain crates (`1_types`, `5_wallet`, the
+adapters) now use **zero** iced symbols (grep-verified), and the duplicate
+`app_path` crate is gone. What remains is the transitive dep edge: every crate
+depends on the `0_deps` mega-crate, which re-exports `iced`, so `cargo tree -i
+iced` still lists the domain until `0_deps` is dissolved. Fully retiring `0_deps`
+means rewriting `use deps::*` imports in ~120 files, roughly half of them in
+`iced_ui`/`mercurium` (being replaced) — wasted churn on doomed code — and the
+Cargo feature-unification rules defeat the cleaner "iced behind an optional
+`deps` feature" trick in a whole-workspace build. Deferred and coupled to the GUI
+swap: when `iced_ui` is rewritten on the new framework it will declare its own
+dependencies, at which point `0_deps` can be dissolved for every crate at once
+and each will declare only what it uses. Tracked in `decision_log.md`.
+
 ---
 
 ## Phase 4 — Ports to the consumer (true hexagonal)

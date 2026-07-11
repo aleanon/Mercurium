@@ -173,3 +173,14 @@ Format per entry: **Date — Decision** · *Context / why* · *Consequence*.
 - **Consequence:** `ring::aead` is confined to three reviewed fresh-nonce-per-seal sites and the
   misuse-prone `NonceSequence` pattern is gone, but "ring nowhere else" is not yet compiler-
   enforced. Revisit after Phase 3 (per-crate deps) or the GUI swap.
+
+## 2026-07-10 — Defer full 0_deps retirement (hardening plan 3c)
+- **Context:** Phase 3 aimed to retire the `0_deps` re-export crate so each crate declares its own
+  dependencies and the domain's tree is provably iced-free. Phase 3a already removed the only iced
+  *symbol* usage from the domain (the Theme conversion).
+- **Decision:** Keep `0_deps` for now. Fully retiring it means rewriting `use deps::*` across ~120
+  files, ~half in `iced_ui`/`mercurium` which are being replaced; Cargo feature unification also
+  prevents a clean "iced behind an optional feature" split in a whole-workspace build.
+- **Consequence:** The domain uses zero iced symbols (the real architectural fix), but `cargo tree
+  -i iced` still lists it transitively via `0_deps`. Couple the dissolution of `0_deps` to the GUI
+  framework swap, when `iced_ui` is rewritten and declares its own deps anyway.
