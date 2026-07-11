@@ -200,20 +200,23 @@ mod platform {
 mod tests {
     use super::*;
 
+    // Runs the shared SecretsStore contract against the real (file-backed on
+    // unix) adapter, sandboxed in a unique temp dir so it starts empty and does
+    // not touch the developer's real config directory. Binds the fake to reality:
+    // the same suite runs against InMemorySecretsStore in testing.rs.
     #[test]
-    fn salt_store_get_delete_roundtrip() {
-        let paths = Arc::new(AppPathInner::new().unwrap());
-        paths.create_directories_if_not_exists().ok();
+    fn real_store_satisfies_secrets_store_contract() {
+        let root = std::env::temp_dir().join(format!(
+            "mercurium-secrets-contract-{}",
+            std::process::id()
+        ));
+        let paths = Arc::new(AppPathInner::with_root(root.clone()).unwrap());
+        paths.create_directories_if_not_exists().unwrap();
 
         let store = OsCredentialStore::new(paths);
-        let salt = Salt::new().unwrap();
+        crate::contract::assert_secrets_store_contract(&store);
 
-        store.store_db_encryption_salt(salt.clone()).unwrap();
-        let loaded = store.get_db_encryption_salt().unwrap();
-        assert_eq!(salt.to_inner(), loaded.to_inner());
-
-        store.delete_db_encryption_salt().unwrap();
-        assert!(store.get_db_encryption_salt().is_err());
+        let _ = std::fs::remove_dir_all(&root);
     }
 }
 

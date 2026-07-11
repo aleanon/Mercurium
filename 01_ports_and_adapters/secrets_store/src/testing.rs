@@ -87,18 +87,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn salt_roundtrips_and_empty_get_errors() {
-        let store = InMemorySecretsStore::new();
-        assert!(store.get_db_encryption_salt().is_err(), "empty store has no salt");
-
-        let salt = Salt::new().unwrap();
-        store.store_db_encryption_salt(salt.clone()).unwrap();
-        assert_eq!(
-            store.get_db_encryption_salt().unwrap().to_inner(),
-            salt.to_inner()
-        );
-
-        store.delete_db_encryption_salt().unwrap();
-        assert!(store.get_db_encryption_salt().is_err(), "deleted salt is gone");
+    fn fake_satisfies_secrets_store_contract() {
+        crate::contract::assert_secrets_store_contract(&InMemorySecretsStore::new());
     }
 }

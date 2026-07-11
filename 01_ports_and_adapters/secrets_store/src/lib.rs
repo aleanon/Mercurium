@@ -4,6 +4,9 @@ mod port;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
+#[cfg(any(test, feature = "testing"))]
+pub mod contract;
+
 pub use os_credential_store::OsCredentialStore;
 pub use port::SecretsStore;
 
