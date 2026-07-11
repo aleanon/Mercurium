@@ -27,6 +27,7 @@ impl AppDataDb {
     ) -> Result<Self, DbError> {
         let app_data_db = Self::initialize(paths, network, key).await?;
         app_data_db.create_tables_if_not_exist().await?;
+        app_data_db.ensure_schema_version().await?;
 
         debug_println!("AppDataDb connection up");
 

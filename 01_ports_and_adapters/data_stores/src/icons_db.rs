@@ -35,6 +35,7 @@ impl IconsDb {
     ) -> Result<&'static Self, DbError> {
         let icons_db = Self::initialize(paths, network, key).await?;
         icons_db.create_tables_if_not_exist().await?;
+        icons_db.ensure_schema_version().await?;
 
         debug_println!("IconsDb connection up");
 
