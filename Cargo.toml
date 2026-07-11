@@ -3,7 +3,6 @@ cargo-features = ["profile-rustflags"]
 
 [workspace]
 members = [
-    "01_ports_and_adapters/app_path",
     "01_ports_and_adapters/data_stores",
     "01_ports_and_adapters/icon_provider",
     "01_ports_and_adapters/ledger_connector",

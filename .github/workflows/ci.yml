@@ -40,7 +40,7 @@ jobs:
         run: >
           cargo clippy
           -p types -p deps -p data_stores -p secrets_store
-          -p ledger_connector -p icon_provider -p app_path -p wallet
+          -p ledger_connector -p icon_provider -p wallet
           --all-targets --
           -D warnings
           -A clippy::type_complexity
