@@ -282,6 +282,37 @@ empty migrate seam.
 
 ---
 
+## Known security debt — vulnerable TLS stack via `radix-gateway-sdk` (open)
+
+Found 2026-07-10 while pushing the hardening branch (GitHub Dependabot; our local
+`cargo deny check advisories` is currently blind because the installed
+cargo-deny cannot parse a CVSS 4.0 entry in the advisory DB — CI's
+`cargo-deny-action` will catch it).
+
+The lockfile carries **two** `rustls-webpki` copies: `0.103.13` (patched) and
+**`0.101.7` (vulnerable)**. Advisories against 0.101.7:
+
+| Severity | ID | Issue |
+|---|---|---|
+| High | GHSA-82j2-j2ch-gfr8 | DoS via panic on malformed CRL BIT STRING |
+| Low | GHSA-xgp8-3hg3-c2mh | Name constraints accepted for wildcard-asserting certs |
+| Low | GHSA-965h-392x-2mh5 | Name constraints for URI names incorrectly accepted |
+
+Path: `rustls-webpki 0.101.7` ← `rustls 0.21.12` ← `hyper-rustls 0.24.2` ←
+`httpclient 0.23.21` ← **`radix-gateway-sdk` (aleanon fork)** ← `0_deps`. This is
+the TLS path to the Radix gateway.
+
+**Not fixable from this repo:** the patched line is `0.103.12+`, a different
+semver line, so `cargo update` cannot reach it. It needs `rustls 0.21 → 0.23`,
+which requires `httpclient` to be updated **inside the `radix-gateway-sdk-fork`
+repo** (or dropping that SDK).
+
+Practical exploitability is probably low (the CRL panic needs CRL revocation
+checking to be configured; the name-constraint issues need specific cert shapes),
+but a wallet should not ship a knowingly-vulnerable TLS stack. **Deliberately not
+suppressed with a `deny.toml` ignore** — CI failing here is CI telling the truth.
+Fix upstream, then drop this section.
+
 ## Out of scope (tracked elsewhere)
 
 - GUI framework swap (iced → Lumen) — separate plan; blocked on Lumen clipboard,
